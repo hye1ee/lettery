@@ -6,10 +6,10 @@ import { TOOLS } from './types'
 // DOM elements
 let selectTool: HTMLButtonElement
 let penTool: HTMLButtonElement
+let handTool: HTMLButtonElement
 let addPointTool: HTMLButtonElement
 let importSvgBtn: HTMLButtonElement
 let exportSvgBtn: HTMLButtonElement
-let clearCanvasBtn: HTMLButtonElement
 let fileInput: HTMLInputElement
 let statusText: HTMLSpanElement
 let coordinates: HTMLSpanElement
@@ -21,23 +21,23 @@ const initApp = () => {
   // Get DOM elements
   selectTool = document.getElementById('select-tool') as HTMLButtonElement
   penTool = document.getElementById('pen-tool') as HTMLButtonElement
+  handTool = document.getElementById('hand-tool') as HTMLButtonElement
   addPointTool = document.getElementById('add-point-tool') as HTMLButtonElement
   importSvgBtn = document.getElementById('import-svg') as HTMLButtonElement
   exportSvgBtn = document.getElementById('export-svg') as HTMLButtonElement
-  clearCanvasBtn = document.getElementById('clear-canvas') as HTMLButtonElement
   fileInput = document.getElementById('file-input') as HTMLInputElement
   statusText = document.getElementById('status-text') as HTMLSpanElement
   coordinates = document.getElementById('coordinates') as HTMLSpanElement
 
   // Check if all elements are found
-  if (!selectTool || !penTool || !addPointTool || !importSvgBtn || !exportSvgBtn || !clearCanvasBtn || !fileInput || !statusText || !coordinates) {
+  if (!selectTool || !penTool || !handTool || !addPointTool || !importSvgBtn || !exportSvgBtn || !fileInput || !statusText || !coordinates) {
     console.error('Some DOM elements not found:', {
       selectTool: !!selectTool,
       penTool: !!penTool,
+      handTool: !!handTool,
       addPointTool: !!addPointTool,
       importSvgBtn: !!importSvgBtn,
       exportSvgBtn: !!exportSvgBtn,
-      clearCanvasBtn: !!clearCanvasBtn,
       fileInput: !!fileInput,
       statusText: !!statusText,
       coordinates: !!coordinates
@@ -51,10 +51,11 @@ const initApp = () => {
   const toolButtons = new Map([
     [TOOLS.SELECT, selectTool],
     [TOOLS.PEN, penTool],
+    [TOOLS.HAND, handTool],
     [TOOLS.ADD_POINT, addPointTool]
   ])
 
-  uiService.initialize(statusText, coordinates, toolButtons)
+  uiService.init(statusText, coordinates, toolButtons)
 
   // Set up event listeners
   setupEventListeners()
@@ -78,6 +79,11 @@ const setupEventListeners = () => {
     switchTool(TOOLS.PEN)
   })
 
+  handTool.addEventListener('click', () => {
+    console.log('Hand tool clicked')
+    switchTool(TOOLS.HAND)
+  })
+
   addPointTool.addEventListener('click', () => {
     console.log('Add point tool clicked')
     switchTool(TOOLS.ADD_POINT)
@@ -92,9 +98,6 @@ const setupEventListeners = () => {
     canvasService.exportSVG();
   })
 
-  clearCanvasBtn.addEventListener('click', () => {
-    canvasService.clearCanvas();
-  })
 
   // File input change
   fileInput.addEventListener('change', (e) => {
@@ -117,8 +120,11 @@ const setupEventListeners = () => {
   // Zoom controls
   document.addEventListener("wheel", function (event: WheelEvent) {
     if (event.ctrlKey || event.metaKey) {
-      console.log("wheel with ctrl/meta", event);
-      // Handle zoom here
+      if (event.deltaY > 0) {
+        canvasService.zoomOut();
+      } else {
+        canvasService.zoomIn();
+      }
       event.preventDefault();
     }
   }, { passive: false });
@@ -137,6 +143,8 @@ const initCanvas = () => {
     onMouseUp: handleMouseUp,
     onMouseMove: handleMouseMove
   })
+
+  canvasService.setUpdateItemsCallback(updateItemsCallback);
 
   // Initialize UI
   switchTool(TOOLS.SELECT)
@@ -165,6 +173,8 @@ const handleMouseDown = (event: paper.ToolEvent) => {
     }
   } else if (currentTool === TOOLS.SELECT) {
     handleSelection(event.point)
+  } else if (currentTool === TOOLS.HAND) {
+    handleHand(event.point)
   } else if (currentTool === TOOLS.ADD_POINT) {
     handleAddPoint(event.point)
   }
@@ -177,7 +187,7 @@ const handleMouseDrag = (event: paper.ToolEvent) => {
     drawingService.continueDrawing(event.point)
   } else if (currentTool === TOOLS.SELECT) {
     const state = drawingService.getState()
-    if (state.selectedPoint) {
+    if (state.selectedPoint || state.selectedPath) {
       drawingService.moveSelectedPoint(event.point)
       uiService.updateStatus('Point moved')
     }
@@ -203,7 +213,7 @@ const handleSelection = (point: paper.Point) => {
   const hitResult = drawingService.hitTest(point)
 
   if (hitResult) {
-    if (hitResult.item instanceof paper.Path) {
+    if (hitResult.item instanceof paper.PathItem) {
       drawingService.selectPath(hitResult.item)
       uiService.updateStatus('Path selected')
     } else if (hitResult.item instanceof paper.PathItem) {
@@ -214,6 +224,29 @@ const handleSelection = (point: paper.Point) => {
     drawingService.deselectAll()
     uiService.updateStatus('Deselected')
   }
+}
+
+// Hand handling
+const handleHand = (point: paper.Point) => {
+  console.log('Hand tool clicked')
+
+  // if user click the canvas, and drag, the canvas should move
+  const canvas = document.getElementById('vector-canvas') as HTMLCanvasElement
+  if (canvas) {
+    canvas.addEventListener('mousedown', (e) => {
+      e.preventDefault()
+      canvasService.moveCanvas(e.clientX, e.clientY)
+    })
+    canvas.addEventListener('mousemove', (e) => {
+      e.preventDefault()
+      canvasService.moveCanvas(e.clientX, e.clientY)
+    })
+    canvas.addEventListener('mouseup', (e) => {
+      e.preventDefault()
+      canvasService.moveCanvas(e.clientX, e.clientY)
+    })
+  }
+
 }
 
 // Add point handling
@@ -233,6 +266,14 @@ const handleAddPoint = (point: paper.Point) => {
   }
 }
 
+const updateItemsCallback = (items: paper.Item[]) => {
+  uiService.updateItems(items);
+}
+
+
 
 initApp();
+
+
+
 

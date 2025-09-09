@@ -1,5 +1,5 @@
 import paper from 'paper'
-import { colors } from '../constants'
+import { colors } from '../utils/styles'
 import type { DrawingState } from '../types'
 
 class DrawingService {
@@ -86,9 +86,10 @@ class DrawingService {
   /**
    * Select a path
    */
-  selectPath(path: paper.Path): void {
+  selectPath(path: paper.PathItem): void {
     this.deselectAll()
     this.state.selectedPath = path
+    path.selected = true;
     path.strokeColor = new paper.Color(colors.primary)
     path.strokeWidth = 2
   }
@@ -96,7 +97,7 @@ class DrawingService {
   /**
    * Deselect a path
    */
-  deselectPath(path: paper.Path): void {
+  deselectPath(path: paper.PathItem): void {
     path.strokeColor = new paper.Color(colors.black)
     path.strokeWidth = 1
   }
@@ -123,11 +124,13 @@ class DrawingService {
   deselectAll(): void {
     if (this.state.selectedPath) {
       this.deselectPath(this.state.selectedPath)
+      this.state.selectedPath.selected = false;
       this.state.selectedPath = null
     }
 
     if (this.state.selectedPoint) {
       this.deselectPoint(this.state.selectedPoint)
+      this.state.selectedPoint.selected = false;
       this.state.selectedPoint = null
     }
   }
@@ -135,12 +138,13 @@ class DrawingService {
   /**
    * Move a selected point
    */
-  moveSelectedPoint(point: paper.Point): boolean {
+  moveSelectedPoint(point: paper.Point): void {
     if (this.state.selectedPoint) {
-      this.state.selectedPoint.position = point
-      return true
+      this.state.selectedPoint.position = point;
     }
-    return false
+    if (this.state.selectedPath) {
+      this.state.selectedPath.position = point;
+    }
   }
 
   /**

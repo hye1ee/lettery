@@ -64,10 +64,20 @@ body {
   color: #000000;
 }
 
-.tool-btn svg {
+.tool-btn img {
   pointer-events: none;
   width: 18px;
   height: 18px;
+  filter: brightness(0) invert(1); /* Make SVG white by default */
+  transition: all 0.2s ease;
+}
+
+.tool-btn.active img {
+  filter: brightness(0) invert(0); /* Make SVG black when active (sky blue background) */
+}
+
+.tool-btn:hover img {
+  filter: brightness(0) invert(1); /* Keep white on hover */
 }
 /* Zoom controls styling */
 .zoom-controls {
@@ -128,8 +138,7 @@ body {
 }
 
 .status-bar {
-  background: rgba(142, 142, 147, 0.8);
-  color: #ffffff;
+  color: white;
   padding: 8px 16px;
   display: flex;
   justify-content: space-between;
@@ -137,15 +146,18 @@ body {
   font-size: 12px;
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
 
-  /* Make it transparent */
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  z-index: 99;
 }
 
-.status-bar span {
+.status-bar .status-text {
   padding: 2px 8px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(58, 58, 60, 0.3);
 }
 
 /* Paper.js path styling */
@@ -201,4 +213,190 @@ body {
 
 .context-menu-item:last-child {
   border-bottom: none;
+}
+
+/* Layer Panel */
+.layer-panel {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  width: 240px;
+  background: rgba(58, 58, 60, 0.9);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+}
+
+.layer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.layer-header h3 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.layer-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.layer-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.layer-btn img {
+  filter: brightness(0) invert(1);
+  width: 16px;
+  height: 16px;
+}
+
+.layer-list {
+  padding: 12px 0;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+/* Element items styling (now the main items) */
+.element-item {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  margin: 0;
+}
+.element-img {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.element-img img {
+  width: 100%;
+  height: 100%;
+  filter: brightness(0) invert(1) opacity(0.8);
+}
+
+.element-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.element-item.selected {
+  background: rgba(135, 206, 235, 0.1);
+  border-left-color: #87ceeb;
+}
+
+.element-item.visible {
+  opacity: 1;
+}
+
+.element-item.hidden {
+  opacity: 0.4;
+}
+
+.element-visibility {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.element-visibility img {
+  filter: brightness(0) invert(1);
+  width: 16px;
+  height: 16px;
+}
+
+.element-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.element-name {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.element-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.element-item:hover .element-actions {
+  opacity: 1;
+}
+
+.element-action-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.element-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.element-action-btn img {
+  filter: brightness(0) invert(1);
+  width: 12px;
+  height: 12px;
+}
+
+/* Scrollbar styling for element list */
+.layer-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layer-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.layer-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.layer-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }

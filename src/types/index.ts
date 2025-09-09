@@ -1,17 +1,19 @@
 // Tool types
-export type ToolType = 'select' | 'pen' | 'addPoint'
+export type ToolType = 'select' | 'pen' | 'addPoint' | 'hand'
 
 // Tool configurations
 export const TOOLS = {
   SELECT: 'select',
   PEN: 'pen',
-  ADD_POINT: 'addPoint'
+  ADD_POINT: 'addPoint',
+  HAND: 'hand'
 } as const
 
 // Keyboard shortcuts
 export const KEYBOARD_SHORTCUTS = {
   SELECT_TOOL: 'v',
   PEN_TOOL: 'p',
+  HAND_TOOL: 'h',
   ADD_POINT_TOOL: 'a',
   ESCAPE: 'escape'
 } as const
@@ -53,3 +55,7 @@ export interface FileOperationResult {
   error?: Error
   data?: string
 }
+
+
+
+

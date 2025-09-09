@@ -9,3 +9,7 @@ export const canvasService = CanvasService.getInstance();
 export const drawingService = DrawingService.getInstance();
 export const toolService = ToolService.getInstance();
 export const uiService = UIService.getInstance();
+
+// Export types
+export type { Layer, LayerAction, CanvasElement } from './uiService';
+
