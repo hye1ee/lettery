@@ -91,7 +91,7 @@ class UIService {
     });
   }
 
-  updateCursor(tool: ToolType): void {
+  updateCursor(tool: ToolType | "grabbing"): void {
     const canvas = document.getElementById('vector-canvas') as HTMLCanvasElement;
     if (canvas) {
       switch (tool) {
@@ -106,6 +106,9 @@ class UIService {
           break;
         case 'hand':
           canvas.style.cursor = 'grab';
+          break;
+        case 'grabbing':
+          canvas.style.cursor = 'grabbing';
           break;
         default:
           canvas.style.cursor = 'default';
@@ -195,7 +198,7 @@ class UIService {
 
       parentItem.innerHTML = `
         <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
-        <div class="element-name">${item.name}</div>
+        <div class="text-body">${item.name}</div>
       `;
       parentItem.style.paddingLeft = `${(index + 1) * 15}px`;
 
@@ -212,7 +215,7 @@ class UIService {
 
       childItem.innerHTML = `
         <div class="element-img"><img src="/${item.className.toLowerCase()}.svg"/></div>
-        <div class="element-name">${item.name}</div>
+        <div class="text-body">${item.name}</div>
       `;
       childItem.style.paddingLeft = `${(index + 1) * 15}px`;
       return [childItem];

@@ -176,9 +176,27 @@ class CanvasService {
     this.view.center = new paper.Point(x, y);
   }
 
-  moveCanvas(x: number, y: number): void {
+  // Pan helpers
+  private panStartCenter: paper.Point | null = null;
+  private panStartPoint: paper.Point | null = null;
+
+  startPan(startPoint: paper.Point): void {
     if (!this.view) throw new Error("View not found");
-    this.view.center = new paper.Point(x, y);
+    this.panStartCenter = this.view.center.clone();
+    this.panStartPoint = startPoint.clone();
+  }
+
+  panTo(currentPoint: paper.Point): void {
+    if (!this.view || !this.panStartCenter || !this.panStartPoint) return;
+    // Move opposite to mouse movement: newCenter = startCenter - (current - startPoint)
+    const dx = currentPoint.x - this.panStartPoint.x;
+    const dy = currentPoint.y - this.panStartPoint.y;
+    this.view.translate(new paper.Point(dx, dy));
+  }
+
+  endPan(): void {
+    this.panStartCenter = null;
+    this.panStartPoint = null;
   }
 
 } export default CanvasService;

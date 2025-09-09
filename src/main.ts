@@ -8,8 +8,8 @@ let selectTool: HTMLButtonElement
 let penTool: HTMLButtonElement
 let handTool: HTMLButtonElement
 let addPointTool: HTMLButtonElement
-let importSvgBtn: HTMLButtonElement
-let exportSvgBtn: HTMLButtonElement
+let layerImportSvgBtn: HTMLButtonElement
+let layerExportSvgBtn: HTMLButtonElement
 let fileInput: HTMLInputElement
 let statusText: HTMLSpanElement
 let coordinates: HTMLSpanElement
@@ -23,21 +23,21 @@ const initApp = () => {
   penTool = document.getElementById('pen-tool') as HTMLButtonElement
   handTool = document.getElementById('hand-tool') as HTMLButtonElement
   addPointTool = document.getElementById('add-point-tool') as HTMLButtonElement
-  importSvgBtn = document.getElementById('import-svg') as HTMLButtonElement
-  exportSvgBtn = document.getElementById('export-svg') as HTMLButtonElement
+  layerImportSvgBtn = document.getElementById('layer-import-svg') as HTMLButtonElement
+  layerExportSvgBtn = document.getElementById('layer-export-svg') as HTMLButtonElement
   fileInput = document.getElementById('file-input') as HTMLInputElement
   statusText = document.getElementById('status-text') as HTMLSpanElement
   coordinates = document.getElementById('coordinates') as HTMLSpanElement
 
   // Check if all elements are found
-  if (!selectTool || !penTool || !handTool || !addPointTool || !importSvgBtn || !exportSvgBtn || !fileInput || !statusText || !coordinates) {
+  if (!selectTool || !penTool || !handTool || !addPointTool || !layerImportSvgBtn || !layerExportSvgBtn || !fileInput || !statusText || !coordinates) {
     console.error('Some DOM elements not found:', {
       selectTool: !!selectTool,
       penTool: !!penTool,
       handTool: !!handTool,
       addPointTool: !!addPointTool,
-      importSvgBtn: !!importSvgBtn,
-      exportSvgBtn: !!exportSvgBtn,
+      layerImportSvgBtn: !!layerImportSvgBtn,
+      layerExportSvgBtn: !!layerExportSvgBtn,
       fileInput: !!fileInput,
       statusText: !!statusText,
       coordinates: !!coordinates
@@ -89,15 +89,15 @@ const setupEventListeners = () => {
     switchTool(TOOLS.ADD_POINT)
   })
 
-  // File operations
-  importSvgBtn.addEventListener('click', () => {
+
+  // Layer action buttons
+  layerImportSvgBtn.addEventListener('click', () => {
     fileInput.click()
   })
 
-  exportSvgBtn.addEventListener('click', () => {
+  layerExportSvgBtn.addEventListener('click', () => {
     canvasService.exportSVG();
   })
-
 
   // File input change
   fileInput.addEventListener('change', (e) => {
@@ -174,7 +174,9 @@ const handleMouseDown = (event: paper.ToolEvent) => {
   } else if (currentTool === TOOLS.SELECT) {
     handleSelection(event.point)
   } else if (currentTool === TOOLS.HAND) {
-    handleHand(event.point)
+    canvasService.startPan(event.point)
+    uiService.updateCursor('grabbing');
+    uiService.updateStatus('Panning started')
   } else if (currentTool === TOOLS.ADD_POINT) {
     handleAddPoint(event.point)
   }
@@ -191,6 +193,8 @@ const handleMouseDrag = (event: paper.ToolEvent) => {
       drawingService.moveSelectedPoint(event.point)
       uiService.updateStatus('Point moved')
     }
+  } else if (currentTool === TOOLS.HAND) {
+    canvasService.panTo(event.point)
   }
 }
 
@@ -201,6 +205,10 @@ const handleMouseUp = (event: paper.ToolEvent) => {
     if (drawingService.finishDrawing(event.point)) {
       uiService.updateStatus('Drawing finished')
     }
+  } else if (currentTool === TOOLS.HAND) {
+    canvasService.endPan()
+    uiService.updateStatus('Panning finished')
+    uiService.updateCursor('hand');
   }
 }
 
@@ -224,29 +232,6 @@ const handleSelection = (point: paper.Point) => {
     drawingService.deselectAll()
     uiService.updateStatus('Deselected')
   }
-}
-
-// Hand handling
-const handleHand = (point: paper.Point) => {
-  console.log('Hand tool clicked')
-
-  // if user click the canvas, and drag, the canvas should move
-  const canvas = document.getElementById('vector-canvas') as HTMLCanvasElement
-  if (canvas) {
-    canvas.addEventListener('mousedown', (e) => {
-      e.preventDefault()
-      canvasService.moveCanvas(e.clientX, e.clientY)
-    })
-    canvas.addEventListener('mousemove', (e) => {
-      e.preventDefault()
-      canvasService.moveCanvas(e.clientX, e.clientY)
-    })
-    canvas.addEventListener('mouseup', (e) => {
-      e.preventDefault()
-      canvasService.moveCanvas(e.clientX, e.clientY)
-    })
-  }
-
 }
 
 // Add point handling
