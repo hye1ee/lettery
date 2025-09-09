@@ -36,7 +36,6 @@ class CanvasService {
     this.project = paper.project;
 
     this.createBackgroundLayer();
-    this.createMainLayer();
   }
 
   setUpdateItemsCallback(callback: (element: any) => void): void {
@@ -44,17 +43,19 @@ class CanvasService {
   }
 
   updateItems() {
-    if (this.updateItemsCallback) {
-      this.updateItemsCallback(this.layer?.children || []);
+    if (this.updateItemsCallback && this.project) {
+      const layers = this.project.layers.filter(layer => layer.name !== 'Background');
+      this.updateItemsCallback(layers || []);
     }
   }
 
   createBackgroundLayer(): void {
     const backgroundLayer = new paper.Layer();
+    backgroundLayer.name = 'Background';
     this.project?.addLayer(backgroundLayer);
 
     const background = new paper.Path.Rectangle(this.view!.bounds)
-    background.fillColor = new paper.Color(colors.lightGray)
+    background.fillColor = new paper.Color(colors.white)
 
     // Create dots
     const dotSize = 2;
@@ -63,17 +64,12 @@ class CanvasService {
     for (let x = spacing; x < this.view!.bounds.width; x += spacing) {
       for (let y = spacing; y < this.view!.bounds.height; y += spacing) {
         const dot = new paper.Path.Circle(new paper.Point(x, y), dotSize)
-        dot.fillColor = new paper.Color(colors.gray)
+        dot.fillColor = new paper.Color(colors.lightGray)
         backgroundLayer.addChild(dot);
       }
     }
     backgroundLayer.locked = true;
     backgroundLayer.sendToBack();
-  }
-
-  createMainLayer(): void {
-    this.layer = new paper.Layer();
-    this.project?.addLayer(this.layer);
   }
 
   setupEventHandlers(handlers: {
@@ -116,13 +112,23 @@ class CanvasService {
    * Manage the canvas
    */
 
+  addLayer(name: string): void {
+    if (!this.project) throw new Error("Project not found");
+    const layer = new paper.Layer();
+    layer.name = name;
+    this.layer = layer; // update active layer
+    this.project.addLayer(layer);
+    this.updateItems();
+  }
+
+
   importSVG(file: File): void {
     if (!this.project || !this.layer) throw new Error("Project or layer not found");
 
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      if (!this.layer) return;
+      if (!this.layer) throw new Error("Layer not found");
       const svgContent = e.target?.result as string;
 
       // Import SVG
@@ -172,7 +178,7 @@ class CanvasService {
   moveCenter(): void {
     if (!this.view) throw new Error("View not found");
 
-    const { x, y } = lerpPoint(this.view.center, { x: this.point.x, y: this.point.y }, 0.1);
+    const { x, y } = lerpPoint(this.view.center, { x: this.point.x, y: this.point.y }, 0.4);
     this.view.center = new paper.Point(x, y);
   }
 

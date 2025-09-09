@@ -9,6 +9,7 @@ class DrawingService {
     selectedPath: null,
     selectedPoint: null
   }
+  private onSelectionChange: ((itemId: string, selected: boolean) => void) | null = null
 
   private constructor() { }
 
@@ -27,6 +28,13 @@ class DrawingService {
    */
   getState(): DrawingState {
     return { ...this.state }
+  }
+
+  /**
+   * Set selection change callback
+   */
+  setSelectionChangeCallback(callback: (itemId: string, selected: boolean) => void): void {
+    this.onSelectionChange = callback;
   }
 
   /**
@@ -92,6 +100,11 @@ class DrawingService {
     path.selected = true;
     path.strokeColor = new paper.Color(colors.primary)
     path.strokeWidth = 2
+
+    // Notify UI service about selection
+    if (path.id && this.onSelectionChange) {
+      this.onSelectionChange(path.id.toString(), true);
+    }
   }
 
   /**
@@ -100,6 +113,11 @@ class DrawingService {
   deselectPath(path: paper.PathItem): void {
     path.strokeColor = new paper.Color(colors.black)
     path.strokeWidth = 1
+
+    // Notify UI service about deselection
+    if (path.id && this.onSelectionChange) {
+      this.onSelectionChange(path.id.toString(), false);
+    }
   }
 
   /**
@@ -132,6 +150,11 @@ class DrawingService {
       this.deselectPoint(this.state.selectedPoint)
       this.state.selectedPoint.selected = false;
       this.state.selectedPoint = null
+    }
+
+    // Clear all selections in UI
+    if (this.onSelectionChange) {
+      this.onSelectionChange('', false); // Empty string indicates clear all
     }
   }
 

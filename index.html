@@ -8,7 +8,9 @@
   </head>
   <body>
     <div id="app">
-      <div class="header"></div>
+      <div class="header">
+        <span class="text-title">Hangul Ja</span>
+      </div>
 
       <div class="canvas-container">
         <canvas id="vector-canvas" width="800" height="600"></canvas>
@@ -40,7 +42,14 @@
         <!-- Layer Panel -->
         <div class="layer-panel">
           <div class="layer-header">
-            <span class="text-title">Layers</span>
+            <span class="text-title">Letters</span>
+            <button
+              class="header-plus-btn"
+              id="header-plus-btn"
+              title="Add New Element"
+            >
+              <img src="/plus.svg" alt="Add" width="16" height="16" />
+            </button>
           </div>
           <div class="layer-list" id="layer-list">
             <!-- Layers will be dynamically added here -->
@@ -67,8 +76,8 @@
       </div>
 
       <div class="status-bar">
-        <span class="status-text" id="status-text">Ready</span>
-        <span class="status-text" id="coordinates">X: 0, Y: 0</span>
+        <span class="text-body" id="status-text">Ready</span>
+        <span class="text-body" id="coordinates">X: 0, Y: 0</span>
       </div>
 
       <input type="file" id="file-input" accept=".svg" style="display: none" />

@@ -10,6 +10,7 @@ let handTool: HTMLButtonElement
 let addPointTool: HTMLButtonElement
 let layerImportSvgBtn: HTMLButtonElement
 let layerExportSvgBtn: HTMLButtonElement
+let addLayerBtn: HTMLButtonElement
 let fileInput: HTMLInputElement
 let statusText: HTMLSpanElement
 let coordinates: HTMLSpanElement
@@ -25,12 +26,13 @@ const initApp = () => {
   addPointTool = document.getElementById('add-point-tool') as HTMLButtonElement
   layerImportSvgBtn = document.getElementById('layer-import-svg') as HTMLButtonElement
   layerExportSvgBtn = document.getElementById('layer-export-svg') as HTMLButtonElement
+  addLayerBtn = document.getElementById('header-plus-btn') as HTMLButtonElement
   fileInput = document.getElementById('file-input') as HTMLInputElement
   statusText = document.getElementById('status-text') as HTMLSpanElement
   coordinates = document.getElementById('coordinates') as HTMLSpanElement
 
   // Check if all elements are found
-  if (!selectTool || !penTool || !handTool || !addPointTool || !layerImportSvgBtn || !layerExportSvgBtn || !fileInput || !statusText || !coordinates) {
+  if (!selectTool || !penTool || !handTool || !addPointTool || !layerImportSvgBtn || !layerExportSvgBtn || !addLayerBtn || !fileInput || !statusText || !coordinates) {
     console.error('Some DOM elements not found:', {
       selectTool: !!selectTool,
       penTool: !!penTool,
@@ -38,6 +40,7 @@ const initApp = () => {
       addPointTool: !!addPointTool,
       layerImportSvgBtn: !!layerImportSvgBtn,
       layerExportSvgBtn: !!layerExportSvgBtn,
+      addLayerBtn: !!addLayerBtn,
       fileInput: !!fileInput,
       statusText: !!statusText,
       coordinates: !!coordinates
@@ -99,6 +102,13 @@ const setupEventListeners = () => {
     canvasService.exportSVG();
   })
 
+  // Header plus button
+  addLayerBtn.addEventListener('click', () => {
+    console.log('Header plus button clicked');
+
+    uiService.addLayer();
+  })
+
   // File input change
   fileInput.addEventListener('change', (e) => {
     const target = e.target as HTMLInputElement
@@ -145,6 +155,46 @@ const initCanvas = () => {
   })
 
   canvasService.setUpdateItemsCallback(updateItemsCallback);
+
+  // Set up selection callbacks
+  drawingService.setSelectionChangeCallback((itemId: string, selected: boolean) => {
+    uiService.updateItemSelection(itemId, selected);
+  });
+
+  uiService.setSelectionChangeCallback((itemId: string, selected: boolean) => {
+    if (selected) {
+      // Find the item by ID and select it
+      const project = canvasService.getProject();
+
+      // Try multiple ways to find the item
+      let item = project.getItem({ id: parseInt(itemId) });
+
+      // If not found by ID, try searching through all items
+      if (!item) {
+        const allItems = project.activeLayer.children;
+        item = allItems.find(child => child.id.toString() === itemId);
+      }
+
+      console.log('Layer panel click - Item ID:', itemId, 'Found item:', item);
+      console.log('All project items:', project.activeLayer.children.map(c => ({ id: c.id, name: c.name, type: c.className })));
+
+      if (item instanceof paper.Path) {
+        drawingService.deselectAll();
+        drawingService.selectPath(item);
+        console.log('Path selected from layer panel:', item.name);
+      } else if (item instanceof paper.CompoundPath || item instanceof paper.Shape) {
+        // For other drawable items, we can select them but may need different handling
+        drawingService.deselectAll();
+        // For now, just mark as selected visually
+        item.selected = true;
+        item.strokeColor = new paper.Color('#3498db');
+        item.strokeWidth = 2;
+        console.log('Drawable item selected from layer panel:', item.name);
+      } else {
+        console.log('Item not found or not drawable:', item);
+      }
+    }
+  });
 
   // Initialize UI
   switchTool(TOOLS.SELECT)

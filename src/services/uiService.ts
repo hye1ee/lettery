@@ -1,4 +1,7 @@
 import type { ToolType } from '../types'
+import paper from 'paper'
+import { tags } from '../utils/tags'
+import { canvasService } from '.';
 
 export interface Layer {
   id: string;
@@ -51,6 +54,7 @@ class UIService {
     'PointText': 0
   };
   private itemListContainer: HTMLElement | null = null;
+  private onSelectionChange: ((itemId: string, selected: boolean) => void) | null = null;
 
   private constructor() { }
 
@@ -168,7 +172,32 @@ class UIService {
 
   public updateItems(items: paper.Item[]) {
     this.items = items;
+    console.log("items", this.items);
     this.renderItems();
+  }
+
+  public updateItemSelection(itemId: string, selected: boolean) {
+    if (itemId === '') {
+      // Clear all selections
+      this.clearAllSelections();
+      return;
+    }
+
+    const element = document.querySelector(`[data-element-id="${itemId}"]`);
+    if (element) {
+      element.classList.toggle('selected', selected);
+    }
+  }
+
+  public clearAllSelections() {
+    const selectedElements = document.querySelectorAll('.element-item.selected');
+    selectedElements.forEach(element => {
+      element.classList.remove('selected');
+    });
+  }
+
+  public setSelectionChangeCallback(callback: (itemId: string, selected: boolean) => void): void {
+    this.onSelectionChange = callback;
   }
 
   public renderItems() {
@@ -196,11 +225,14 @@ class UIService {
       parentItem.className = `element-item ${item.selected ? 'selected' : ''} ${item.visible ? 'visible' : 'hidden'}`;
       parentItem.dataset.elementId = item.id.toString();
 
-      parentItem.innerHTML = `
-        <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
-        <div class="text-body">${item.name}</div>
-      `;
+      parentItem.innerHTML = tags.elementItem(item);
       parentItem.style.paddingLeft = `${(index + 1) * 15}px`;
+
+      // Add click handler for selection
+      parentItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleItemClick(item);
+      });
 
       const items = [parentItem];
       item.children.forEach((child) => {
@@ -213,13 +245,123 @@ class UIService {
       childItem.className = `element-item ${item.selected ? 'selected' : ''} ${item.visible ? 'visible' : 'hidden'}`;
       childItem.dataset.elementId = item.id.toString();
 
-      childItem.innerHTML = `
-        <div class="element-img"><img src="/${item.className.toLowerCase()}.svg"/></div>
-        <div class="text-body">${item.name}</div>
-      `;
+      childItem.innerHTML = tags.elementItem(item);
       childItem.style.paddingLeft = `${(index + 1) * 15}px`;
+
+      // Add click handler for selection
+      childItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleItemClick(item);
+      });
+
       return [childItem];
     }
+  }
+
+  private handleItemClick(item: paper.Item): void {
+    console.log('Layer panel item clicked:', item.name, 'ID:', item.id, 'Type:', item.className);
+
+    // Check if it's a drawable item (Path, CompoundPath, etc.)
+    const isDrawableItem = item instanceof paper.Path ||
+      item instanceof paper.CompoundPath ||
+      item instanceof paper.Shape;
+
+    if (isDrawableItem && this.onSelectionChange) {
+      // Notify the callback about the selection
+      this.onSelectionChange(item.id.toString(), true);
+      this.updateStatus(`${item.name || item.className} selected`);
+      console.log('Selection callback triggered for item:', item.id);
+    } else {
+      console.log('Item is not drawable or callback not set:', item.className, !!this.onSelectionChange);
+    }
+  }
+
+  public addLayer(): void {
+    console.log('Adding layer');
+
+    // Create popup modal
+    this.showAddLayerModal();
+  }
+
+  private showAddLayerModal(): void {
+    // Create modal overlay using centralized template
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
+    modalOverlay.id = 'add-layer-modal';
+
+    // Create modal content using centralized template
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.innerHTML = tags.addLayerModal;
+
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+
+    // Set up event listeners
+    this.setupModalEventListeners();
+  }
+
+  private setupModalEventListeners(): void {
+    const modal = document.getElementById('add-layer-modal');
+    const closeBtn = document.getElementById('modal-close-btn');
+    const confirmBtn = document.getElementById('modal-confirm-btn');
+    const koreanInput = document.getElementById('korean-input') as HTMLInputElement;
+    const preview = document.getElementById('letter-preview');
+
+    // Close modal functions
+    const closeModal = () => {
+      if (modal) {
+        modal.remove();
+      }
+    };
+
+    // Event listeners
+    closeBtn?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // Real-time preview
+    koreanInput?.addEventListener('input', (e) => {
+      const input = e.target as HTMLInputElement;
+      this.updateLetterPreview(input.value, preview);
+    });
+
+    // Confirm button
+    confirmBtn?.addEventListener('click', () => {
+      const koreanText = koreanInput?.value.trim();
+      if (koreanText) {
+        this.createLayersFromKoreanText(koreanText);
+        closeModal();
+      } else {
+        this.updateStatus('Please enter Korean text');
+      }
+    });
+
+    // Focus input
+    koreanInput?.focus();
+  }
+
+  private updateLetterPreview(text: string, previewElement: HTMLElement | null): void {
+    if (!previewElement) return;
+
+    // Split Korean text into individual characters
+    const letters = text.split('').filter(char => char.trim() !== '');
+
+    // Use centralized helper function
+    previewElement.innerHTML = letters.map((letter, index) => tags.letterItem(letter, index)).join('');
+  }
+
+  private createLayersFromKoreanText(koreanText: string): void {
+    const letters = koreanText.split('').filter(char => char.trim() !== '');
+
+
+    letters.forEach((letter, index) => {
+      canvasService.addLayer(`letter_${index + 1}_${letter}`);
+    });
+
+    // Update the layer panel
+    this.updateStatus(`Created ${letters.length} layers for: ${koreanText}`);
   }
 
 }
