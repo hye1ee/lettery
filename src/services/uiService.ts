@@ -187,6 +187,7 @@ class UIService {
     if (element) {
       element.classList.toggle('selected', selected);
     }
+
   }
 
   public clearAllSelections() {
@@ -234,6 +235,9 @@ class UIService {
         this.handleItemClick(item);
       });
 
+      // Add action button event listeners
+      this.setupActionButtonListeners(parentItem, item);
+
       const items = [parentItem];
       item.children.forEach((child) => {
         items.push(...this.createElementItem(child, index + 1));
@@ -254,6 +258,9 @@ class UIService {
         this.handleItemClick(item);
       });
 
+      // Add action button event listeners
+      this.setupActionButtonListeners(childItem, item);
+
       return [childItem];
     }
   }
@@ -273,6 +280,64 @@ class UIService {
       console.log('Selection callback triggered for item:', item.id);
     } else {
       console.log('Item is not drawable or callback not set:', item.className, !!this.onSelectionChange);
+    }
+  }
+
+  private setupActionButtonListeners(element: HTMLElement, item: paper.Item): void {
+    const actionButtons = element.querySelectorAll('.element-action-btn');
+
+    actionButtons.forEach(button => {
+      button.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering item selection
+
+        const action = button.getAttribute('data-action');
+        const itemId = item.id.toString();
+
+        console.log(`Action button clicked: ${action} for item ${itemId}`);
+
+        switch (action) {
+          case 'delete':
+            this.handleDeleteItem(item);
+            break;
+          case 'ungroup':
+            this.handleUngroupItem(item);
+            break;
+          default:
+            console.log('Unknown action:', action);
+        }
+      });
+    });
+  }
+
+  private removeItem(target: paper.Item): void {
+    this.items = this.items.filter(item => item.id !== target.id);
+    target.remove();
+    this.renderItems();
+  }
+
+  private handleDeleteItem(item: paper.Item): void {
+    // Remove from canvas
+    this.removeItem(item);
+    this.updateStatus(`Deleted ${item.name || item.className}`);
+
+    // Notify about deletion
+    if (this.onSelectionChange) {
+      this.onSelectionChange(item.id.toString(), false);
+    }
+  }
+
+  private handleUngroupItem(target: paper.Item): void {
+    if (target instanceof paper.Group) {
+      if (target.children.length > 0) {
+        // Move children to parent layer
+        const children = target.children.slice(); // Create a copy to avoid modification during iteration
+        children.forEach(child => {
+          target.parent?.addChild(child);
+        });
+      }
+      this.removeItem(target);
+    } else {
+      this.updateStatus('Item is not a group');
     }
   }
 

@@ -28,7 +28,7 @@ export interface AppState {
 // Drawing state
 export interface DrawingState {
   currentPath: any | null
-  selectedPath: any | null
+  selectedItem: any | null
   selectedPoint: any | null
 }
 

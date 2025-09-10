@@ -8,6 +8,7 @@
   --color-primary: #4e2a20;
   --color-secondary: #8e6f60;
   --color-tertiary: #c99a8d;
+  --color-quaternary: #e5c8c0;
 }
 
 body {
@@ -262,6 +263,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
+  padding-right: 15px;
 }
 
 .layer-header h3 {
@@ -527,6 +529,7 @@ body {
   align-items: center;
   box-sizing: border-box;
   padding: 8px 20px;
+  padding-right: 15px;
   cursor: pointer;
   transition: all 0.2s ease;
   border-left: 3px solid transparent;
@@ -583,9 +586,12 @@ body {
 
 .element-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   opacity: 0;
+  z-index: 9999;
+
   transition: opacity 0.2s ease;
+  position: relative;
 }
 
 .element-item:hover .element-actions {
@@ -593,13 +599,13 @@ body {
 }
 
 .element-action-btn {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: black;
-  border-radius: 4px;
+
   cursor: pointer;
+  border-radius: 4px;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -607,13 +613,13 @@ body {
 }
 
 .element-action-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background-color: var(--color-quaternary);
 }
 
 .element-action-btn img {
-  filter: brightness(0) invert(1);
-  width: 12px;
-  height: 12px;
+  filter: brightness(0) invert(0);
+  width: 15px;
+  height: 15px;
 }
 
 /* Scrollbar styling for element list */

@@ -1,6 +1,7 @@
 import './style.css'
 import paper from 'paper'
-import { canvasService, drawingService, toolService, uiService } from './services'
+import { canvasService, toolService, uiService } from './services'
+
 import { TOOLS } from './types'
 
 // DOM elements
@@ -123,7 +124,7 @@ const setupEventListeners = () => {
     if (newTool) {
       switchTool(newTool)
     } else if (e.key.toLowerCase() === 'escape') {
-      drawingService.deselectAll()
+      canvasService.deselectAll()
     }
   })
 
@@ -157,41 +158,16 @@ const initCanvas = () => {
   canvasService.setUpdateItemsCallback(updateItemsCallback);
 
   // Set up selection callbacks
-  drawingService.setSelectionChangeCallback((itemId: string, selected: boolean) => {
+  canvasService.setSelectionChangeCallback((itemId: string, selected: boolean) => {
     uiService.updateItemSelection(itemId, selected);
   });
 
   uiService.setSelectionChangeCallback((itemId: string, selected: boolean) => {
     if (selected) {
       // Find the item by ID and select it
-      const project = canvasService.getProject();
-
-      // Try multiple ways to find the item
-      let item = project.getItem({ id: parseInt(itemId) });
-
-      // If not found by ID, try searching through all items
-      if (!item) {
-        const allItems = project.activeLayer.children;
-        item = allItems.find(child => child.id.toString() === itemId);
-      }
-
-      console.log('Layer panel click - Item ID:', itemId, 'Found item:', item);
-      console.log('All project items:', project.activeLayer.children.map(c => ({ id: c.id, name: c.name, type: c.className })));
-
-      if (item instanceof paper.Path) {
-        drawingService.deselectAll();
-        drawingService.selectPath(item);
-        console.log('Path selected from layer panel:', item.name);
-      } else if (item instanceof paper.CompoundPath || item instanceof paper.Shape) {
-        // For other drawable items, we can select them but may need different handling
-        drawingService.deselectAll();
-        // For now, just mark as selected visually
-        item.selected = true;
-        item.strokeColor = new paper.Color('#3498db');
-        item.strokeWidth = 2;
-        console.log('Drawable item selected from layer panel:', item.name);
-      } else {
-        console.log('Item not found or not drawable:', item);
+      const item = canvasService.getItemById(itemId);
+      if (item) {
+        canvasService.selectItem(item);
       }
     }
   });
@@ -217,7 +193,7 @@ const handleMouseDown = (event: paper.ToolEvent) => {
   const currentTool = toolService.getCurrentTool()
 
   if (currentTool === TOOLS.PEN) {
-    const path = drawingService.startDrawing(event.point)
+    const path = canvasService.startDrawing(event.point)
     if (path) {
       uiService.updateStatus('Drawing started')
     }
@@ -236,11 +212,11 @@ const handleMouseDrag = (event: paper.ToolEvent) => {
   const currentTool = toolService.getCurrentTool()
 
   if (currentTool === TOOLS.PEN) {
-    drawingService.continueDrawing(event.point)
+    canvasService.continueDrawing(event.point)
   } else if (currentTool === TOOLS.SELECT) {
-    const state = drawingService.getState()
-    if (state.selectedPoint || state.selectedPath) {
-      drawingService.moveSelectedPoint(event.point)
+    const state = canvasService.getDrawingState()
+    if (state.selectedPoint || state.selectedItem) {
+      canvasService.moveSelectedPoint(event.point)
       uiService.updateStatus('Point moved')
     }
   } else if (currentTool === TOOLS.HAND) {
@@ -252,7 +228,7 @@ const handleMouseUp = (event: paper.ToolEvent) => {
   const currentTool = toolService.getCurrentTool()
 
   if (currentTool === TOOLS.PEN) {
-    if (drawingService.finishDrawing(event.point)) {
+    if (canvasService.finishDrawing(event.point)) {
       uiService.updateStatus('Drawing finished')
     }
   } else if (currentTool === TOOLS.HAND) {
@@ -268,32 +244,32 @@ const handleMouseMove = (event: paper.ToolEvent) => {
 
 // Selection handling
 const handleSelection = (point: paper.Point) => {
-  const hitResult = drawingService.hitTest(point)
+  const hitResult = canvasService.hitTest(point)
 
   if (hitResult) {
     if (hitResult.item instanceof paper.PathItem) {
-      drawingService.selectPath(hitResult.item)
+      canvasService.selectItem(hitResult.item)
       uiService.updateStatus('Path selected')
     } else if (hitResult.item instanceof paper.PathItem) {
-      drawingService.selectPoint(hitResult.item)
+      canvasService.selectPoint(hitResult.item)
       uiService.updateStatus('Point selected')
     }
   } else {
-    drawingService.deselectAll()
+    canvasService.deselectAll()
     uiService.updateStatus('Deselected')
   }
 }
 
 // Add point handling
 const handleAddPoint = (point: paper.Point) => {
-  const hitResult = drawingService.hitTest(point, {
+  const hitResult = canvasService.hitTest(point, {
     tolerance: 10,
     match: (result: any) => result.item instanceof paper.Path
   })
 
   if (hitResult && hitResult.item instanceof paper.Path) {
     const path = hitResult.item
-    const newSegment = drawingService.addPointToPath(path, point)
+    const newSegment = canvasService.addPointToPath(path, point)
 
     if (newSegment) {
       uiService.updateStatus('Point added')
