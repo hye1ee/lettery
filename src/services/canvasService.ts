@@ -3,6 +3,7 @@ import paper from 'paper'
 import { lerpPoint } from '../utils/helper'
 import { colors } from '../utils/styles'
 import type { DrawingState } from '../types'
+import { findParentLayer } from '../utils/paperUtils'
 
 class CanvasService {
   private static instance: CanvasService | null = null
@@ -20,7 +21,7 @@ class CanvasService {
   };
 
   // Callback for UI event listeners
-  private onSelectionChange: ((itemId: string, selected: boolean) => void) | null = null;
+  private alertSelectionChange: ((itemId: string, selected: boolean, layerId?: string) => void) | null = null;
 
   private constructor() { }
 
@@ -47,6 +48,12 @@ class CanvasService {
     this.project = paper.project;
 
     this.createBackgroundLayer();
+
+    // Ensure there's always an active layer
+    // this.ensureActiveLayer();
+
+    // Periodic sync check (fallback)
+    this.setupPeriodicSync();
   }
 
   setUpdateItemsCallback(callback: (element: any) => void): void {
@@ -62,6 +69,7 @@ class CanvasService {
 
   createBackgroundLayer(): void {
     const backgroundLayer = new paper.Layer();
+    backgroundLayer.visible = false;
     backgroundLayer.name = 'Background';
     this.project?.addLayer(backgroundLayer);
 
@@ -134,6 +142,7 @@ class CanvasService {
    */
 
   addLayer(name: string): void {
+    console.log("Adding layer", name);
     if (!this.project) throw new Error("Project not found");
     const layer = new paper.Layer();
     layer.name = name;
@@ -141,9 +150,10 @@ class CanvasService {
     // Update active layer
     this.activeLayer = layer;
     this.project.addLayer(layer);
-    layer.activate();
-
     this.updateItems();
+
+    // Select the active layer
+    this.selectItem(layer);
   }
 
 
@@ -151,21 +161,54 @@ class CanvasService {
     if (!this.project || !this.activeLayer) throw new Error("Project or layer not found");
 
     const reader = new FileReader();
+    console.log("Reading SVG file", file.name);
 
     reader.onload = (e) => {
       if (!this.activeLayer) throw new Error("Active layer not found");
       const svgContent = e.target?.result as string;
 
-      // Import SVG to active layer
-      const svg = this.activeLayer.importSVG(svgContent);
-      if (svg instanceof paper.Group) {
-        svg.clipped = false;
-      }
+      try {
+        // Import SVG to active layer
+        console.log("Importing SVG to active layer", this.activeLayer.name);
+        const svg = this.activeLayer.importSVG(svgContent);
 
-      this.updateItems();
+        if (svg instanceof paper.Group) {
+          svg.clipped = false;
+        }
+
+        // Give the imported SVG a unique name to avoid conflicts
+        if (svg) {
+          svg.name = `${file.name}_${Date.now()}`;
+        }
+
+        this.updateItems();
+        if (this.alertSelectionChange) { // select current active layer
+          this.alertSelectionChange(this.activeLayer.id.toString(), true, this.activeLayer.id.toString());
+        }
+
+        console.log("SVG imported successfully:", svg?.name);
+      } catch (error) {
+        console.error("Error importing SVG:", error);
+        alert("Failed to import SVG file. Please check the file format.");
+      }
+    }
+
+    reader.onerror = () => {
+      console.error("Error reading file");
+      alert("Failed to read the file. Please try again.");
     }
 
     reader.readAsText(file);
+  }
+
+  /**
+   * Trigger file input for SVG import
+   */
+  triggerSVGImport(): void {
+    const fileInput = document.getElementById('file-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
   }
 
 
@@ -242,8 +285,8 @@ class CanvasService {
   /**
    * Set selection change callback
    */
-  setSelectionChangeCallback(callback: (itemId: string, selected: boolean) => void): void {
-    this.onSelectionChange = callback;
+  setAlertSelectionChangeCallback(callback: (itemId: string, selected: boolean, layerId?: string) => void): void {
+    this.alertSelectionChange = callback;
   }
 
   /**
@@ -304,27 +347,55 @@ class CanvasService {
    * Select an item
    */
   selectItem(item: paper.Item): void {
-    this.deselectAll()
-    this.drawingState.selectedItem = item
-    item.selected = true;
+    this.deselectAll();
 
-    // Notify UI service about selection
-    if (item.id && this.onSelectionChange) {
-      this.onSelectionChange(item.id.toString(), true);
+    if (item instanceof paper.Layer) {
+      // Layer selected - clear item selection, set active layer
+      this.activeLayer = item;
+      item.activate();
+
+      // Notify UI: layer selected, no item selected
+      if (item.id && this.alertSelectionChange) {
+        this.alertSelectionChange(item.id.toString(), true, item.id.toString());
+      }
+    } else {
+      // Item selected - set both item and parent layer as active
+      this.drawingState.selectedItem = item;
+      item.selected = true;
+
+      const parentLayer = findParentLayer(item);
+      if (parentLayer) {
+        parentLayer.activate();
+        this.activeLayer = parentLayer;
+
+        // Notify UI: item selected, parent layer active
+        if (item.id && this.alertSelectionChange) {
+          this.alertSelectionChange(item.id.toString(), true, parentLayer.id.toString());
+        }
+      } else {
+        // No parent layer found
+        if (item.id && this.alertSelectionChange) {
+          this.alertSelectionChange(item.id.toString(), true);
+        }
+      }
     }
+  }
+
+  // When Item selected by UI
+  updateItemSelection(id: string): void {
+    const item = this.getItemById(id);
+    if (item) {
+      this.selectItem(item);
+    }
+
   }
 
   /**
    * Deselect a path
    */
-  deselectPath(path: paper.PathItem): void {
-    path.strokeColor = new paper.Color(colors.black)
-    path.strokeWidth = 1
+  deselectItem(item: paper.Item): void {
+    item.selected = false;
 
-    // Notify UI service about deselection
-    if (path.id && this.onSelectionChange) {
-      this.onSelectionChange(path.id.toString(), false);
-    }
   }
 
   /**
@@ -344,11 +415,11 @@ class CanvasService {
   }
 
   /**
-   * Deselect all items
+   * Deselect all items (but keep active layer)
    */
   deselectAll(): void {
     if (this.drawingState.selectedItem) {
-      this.deselectPath(this.drawingState.selectedItem)
+      this.deselectItem(this.drawingState.selectedItem)
       this.drawingState.selectedItem.selected = false;
       this.drawingState.selectedItem = null
     }
@@ -359,10 +430,88 @@ class CanvasService {
       this.drawingState.selectedPoint = null
     }
 
-    // Clear all selections in UI
-    if (this.onSelectionChange) {
-      this.onSelectionChange('', false); // Empty string indicates clear all
+    // Ensure there's always an active layer
+    this.ensureActiveLayer();
+
+    // Clear item selection in UI (but keep active layer)
+    if (this.alertSelectionChange) {
+      console.log('Canvas deselectAll - notifying UI with layerId:', this.activeLayer?.id.toString());
+      this.alertSelectionChange('', false, this.activeLayer?.id.toString() ?? ''); // Empty string indicates clear item selection
     }
+  }
+
+  /**
+   * Clear all selections including active layer
+   */
+  clearAllSelections(): void {
+    this.deselectAll();
+    this.activeLayer = null;
+
+    // Clear all selections in UI
+    if (this.alertSelectionChange) {
+      this.alertSelectionChange('', false, ''); // Clear everything
+    }
+  }
+
+  /**
+   * Ensure there's always an active layer
+   */
+  ensureActiveLayer(): void {
+    if (!this.activeLayer && this.project) {
+      // Find the first layer or create one
+      const layers = this.project.layers;
+      if (layers.length > 0) {
+        this.activeLayer = layers[0];
+        this.activeLayer.activate();
+      } else {
+        // Create a default layer
+        window.alert('Please add a layer first');
+      }
+    }
+  }
+
+
+  /**
+   * Handle when the active layer changes (e.g., when a layer is deleted)
+   */
+  private handleActiveLayerChange(): void {
+    if (!this.project) return;
+
+    // Get the current active layer from Paper.js
+    const newActiveLayer = this.project.activeLayer;
+
+    // Update our internal state
+    this.activeLayer = newActiveLayer;
+
+    // Notify UI about the active layer change
+    if (this.alertSelectionChange && newActiveLayer) {
+      this.alertSelectionChange('', false, newActiveLayer.id.toString());
+    }
+
+    console.log('Active layer updated to:', newActiveLayer.name);
+  }
+
+  /**
+   * Manually sync active layer from Paper.js (useful for debugging)
+   */
+  public syncActiveLayerFromPaper(): void {
+    if (!this.project) return;
+
+    const paperActiveLayer = this.project.activeLayer;
+    if (paperActiveLayer && paperActiveLayer !== this.activeLayer) {
+      console.log('Syncing active layer from Paper.js:', paperActiveLayer.name);
+      this.handleActiveLayerChange();
+    }
+  }
+
+  /**
+   * Setup periodic sync as fallback (in case events don't catch everything)
+   */
+  private setupPeriodicSync(): void {
+    // Check every 1 second if we're still in sync
+    setInterval(() => {
+      this.syncActiveLayerFromPaper();
+    }, 1000);
   }
 
   /**

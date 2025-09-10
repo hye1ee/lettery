@@ -558,6 +558,11 @@ body {
   border-left-color: var(--color-secondary);
 }
 
+.element-item.active {
+  background: rgba(0, 0, 0, 0.01);
+  border-left-color: var(--color-tertiary);
+}
+
 .element-item.visible {
   opacity: 1;
 }

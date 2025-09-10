@@ -113,8 +113,13 @@ const setupEventListeners = () => {
   // File input change
   fileInput.addEventListener('change', (e) => {
     const target = e.target as HTMLInputElement
+    console.log('File input changed, files:', target.files?.length);
     if (target.files && target.files[0]) {
+      console.log('Importing file:', target.files[0].name);
       canvasService.importSVG(target.files[0]);
+      // Reset the input so the same file can be imported again
+      target.value = '';
+      console.log('File input reset, ready for next import');
     }
   })
 
@@ -157,19 +162,9 @@ const initCanvas = () => {
 
   canvasService.setUpdateItemsCallback(updateItemsCallback);
 
-  // Set up selection callbacks
-  canvasService.setSelectionChangeCallback((itemId: string, selected: boolean) => {
-    uiService.updateItemSelection(itemId, selected);
-  });
-
-  uiService.setSelectionChangeCallback((itemId: string, selected: boolean) => {
-    if (selected) {
-      // Find the item by ID and select it
-      const item = canvasService.getItemById(itemId);
-      if (item) {
-        canvasService.selectItem(item);
-      }
-    }
+  // Set up selection callbacks from canvas -> UI
+  canvasService.setAlertSelectionChangeCallback((itemId: string, selected: boolean, layerId?: string) => {
+    uiService.updateItemSelection(itemId, selected, layerId);
   });
 
   // Initialize UI
@@ -242,19 +237,25 @@ const handleMouseMove = (event: paper.ToolEvent) => {
   uiService.updateCoordinates(event.point.x, event.point.y)
 }
 
-// Selection handling
+// Selection handling from canvas -> UI
 const handleSelection = (point: paper.Point) => {
   const hitResult = canvasService.hitTest(point)
 
   if (hitResult) {
-    if (hitResult.item instanceof paper.PathItem) {
+    if (hitResult.item instanceof paper.Path) {
       canvasService.selectItem(hitResult.item)
       uiService.updateStatus('Path selected')
-    } else if (hitResult.item instanceof paper.PathItem) {
-      canvasService.selectPoint(hitResult.item)
-      uiService.updateStatus('Point selected')
+    } else if (hitResult.item instanceof paper.Segment) {
+      // canvasService.selectPoint(hitResult.item)
+      // uiService.updateStatus('Point selected')
+    } else {
+      // Other drawable items
+      canvasService.selectItem(hitResult.item)
+      uiService.updateStatus('Item selected')
     }
   } else {
+    // Clicked on empty space - deselect items but keep active layer
+    console.log('Canvas click on empty space - deselecting all items');
     canvasService.deselectAll()
     uiService.updateStatus('Deselected')
   }

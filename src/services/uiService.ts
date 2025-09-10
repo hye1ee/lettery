@@ -1,6 +1,8 @@
 import type { ToolType } from '../types'
 import paper from 'paper'
 import { tags } from '../utils/tags'
+
+// It is allowed to directly call canvasService from uiService
 import { canvasService } from '.';
 
 export interface Layer {
@@ -54,7 +56,10 @@ class UIService {
     'PointText': 0
   };
   private itemListContainer: HTMLElement | null = null;
-  private onSelectionChange: ((itemId: string, selected: boolean) => void) | null = null;
+
+
+  private activeLayerId: string = '';
+  private selectedItemId: string = '';
 
   private constructor() { }
 
@@ -172,34 +177,123 @@ class UIService {
 
   public updateItems(items: paper.Item[]) {
     this.items = items;
-    console.log("items", this.items);
     this.renderItems();
+
+    // Ensure there's always an active layer
+    this.ensureActiveLayer();
   }
 
-  public updateItemSelection(itemId: string, selected: boolean) {
-    if (itemId === '') {
-      // Clear all selections
-      this.clearAllSelections();
-      return;
+  private ensureActiveLayer() {
+    // If no active layer, set the first layer as active
+    if (!this.activeLayerId && this.items.length > 0) {
+      const firstLayer = this.items.find(item => item instanceof paper.Layer);
+      if (firstLayer) {
+        this.activeLayerId = firstLayer.id.toString();
+        this.setActiveLayer(this.activeLayerId);
+      }
     }
-
-    const element = document.querySelector(`[data-element-id="${itemId}"]`);
-    if (element) {
-      element.classList.toggle('selected', selected);
-    }
-
   }
 
-  public clearAllSelections() {
+  // Update UI selection state based on canvas selection
+  public updateItemSelection(itemId: string, selected: boolean, layerId?: string) {
+    if (selected && itemId) {
+      // Clear previous item selection only
+      this.clearSelectedItems();
+
+      if (layerId && itemId === layerId) {
+        // Layer selected - clear item selection, set active layer
+        this.selectedItemId = '';
+        this.activeLayerId = layerId;
+        this.setActiveLayer(layerId);
+      } else {
+        // Item selected - set both item and layer
+        this.selectedItemId = itemId;
+        this.activeLayerId = layerId || '';
+        this.setSelectedItem(itemId);
+        if (layerId) {
+          this.setActiveLayer(layerId);
+        }
+      }
+    } else if (!selected && layerId && itemId === '') {
+      // Deselected with active layer info - clear item selection, keep active layer
+      console.log("Canvas deselection - clearing items, keeping active layer:", layerId);
+      this.selectedItemId = '';
+      this.activeLayerId = layerId;
+      this.setActiveLayer(layerId);
+      this.clearSelectedItems();
+    } else if (!selected && layerId && itemId !== '') {
+      // Active layer changed (e.g., when a layer was deleted)
+      console.log("Active layer changed to:", layerId);
+      this.selectedItemId = '';
+      this.activeLayerId = layerId;
+      this.setActiveLayer(layerId);
+    } else {
+      console.log("UI triggered deselection");
+      // Deselected - clear item selection, keep active layer
+      this.selectedItemId = '';
+      this.clearSelectedItems();
+    }
+  }
+
+  private setActiveLayer(layerId: string) {
+    // Clear previous active layer
+    const prevActiveLayer = document.querySelector('.element-item.active');
+    if (prevActiveLayer) {
+      prevActiveLayer.classList.remove('active');
+    }
+
+    // Set new active layer
+    const newActiveLayer = document.querySelector(`[data-element-id="${layerId}"]`);
+    if (newActiveLayer) {
+      newActiveLayer.classList.add('active');
+    }
+  }
+
+  private setSelectedItem(itemId: string) {
+    const selectedItem = document.querySelector(`[data-element-id="${itemId}"]`);
+    if (selectedItem) {
+      selectedItem.classList.add('selected');
+    }
+  }
+
+  public clearSelectedItems() {
+    // Clear selected items only
     const selectedElements = document.querySelectorAll('.element-item.selected');
     selectedElements.forEach(element => {
       element.classList.remove('selected');
     });
   }
 
-  public setSelectionChangeCallback(callback: (itemId: string, selected: boolean) => void): void {
-    this.onSelectionChange = callback;
+  public clearAllSelections() {
+    // Clear selected items
+    const selectedElements = document.querySelectorAll('.element-item.selected');
+    selectedElements.forEach(element => {
+      element.classList.remove('selected');
+    });
+
+    // Clear active layers
+    const activeElements = document.querySelectorAll('.element-item.active');
+    activeElements.forEach(element => {
+      element.classList.remove('active');
+    });
   }
+
+  public clearSelectedItem() {
+    const element = document.querySelector(`[data-element-id="${this.selectedItemId}"]`);
+    if (element) {
+      element.classList.toggle('selected', false);
+    }
+    this.selectedItemId = '';
+  }
+
+  public clearActiveLayer() {
+    const element = document.querySelector(`[data-layer-id="${this.activeLayerId}"]`);
+    if (element) {
+      element.classList.toggle('active', false);
+    }
+    this.activeLayerId = '';
+  }
+
 
   public renderItems() {
     if (!this.itemListContainer) return;
@@ -214,8 +308,6 @@ class UIService {
 
   private createElementItem(item: paper.Item, index: number): HTMLDivElement[] {
     //'Group', 'Layer', 'Path', 'CompoundPath', 'Shape', 'Raster', 'SymbolItem', 'PointText'
-    console.log(item);
-
     if (!item.name) {
       this.itemIndex[item.className]++;
       item.name = `${item.className} ${this.itemIndex[item.className]}`;
@@ -268,19 +360,29 @@ class UIService {
   private handleItemClick(item: paper.Item): void {
     console.log('Layer panel item clicked:', item.name, 'ID:', item.id, 'Type:', item.className);
 
-    // Check if it's a drawable item (Path, CompoundPath, etc.)
-    const isDrawableItem = item instanceof paper.Path ||
-      item instanceof paper.CompoundPath ||
-      item instanceof paper.Shape;
-
-    if (isDrawableItem && this.onSelectionChange) {
-      // Notify the callback about the selection
-      this.onSelectionChange(item.id.toString(), true);
-      this.updateStatus(`${item.name || item.className} selected`);
-      console.log('Selection callback triggered for item:', item.id);
+    if (item instanceof paper.Layer) {
+      // Layer clicked - clear item selection, set active layer
+      this.handleLayerClick(item);
     } else {
-      console.log('Item is not drawable or callback not set:', item.className, !!this.onSelectionChange);
+      // Item clicked - select item and set parent layer as active
+      const isDrawableItem = item instanceof paper.Path ||
+        item instanceof paper.CompoundPath ||
+        item instanceof paper.Shape;
+
+      if (isDrawableItem) {
+        canvasService.updateItemSelection(item.id.toString());
+        this.updateStatus(`${item.name || item.className} selected`);
+        console.log('Selection callback triggered for item:', item.id);
+      } else {
+        console.log('Item is not drawable:', item.className);
+      }
     }
+  }
+
+  private handleLayerClick(layer: paper.Layer): void {
+    canvasService.updateItemSelection(layer.id.toString());
+    this.updateStatus(`${layer.name} selected`);
+    console.log('Selection callback triggered for layer:', layer.id);
   }
 
   private setupActionButtonListeners(element: HTMLElement, item: paper.Item): void {
@@ -313,17 +415,13 @@ class UIService {
     this.items = this.items.filter(item => item.id !== target.id);
     target.remove();
     this.renderItems();
+    this.updateItemSelection(this.activeLayerId, true, this.activeLayerId);
   }
 
   private handleDeleteItem(item: paper.Item): void {
     // Remove from canvas
     this.removeItem(item);
     this.updateStatus(`Deleted ${item.name || item.className}`);
-
-    // Notify about deletion
-    if (this.onSelectionChange) {
-      this.onSelectionChange(item.id.toString(), false);
-    }
   }
 
   private handleUngroupItem(target: paper.Item): void {
@@ -394,9 +492,9 @@ class UIService {
 
     // Confirm button
     confirmBtn?.addEventListener('click', () => {
-      const koreanText = koreanInput?.value.trim();
-      if (koreanText) {
-        this.createLayersFromKoreanText(koreanText);
+      const inputText = koreanInput?.value.trim();
+      if (inputText) {
+        this.createLayersFromInput(inputText);
         closeModal();
       } else {
         this.updateStatus('Please enter Korean text');
@@ -417,8 +515,8 @@ class UIService {
     previewElement.innerHTML = letters.map((letter, index) => tags.letterItem(letter, index)).join('');
   }
 
-  private createLayersFromKoreanText(koreanText: string): void {
-    const letters = koreanText.split('').filter(char => char.trim() !== '');
+  private createLayersFromInput(inputText: string): void {
+    const letters = inputText.split('').filter(char => char.trim() !== '');
 
 
     letters.forEach((letter, index) => {
@@ -426,7 +524,7 @@ class UIService {
     });
 
     // Update the layer panel
-    this.updateStatus(`Created ${letters.length} layers for: ${koreanText}`);
+    this.updateStatus(`Created ${letters.length} layers for: ${inputText}`);
   }
 
 }
