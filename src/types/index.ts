@@ -1,20 +1,20 @@
 // Tool types
-export type ToolType = 'select' | 'pen' | 'addPoint' | 'hand'
+export type ToolType = 'select' | 'pencil' | 'pen' | 'hand'
 
 // Tool configurations
 export const TOOLS = {
   SELECT: 'select',
+  PENCIL: 'pencil',
   PEN: 'pen',
-  ADD_POINT: 'addPoint',
   HAND: 'hand'
 } as const
 
 // Keyboard shortcuts
 export const KEYBOARD_SHORTCUTS = {
   SELECT_TOOL: 'v',
-  PEN_TOOL: 'p',
+  PENCIL_TOOL: 'p',
+  PEN_TOOL: 'a',
   HAND_TOOL: 'h',
-  ADD_POINT_TOOL: 'a',
   ESCAPE: 'escape'
 } as const
 
@@ -27,6 +27,7 @@ export interface AppState {
 
 // Drawing state
 export interface DrawingState {
+  currentDrawing: any | null
   currentPath: any | null
   selectedItem: any | null
   selectedPoint: any | null

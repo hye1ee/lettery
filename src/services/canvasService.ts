@@ -15,6 +15,7 @@ class CanvasService {
 
   // Drawing state (merged from DrawingService)
   private drawingState: DrawingState = {
+    currentDrawing: null,
     currentPath: null,
     selectedItem: null,
     selectedPoint: null
@@ -22,6 +23,9 @@ class CanvasService {
 
   // Callback for UI event listeners
   private alertSelectionChange: ((itemId: string, selected: boolean, layerId?: string) => void) | null = null;
+
+  // Path simplification configuration
+  private simplificationTolerance: number = 10;
 
   private constructor() { }
 
@@ -289,59 +293,134 @@ class CanvasService {
     this.alertSelectionChange = callback;
   }
 
-  /**
-   * Start drawing a new path
-   */
+  //---------------------------------
+  // Pencil Tool methods
+  //---------------------------------
+
   startDrawing(point: paper.Point): paper.Path | null {
-    try {
-      if (!this.project) {
-        throw new Error('Paper.js project not initialized')
-      }
+    if (!this.project) throw new Error('Paper.js project not initialized');
 
-      this.drawingState.currentPath = new paper.Path()
-      this.drawingState.currentPath.strokeColor = new paper.Color(colors.black)
-      this.drawingState.currentPath.strokeWidth = 1
-      this.drawingState.currentPath.add(point)
+    this.drawingState.currentDrawing = new paper.Path();
+    // this.drawingState.currentDrawing.fullySelected = true;
+    this.selectItem(this.drawingState.currentDrawing);
+    this.drawingState.currentDrawing.strokeColor = new paper.Color(colors.black);
+    this.drawingState.currentDrawing.strokeWidth = 1;
+    this.drawingState.currentDrawing.add(point);
 
-      return this.drawingState.currentPath
-    } catch (error) {
-      console.error('Error starting drawing:', error)
-      return null
+    return this.drawingState.currentDrawing;
+  }
+
+  continueDrawing(point: paper.Point): void {
+    if (this.drawingState.currentDrawing) {
+      this.drawingState.currentDrawing.add(point);
     }
   }
 
-  /**
-   * Continue drawing the current path
-   */
-  continueDrawing(point: paper.Point): boolean {
-    if (this.drawingState.currentPath) {
-      this.drawingState.currentPath.add(point)
-      return true
+  finishDrawing(point: paper.Point): { success: boolean; simplificationInfo?: { original: number; simplified: number; saved: number; percentage: number } } {
+    if (this.drawingState.currentDrawing) {
+      this.drawingState.currentDrawing.add(point);
+
+      // Apply path simplification for pencil tool
+      const simplificationInfo = this.simplifyPath(this.drawingState.currentDrawing);
+
+      this.drawingState.currentDrawing = null;
+      return { success: true, simplificationInfo: simplificationInfo ?? undefined }
     }
-    return false
+    return { success: false }
   }
 
-  /**
-   * Finish drawing the current path
-   */
-  finishDrawing(point: paper.Point): boolean {
-    if (this.drawingState.currentPath) {
-      this.drawingState.currentPath.add(point)
-      this.smoothPath(this.drawingState.currentPath)
-      this.drawingState.currentPath = null
-      return true
-    }
-    return false
-  }
-
-  /**
-   * Smooth a path
-   */
-  smoothPath(path: paper.Path): void {
+  simplifyPath(path: paper.Path): { original: number; simplified: number; saved: number; percentage: number } | null {
     if (path && path.segments.length > 2) {
-      path.smooth()
+      const originalCount = path.segments.length;
+
+      // Simplify the path with configurable tolerance
+      path.simplify(this.simplificationTolerance);
+
+      const simplifiedCount = path.segments.length;
+      const saved = originalCount - simplifiedCount;
+      const percentage = Math.round(saved / originalCount * 100);
+
+      console.log(`Path simplified: ${saved} of ${originalCount} segments removed. Saving ${percentage}%`);
+
+      return {
+        original: originalCount,
+        simplified: simplifiedCount,
+        saved: saved,
+        percentage: percentage
+      };
+    }
+    return null;
+  }
+
+  // ---------------------------------
+  // Pen Tool methods
+  // ---------------------------------
+
+  startPathing(point: paper.Point) {
+    // mouse down trigger - start a new path or add a point
+    if (!this.drawingState.currentPath) {
+      // Start a new path
+      this.drawingState.currentPath = new paper.Path();
+      this.drawingState.currentPath.strokeColor = new paper.Color(colors.black);
+      this.drawingState.currentPath.strokeWidth = 1;
+      this.drawingState.currentPath.add(point);
+      this.selectItem(this.drawingState.currentPath);
+    } else {
+      // Add a new point to existing path
+      this.drawingState.currentPath.add(point);
+      console.log("handle", this.drawingState.currentPath.segments[this.drawingState.currentPath.segments.length - 1]?.handleIn, this.drawingState.currentPath.segments[this.drawingState.currentPath.segments.length - 1]?.handleOut);
     }
   }
+
+  continuePathing(point: paper.Point) {
+    // mouse drag trigger - preview the curve by adjusting the last segment's handle
+    if (!this.drawingState.currentPath) return;
+
+    const segments = this.drawingState.currentPath.segments;
+    if (segments.length > 0) {
+      const currentSegment = segments[segments.length - 1];
+      // Create a smooth curve by setting the handle out point
+      const handleVector = point.subtract(currentSegment.point);
+      currentSegment.handleOut = handleVector;
+      if (segments.length > 1) {
+        // if current point is not the first point, set inner handle
+        currentSegment.handleIn = currentSegment.handleOut.clone().multiply(-1);
+
+        // if prev point hasn't dragged, set it's outer handle to the tangent of the line between current and prev point
+        const lastSegment = segments[segments.length - 2];
+        const direction = point.subtract(lastSegment.point);
+        lastSegment.handleOut = direction.normalize();
+      }
+    }
+  }
+
+  finishPathing(point: paper.Point) {
+    // mouse up - finalize the current segment with proper handles
+    if (!this.drawingState.currentPath) return;
+
+    const segments = this.drawingState.currentPath.segments;
+
+    if (segments.length > 1) { // prev point is existing
+      const lastSegment = segments[segments.length - 2];
+      const currentSegment = segments[segments.length - 1];
+
+      // if prev has dragged, and current hasn't dragged
+      if (lastSegment.handleOut.x !== 0 && lastSegment.handleOut.y !== 0 && currentSegment.handleOut.x === 0 && currentSegment.handleOut.y === 0) {
+        // set current inner handle to the tangent of the line between current and prev point
+        const direction = point.subtract(lastSegment.point);
+        currentSegment.handleIn = direction.normalize();
+      }
+    }
+  }
+
+  terminatePathing() {
+    // Terminate the current path and add it to the layer
+    if (this.drawingState.currentPath) {
+      this.updateItems();
+      this.drawingState.currentPath = null;
+    }
+  }
+
 
   /**
    * Select an item
@@ -512,6 +591,22 @@ class CanvasService {
     setInterval(() => {
       this.syncActiveLayerFromPaper();
     }, 1000);
+  }
+
+  /**
+   * Set the simplification tolerance for pencil tool
+   * @param tolerance - Higher values create simpler paths (default: 10)
+   */
+  setSimplificationTolerance(tolerance: number): void {
+    this.simplificationTolerance = Math.max(1, tolerance);
+    console.log(`Simplification tolerance set to: ${this.simplificationTolerance}`);
+  }
+
+  /**
+   * Get the current simplification tolerance
+   */
+  getSimplificationTolerance(): number {
+    return this.simplificationTolerance;
   }
 
   /**

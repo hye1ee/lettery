@@ -6,9 +6,9 @@ import { TOOLS } from './types'
 
 // DOM elements
 let selectTool: HTMLButtonElement
-let penTool: HTMLButtonElement
+let pencilTool: HTMLButtonElement
 let handTool: HTMLButtonElement
-let addPointTool: HTMLButtonElement
+let penTool: HTMLButtonElement
 let layerImportSvgBtn: HTMLButtonElement
 let layerExportSvgBtn: HTMLButtonElement
 let addLayerBtn: HTMLButtonElement
@@ -22,9 +22,9 @@ const initApp = () => {
 
   // Get DOM elements
   selectTool = document.getElementById('select-tool') as HTMLButtonElement
-  penTool = document.getElementById('pen-tool') as HTMLButtonElement
+  pencilTool = document.getElementById('pen-tool') as HTMLButtonElement
   handTool = document.getElementById('hand-tool') as HTMLButtonElement
-  addPointTool = document.getElementById('add-point-tool') as HTMLButtonElement
+  penTool = document.getElementById('add-point-tool') as HTMLButtonElement
   layerImportSvgBtn = document.getElementById('layer-import-svg') as HTMLButtonElement
   layerExportSvgBtn = document.getElementById('layer-export-svg') as HTMLButtonElement
   addLayerBtn = document.getElementById('header-plus-btn') as HTMLButtonElement
@@ -33,12 +33,12 @@ const initApp = () => {
   coordinates = document.getElementById('coordinates') as HTMLSpanElement
 
   // Check if all elements are found
-  if (!selectTool || !penTool || !handTool || !addPointTool || !layerImportSvgBtn || !layerExportSvgBtn || !addLayerBtn || !fileInput || !statusText || !coordinates) {
+  if (!selectTool || !pencilTool || !handTool || !penTool || !layerImportSvgBtn || !layerExportSvgBtn || !addLayerBtn || !fileInput || !statusText || !coordinates) {
     console.error('Some DOM elements not found:', {
       selectTool: !!selectTool,
-      penTool: !!penTool,
+      pencilTool: !!pencilTool,
       handTool: !!handTool,
-      addPointTool: !!addPointTool,
+      penTool: !!penTool,
       layerImportSvgBtn: !!layerImportSvgBtn,
       layerExportSvgBtn: !!layerExportSvgBtn,
       addLayerBtn: !!addLayerBtn,
@@ -54,9 +54,9 @@ const initApp = () => {
   // Initialize UI service with DOM elements
   const toolButtons = new Map([
     [TOOLS.SELECT, selectTool],
-    [TOOLS.PEN, penTool],
+    [TOOLS.PENCIL, pencilTool],
     [TOOLS.HAND, handTool],
-    [TOOLS.ADD_POINT, addPointTool]
+    [TOOLS.PEN, penTool]
   ])
 
   uiService.init(statusText, coordinates, toolButtons)
@@ -78,9 +78,9 @@ const setupEventListeners = () => {
     switchTool(TOOLS.SELECT)
   })
 
-  penTool.addEventListener('click', () => {
-    console.log('Pen tool clicked')
-    switchTool(TOOLS.PEN)
+  pencilTool.addEventListener('click', () => {
+    console.log('Pencil tool clicked')
+    switchTool(TOOLS.PENCIL)
   })
 
   handTool.addEventListener('click', () => {
@@ -88,9 +88,22 @@ const setupEventListeners = () => {
     switchTool(TOOLS.HAND)
   })
 
-  addPointTool.addEventListener('click', () => {
-    console.log('Add point tool clicked')
-    switchTool(TOOLS.ADD_POINT)
+  penTool.addEventListener('click', () => {
+    console.log('Pen tool clicked')
+    const newTool = toolService.togglePenTool()
+    updatePenToolIcon(newTool === TOOLS.PEN)
+
+    // Update UI states
+    uiService.updateToolButtonStates(newTool)
+    uiService.updateCursor(newTool)
+
+    if (newTool === TOOLS.SELECT) {
+      // Terminate current pathing if switching away from pen tool
+      canvasService.terminatePathing()
+      uiService.updateStatus('Pen tool deactivated - path added to layer')
+    } else {
+      uiService.updateStatus('Pen tool activated - click to add points, drag to adjust curves')
+    }
   })
 
 
@@ -169,8 +182,18 @@ const initCanvas = () => {
 
   // Initialize UI
   switchTool(TOOLS.SELECT)
-  uiService.updateStatus('Vector editor ready. Use V for select, P for pen, A for add point');
+  uiService.updateStatus('Vector editor ready. Use V for select, P for pencil, A for pen');
 
+}
+
+// Update pen tool icon based on state
+const updatePenToolIcon = (isActive: boolean) => {
+  const penToolImg = penTool.querySelector('img') as HTMLImageElement
+  if (penToolImg) {
+    penToolImg.src = isActive ? '/x.svg' : '/pen.svg'
+    penToolImg.alt = isActive ? 'Terminate Path' : 'Pen Tool'
+  }
+  penTool.title = isActive ? 'Terminate Path (A)' : 'Pen Tool (A)'
 }
 
 // Tool switching
@@ -180,6 +203,13 @@ const switchTool = (tool: string) => {
     uiService.updateToolButtonStates(tool)
     uiService.updateCursor(tool)
     uiService.updateStatus(`${toolService.getToolName(tool)} tool selected`)
+
+    // Update pen tool icon based on current state
+    if (tool === TOOLS.PEN) {
+      updatePenToolIcon(true)
+    } else {
+      updatePenToolIcon(false)
+    }
   }
 }
 
@@ -187,10 +217,10 @@ const switchTool = (tool: string) => {
 const handleMouseDown = (event: paper.ToolEvent) => {
   const currentTool = toolService.getCurrentTool()
 
-  if (currentTool === TOOLS.PEN) {
+  if (currentTool === TOOLS.PENCIL) {
     const path = canvasService.startDrawing(event.point)
     if (path) {
-      uiService.updateStatus('Drawing started')
+      uiService.updateStatus('Pencil drawing started')
     }
   } else if (currentTool === TOOLS.SELECT) {
     handleSelection(event.point)
@@ -198,15 +228,16 @@ const handleMouseDown = (event: paper.ToolEvent) => {
     canvasService.startPan(event.point)
     uiService.updateCursor('grabbing');
     uiService.updateStatus('Panning started')
-  } else if (currentTool === TOOLS.ADD_POINT) {
-    handleAddPoint(event.point)
+  } else if (currentTool === TOOLS.PEN) {
+    canvasService.startPathing(event.point);
+    uiService.updateStatus('Pen tool - click to add points, drag to adjust curves');
   }
 }
 
 const handleMouseDrag = (event: paper.ToolEvent) => {
   const currentTool = toolService.getCurrentTool()
 
-  if (currentTool === TOOLS.PEN) {
+  if (currentTool === TOOLS.PENCIL) {
     canvasService.continueDrawing(event.point)
   } else if (currentTool === TOOLS.SELECT) {
     const state = canvasService.getDrawingState()
@@ -216,20 +247,34 @@ const handleMouseDrag = (event: paper.ToolEvent) => {
     }
   } else if (currentTool === TOOLS.HAND) {
     canvasService.panTo(event.point)
+  } else if (currentTool === TOOLS.PEN) {
+    canvasService.continuePathing(event.point);
+    uiService.updateStatus('Adjusting curve handle...');
   }
 }
 
 const handleMouseUp = (event: paper.ToolEvent) => {
   const currentTool = toolService.getCurrentTool()
 
-  if (currentTool === TOOLS.PEN) {
-    if (canvasService.finishDrawing(event.point)) {
-      uiService.updateStatus('Drawing finished')
+  if (currentTool === TOOLS.PENCIL) {
+    const result = canvasService.finishDrawing(event.point);
+    if (result.success) {
+      if (result.simplificationInfo) {
+        const { original, simplified, saved, percentage } = result.simplificationInfo;
+        uiService.updateStatus(`Pencil drawing finished - Simplified: ${saved} segments removed (${percentage}% saved)`);
+      } else {
+        uiService.updateStatus('Pencil drawing finished');
+      }
+      // Update layer after finishing drawing
+      canvasService.updateItems();
     }
   } else if (currentTool === TOOLS.HAND) {
     canvasService.endPan()
     uiService.updateStatus('Panning finished')
     uiService.updateCursor('hand');
+  } else if (currentTool === TOOLS.PEN) {
+    canvasService.finishPathing(event.point);
+    uiService.updateStatus('Point added - continue clicking to add more points');
   }
 }
 
@@ -261,22 +306,6 @@ const handleSelection = (point: paper.Point) => {
   }
 }
 
-// Add point handling
-const handleAddPoint = (point: paper.Point) => {
-  const hitResult = canvasService.hitTest(point, {
-    tolerance: 10,
-    match: (result: any) => result.item instanceof paper.Path
-  })
-
-  if (hitResult && hitResult.item instanceof paper.Path) {
-    const path = hitResult.item
-    const newSegment = canvasService.addPointToPath(path, point)
-
-    if (newSegment) {
-      uiService.updateStatus('Point added')
-    }
-  }
-}
 
 const updateItemsCallback = (items: paper.Item[]) => {
   uiService.updateItems(items);

@@ -96,7 +96,15 @@ class UIService {
 
   updateToolButtonStates(activeTool: ToolType): void {
     this.toolButtons.forEach((button, tool) => {
-      button.classList.toggle('active', tool === activeTool);
+      const isActive = tool === activeTool;
+      button.classList.toggle('active', isActive);
+
+      // Special styling for pen tool when active
+      if (tool === 'pen') {
+        button.classList.toggle('pen-active', isActive);
+      } else {
+        button.classList.remove('pen-active');
+      }
     });
   }
 
@@ -107,11 +115,11 @@ class UIService {
         case 'select':
           canvas.style.cursor = 'default';
           break;
-        case 'pen':
+        case 'pencil':
           canvas.style.cursor = 'crosshair';
           break;
-        case 'addPoint':
-          canvas.style.cursor = 'pointer';
+        case 'pen':
+          canvas.style.cursor = 'default';
           break;
         case 'hand':
           canvas.style.cursor = 'grab';

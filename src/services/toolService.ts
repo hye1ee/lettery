@@ -32,6 +32,19 @@ class ToolService {
   }
 
   /**
+   * Toggle pen tool (if already active, switch to select)
+   */
+  togglePenTool(): ToolType {
+    if (this.currentTool === TOOLS.PEN) {
+      this.currentTool = TOOLS.SELECT
+      return TOOLS.SELECT
+    } else {
+      this.currentTool = TOOLS.PEN
+      return TOOLS.PEN
+    }
+  }
+
+  /**
    * Check if a specific tool is active
    */
   isToolActive(tool: ToolType): boolean {
@@ -45,9 +58,9 @@ class ToolService {
     switch (tool) {
       case TOOLS.SELECT:
         return 'Select Tool'
+      case TOOLS.PENCIL:
+        return 'PENCIL Tool'
       case TOOLS.PEN:
-        return 'Pen Tool'
-      case TOOLS.ADD_POINT:
         return 'Add Point Tool'
       default:
         return 'Unknown Tool'
@@ -61,9 +74,9 @@ class ToolService {
     switch (tool) {
       case TOOLS.SELECT:
         return 'Select and manipulate paths and points'
-      case TOOLS.PEN:
+      case TOOLS.PENCIL:
         return 'Draw freehand vector paths'
-      case TOOLS.ADD_POINT:
+      case TOOLS.PEN:
         return 'Add control points to existing paths'
       default:
         return 'Unknown tool functionality'
@@ -77,10 +90,10 @@ class ToolService {
     switch (tool) {
       case TOOLS.SELECT:
         return KEYBOARD_SHORTCUTS.SELECT_TOOL.toUpperCase()
+      case TOOLS.PENCIL:
+        return KEYBOARD_SHORTCUTS.PENCIL_TOOL.toUpperCase()
       case TOOLS.PEN:
         return KEYBOARD_SHORTCUTS.PEN_TOOL.toUpperCase()
-      case TOOLS.ADD_POINT:
-        return KEYBOARD_SHORTCUTS.ADD_POINT_TOOL.toUpperCase()
       default:
         return ''
     }
@@ -93,9 +106,9 @@ class ToolService {
     switch (tool) {
       case TOOLS.SELECT:
         return 'default'
-      case TOOLS.PEN:
+      case TOOLS.PENCIL:
         return 'crosshair'
-      case TOOLS.ADD_POINT:
+      case TOOLS.PEN:
         return 'pointer'
       default:
         return 'default'
@@ -111,10 +124,10 @@ class ToolService {
     switch (lowerKey) {
       case KEYBOARD_SHORTCUTS.SELECT_TOOL:
         return TOOLS.SELECT
+      case KEYBOARD_SHORTCUTS.PENCIL_TOOL:
+        return TOOLS.PENCIL
       case KEYBOARD_SHORTCUTS.PEN_TOOL:
         return TOOLS.PEN
-      case KEYBOARD_SHORTCUTS.ADD_POINT_TOOL:
-        return TOOLS.ADD_POINT
       default:
         return null
     }
@@ -124,7 +137,7 @@ class ToolService {
    * Get all available tools
    */
   getAllTools(): ToolType[] {
-    return [TOOLS.SELECT, TOOLS.PEN, TOOLS.ADD_POINT]
+    return [TOOLS.SELECT, TOOLS.PENCIL, TOOLS.PEN]
   }
 
   /**
@@ -134,9 +147,9 @@ class ToolService {
     switch (tool) {
       case TOOLS.SELECT:
         return 'cursor-pointer'
+      case TOOLS.PENCIL:
+        return 'PENCIL'
       case TOOLS.PEN:
-        return 'pen'
-      case TOOLS.ADD_POINT:
         return 'plus-circle'
       default:
         return 'question-mark'
