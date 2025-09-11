@@ -31,6 +31,7 @@ export interface DrawingState {
   currentPath: any | null
   selectedItem: any | null
   selectedPoint: any | null
+  dragOffset: any | null
 }
 
 // Canvas configuration

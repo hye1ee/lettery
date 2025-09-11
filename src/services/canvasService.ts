@@ -18,7 +18,8 @@ class CanvasService {
     currentDrawing: null,
     currentPath: null,
     selectedItem: null,
-    selectedPoint: null
+    selectedPoint: null,
+    dragOffset: null
   };
 
   // Callback for UI event listeners
@@ -26,6 +27,9 @@ class CanvasService {
 
   // Path simplification configuration
   private simplificationTolerance: number = 10;
+
+  // Hover state management
+  private hoveredItem: paper.Item | null = null;
 
   private constructor() { }
 
@@ -322,6 +326,7 @@ class CanvasService {
 
       // Apply path simplification for pencil tool
       const simplificationInfo = this.simplifyPath(this.drawingState.currentDrawing);
+      this.closeVector(this.drawingState.currentDrawing);
 
       this.drawingState.currentDrawing = null;
       return { success: true, simplificationInfo: simplificationInfo ?? undefined }
@@ -416,9 +421,16 @@ class CanvasService {
   terminatePathing() {
     // Terminate the current path and add it to the layer
     if (this.drawingState.currentPath) {
+      this.closeVector(this.drawingState.currentPath);
       this.updateItems();
       this.drawingState.currentPath = null;
     }
+  }
+
+  closeVector(path: paper.Path) {
+    path.closed = true;
+    path.fillColor = new paper.Color(colors.black);
+
   }
 
 
@@ -610,6 +622,84 @@ class CanvasService {
   }
 
   /**
+   * Handle hover effects for path items
+   */
+  handleHover(point: paper.Point): void {
+    if (!this.project) return;
+
+    // Find items at the hover point
+    const hitResult = this.hitTest(point);
+
+    const newHoveredItem = hitResult ? hitResult.item : null;
+
+    // If hovering over a different item, update hover state
+    if (newHoveredItem !== this.hoveredItem) {
+      // Restore previous hovered item
+      if (this.hoveredItem) {
+        this.restoreHoverEffect(this.hoveredItem);
+        console.log("restore hover effect", this.hoveredItem);
+      }
+
+      // Set new hovered item
+      this.hoveredItem = newHoveredItem;
+
+      // Apply hover effect to new item
+      if (this.hoveredItem) {
+        this.applyHoverEffect(this.hoveredItem);
+        console.log("apply hover effect", this.hoveredItem);
+      }
+    }
+  }
+
+  /**
+   * Apply hover effect (orange color) to an item
+   */
+  private applyHoverEffect(item: paper.Item): void {
+    if (!(item instanceof paper.Path || item instanceof paper.CompoundPath || item instanceof paper.Shape)) {
+      return;
+    }
+
+    // Apply orange color
+    item.strokeColor = new paper.Color(colors.orange);
+    item.strokeWidth = 1;
+  }
+
+  /**
+   * Restore hover effect for an item
+   */
+  private restoreHoverEffect(item: paper.Item): void {
+    if (!(item instanceof paper.Path || item instanceof paper.CompoundPath || item instanceof paper.Shape)) {
+      return;
+    }
+
+    item.strokeColor = new paper.Color(colors.black);
+
+    if (item.fillColor !== null) {
+      item.strokeWidth = 0;
+    }
+  }
+
+  /**
+   * Clear all hover effects
+   */
+  clearHoverEffects(): void {
+    if (this.hoveredItem) {
+      this.restoreHoverEffect(this.hoveredItem);
+      this.hoveredItem = null;
+    }
+  }
+
+  /**
+   * Start dragging a selected item (calculate offset)
+   */
+  startDraggingItem(grabPoint: paper.Point): void {
+    if (this.drawingState.selectedItem) {
+      // Calculate offset between grab point and item center
+      this.drawingState.dragOffset = grabPoint.subtract(this.drawingState.selectedItem.position);
+    }
+  }
+
+  /**
    * Move a selected point
    */
   moveSelectedPoint(point: paper.Point): void {
@@ -617,8 +707,20 @@ class CanvasService {
       this.drawingState.selectedPoint.position = point;
     }
     if (this.drawingState.selectedItem) {
-      this.drawingState.selectedItem.position = point;
+      // Use drag offset to maintain relative position
+      if (this.drawingState.dragOffset) {
+        this.drawingState.selectedItem.position = point.subtract(this.drawingState.dragOffset);
+      } else {
+        this.drawingState.selectedItem.position = point;
+      }
     }
+  }
+
+  /**
+   * Stop dragging (clear offset)
+   */
+  stopDraggingItem(): void {
+    this.drawingState.dragOffset = null;
   }
 
   /**

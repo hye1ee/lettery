@@ -158,6 +158,15 @@ const setupEventListeners = () => {
     }
   }, { passive: false });
 
+  // Clear hover effects when mouse leaves canvas
+  const canvas = document.getElementById('vector-canvas') as HTMLCanvasElement;
+  if (canvas) {
+    canvas.addEventListener('mouseleave', () => {
+      console.log('Mouse left canvas');
+      canvasService.clearHoverEffects();
+    });
+  }
+
 }
 
 // Initialize Paper.js
@@ -203,6 +212,9 @@ const switchTool = (tool: string) => {
     uiService.updateToolButtonStates(tool)
     uiService.updateCursor(tool)
     uiService.updateStatus(`${toolService.getToolName(tool)} tool selected`)
+
+    // Clear hover effects when switching tools
+    canvasService.clearHoverEffects()
 
     // Update pen tool icon based on current state
     if (tool === TOOLS.PEN) {
@@ -275,11 +287,17 @@ const handleMouseUp = (event: paper.ToolEvent) => {
   } else if (currentTool === TOOLS.PEN) {
     canvasService.finishPathing(event.point);
     uiService.updateStatus('Point added - continue clicking to add more points');
+  } else if (currentTool === TOOLS.SELECT) {
+    // Stop dragging when mouse is released
+    canvasService.stopDraggingItem();
   }
 }
 
 const handleMouseMove = (event: paper.ToolEvent) => {
   uiService.updateCoordinates(event.point.x, event.point.y)
+
+  // Handle hover effects for path items
+  canvasService.handleHover(event.point)
 }
 
 // Selection handling from canvas -> UI
@@ -289,6 +307,7 @@ const handleSelection = (point: paper.Point) => {
   if (hitResult) {
     if (hitResult.item instanceof paper.Path) {
       canvasService.selectItem(hitResult.item)
+      canvasService.startDraggingItem(point)
       uiService.updateStatus('Path selected')
     } else if (hitResult.item instanceof paper.Segment) {
       // canvasService.selectPoint(hitResult.item)
@@ -296,6 +315,7 @@ const handleSelection = (point: paper.Point) => {
     } else {
       // Other drawable items
       canvasService.selectItem(hitResult.item)
+      canvasService.startDraggingItem(point)
       uiService.updateStatus('Item selected')
     }
   } else {
