@@ -385,6 +385,32 @@ body {
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
+.font-selector-group {
+  margin-bottom: 20px;
+}
+
+.font-selector-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.font-selector {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid lightgray;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.font-selector:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
 .preview-section {
   margin-bottom: 20px;
 }

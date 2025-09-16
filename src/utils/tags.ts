@@ -20,6 +20,13 @@ export const tags = {
           maxlength="50"
         />
       </div>
+      <div class="font-selector-group">
+        <label for="font-selector" class="text-body">Font:</label>
+        <select id="font-selector" class="font-selector">
+          <option value="">베이스 폰트 선택 없음</option>
+          <option value="Noto Sans Korean">Noto Sans Korean</option>
+        </select>
+      </div>
       <div class="preview-section">
         <label class="text-body">Preview:</label>
         <div id="letter-preview" class="letter-preview"></div>
