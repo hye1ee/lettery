@@ -907,9 +907,8 @@ class CanvasService {
   finishDragSelection(): void {
     if (this.drawingState.isDragSelecting) {
       console.log("finishDragSelection");
-      // Get the preview box bounds for intersection testing
-      const selectionBounds = previewBox.getBoundingBox();
-
+      // Get the normalized preview box bounds for intersection testing
+      const selectionBounds = previewBox.getNormalizedBoundingBox();
 
       // Find all items that intersect with the selection box
       const intersectingItems: paper.Item[] = this.getAllItems().filter(item => selectionBounds.intersects(item.bounds) && !item.name.includes('system'));

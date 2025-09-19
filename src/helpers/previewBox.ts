@@ -36,6 +36,18 @@ class PreviewBox {
     return this.boundingBox;
   }
 
+  public getNormalizedBoundingBox(): paper.Rectangle {
+    if (!this.boundingBox) throw new Error("Bounding box not initialized");
+
+    // Create a normalized rectangle for intersection testing
+    const left = Math.min(this.boundingBox.x, this.boundingBox.x + this.boundingBox.width);
+    const top = Math.min(this.boundingBox.y, this.boundingBox.y + this.boundingBox.height);
+    const right = Math.max(this.boundingBox.x, this.boundingBox.x + this.boundingBox.width);
+    const bottom = Math.max(this.boundingBox.y, this.boundingBox.y + this.boundingBox.height);
+
+    return new paper.Rectangle(left, top, right - left, bottom - top);
+  }
+
   public static getInstance(): PreviewBox {
     if (!PreviewBox.instance) {
       PreviewBox.instance = new PreviewBox();
@@ -53,7 +65,7 @@ class PreviewBox {
     this.boundingBox.height = 0.1;
 
     // Update the preview box bounds and make it visible
-    this.previewBox.bounds = this.boundingBox;
+    // this.previewBox.bounds = this.boundingBox;
     this.previewBox.visible = true;
     this.previewBox.bringToFront();
   }
@@ -61,31 +73,23 @@ class PreviewBox {
   public update(endPoint: paper.Point): void {
     if (!this.boundingBox || !this.previewBox) throw new Error("Bounding box or preview box not initialized");
 
-    // Calculate the actual rectangle bounds based on start and end points
-    const startX = this.boundingBox.x;
-    const startY = this.boundingBox.y;
-    const endX = endPoint.x;
-    const endY = endPoint.y;
+    // Calculate the actual width and height (can be negative for reverse dragging)
+    let width = endPoint.x - this.boundingBox.x;
+    let height = endPoint.y - this.boundingBox.y;
 
-    // Calculate the top-left corner and dimensions
-    const left = Math.min(startX, endX);
-    const top = Math.min(startY, endY);
-    const right = Math.max(startX, endX);
-    const bottom = Math.max(startY, endY);
+    // Ensure minimum absolute size, but preserve direction
+    if (Math.abs(width) < 0.1) {
+      width = width >= 0 ? 0.1 : -0.1;
+    }
+    if (Math.abs(height) < 0.1) {
+      height = height >= 0 ? 0.1 : -0.1;
+    }
 
-    const width = Math.max(right - left, 0.1);
-    const height = Math.max(bottom - top, 0.1);
-
-    // Update the bounding box
-    this.boundingBox.x = left;
-    this.boundingBox.y = top;
     this.boundingBox.width = width;
     this.boundingBox.height = height;
 
     // Update the actual preview box rectangle bounds
-    this.previewBox.bounds = this.boundingBox;
-
-    console.log("update pos and size: ", this.boundingBox.x, this.boundingBox.y, this.boundingBox.width, this.boundingBox.height);
+    // this.previewBox.bounds = this.boundingBox;
 
     this.previewBox.bringToFront();
   }
