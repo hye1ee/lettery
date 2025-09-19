@@ -62,7 +62,7 @@ const initApp = () => {
   uiService.init(statusText, coordinates, toolButtons)
 
   // Set up event listeners
-  setupEventListeners()
+  setupEventListeners();
 
   // Initialize Paper.js
   initCanvas();
@@ -235,7 +235,7 @@ const handleMouseDown = (event: paper.ToolEvent) => {
       uiService.updateStatus('Pencil drawing started')
     }
   } else if (currentTool === TOOLS.SELECT) {
-    handleSelection(event.point)
+    handleSelection(event.point, event)
   } else if (currentTool === TOOLS.HAND) {
     canvasService.startPan(event.point)
     uiService.updateCursor('grabbing');
@@ -253,7 +253,11 @@ const handleMouseDrag = (event: paper.ToolEvent) => {
     canvasService.continueDrawing(event.point)
   } else if (currentTool === TOOLS.SELECT) {
     const state = canvasService.getDrawingState()
-    if (state.selectedPoint || state.selectedItem) {
+    if (state.isDragSelecting) {
+      // Update drag selection box
+      canvasService.updateDragSelection(event.point)
+      uiService.updateStatus('Drag selecting...')
+    } else if (state.selectedPoint || state.selectedItems.length > 0) {
       canvasService.moveSelectedPoint(event.point)
       uiService.updateStatus('Point moved')
     }
@@ -288,8 +292,20 @@ const handleMouseUp = (event: paper.ToolEvent) => {
     canvasService.finishPathing(event.point);
     uiService.updateStatus('Point added - continue clicking to add more points');
   } else if (currentTool === TOOLS.SELECT) {
-    // Stop dragging when mouse is released
-    canvasService.stopDraggingItem();
+    const state = canvasService.getDrawingState()
+    if (state.isDragSelecting) {
+      // Finish drag selection
+      canvasService.finishDragSelection()
+      const selectedCount = canvasService.getSelectedItems().length
+      if (selectedCount > 0) {
+        uiService.updateStatus(`${selectedCount} items selected`)
+      } else {
+        uiService.updateStatus('No items selected')
+      }
+    } else {
+      // Stop dragging when mouse is released
+      canvasService.stopDraggingItem();
+    }
   }
 }
 
@@ -301,28 +317,54 @@ const handleMouseMove = (event: paper.ToolEvent) => {
 }
 
 // Selection handling from canvas -> UI
-const handleSelection = (point: paper.Point) => {
+const handleSelection = (point: paper.Point, event?: paper.ToolEvent) => {
   const hitResult = canvasService.hitTest(point)
+  const isMultiSelect = event && (event.modifiers?.control || event.modifiers?.meta)
+  const currentSelectedItems = canvasService.getSelectedItems()
+  const isItemAlreadySelected = hitResult && currentSelectedItems.some(item => item.id === hitResult.item.id)
 
   if (hitResult) {
     if (hitResult.item instanceof paper.Path) {
-      canvasService.selectItem(hitResult.item)
-      canvasService.startDraggingItem(point)
-      uiService.updateStatus('Path selected')
+      if (isMultiSelect) {
+        canvasService.toggleItemSelection(hitResult.item)
+        const selectedCount = canvasService.getSelectedItems().length
+        uiService.updateStatus(`${selectedCount} items selected`)
+      } else if (isItemAlreadySelected) {
+        // Item is already selected, start dragging
+        uiService.updateStatus('Dragging selected items')
+        canvasService.startDraggingItem(point)
+      } else {
+        // Select new item (replaces current selection)
+        canvasService.selectItem(hitResult.item)
+        uiService.updateStatus('Path selected')
+        canvasService.startDraggingItem(point)
+      }
     } else if (hitResult.item instanceof paper.Segment) {
       // canvasService.selectPoint(hitResult.item)
       // uiService.updateStatus('Point selected')
     } else {
       // Other drawable items
-      canvasService.selectItem(hitResult.item)
-      canvasService.startDraggingItem(point)
-      uiService.updateStatus('Item selected')
+      if (isMultiSelect) {
+        canvasService.toggleItemSelection(hitResult.item)
+        const selectedCount = canvasService.getSelectedItems().length
+        uiService.updateStatus(`${selectedCount} items selected`)
+      } else if (isItemAlreadySelected) {
+        // Item is already selected, start dragging
+        uiService.updateStatus('Dragging selected items')
+        canvasService.startDraggingItem(point)
+      } else {
+        // Select new item (replaces current selection)
+        canvasService.selectItem(hitResult.item)
+        uiService.updateStatus('Item selected')
+        canvasService.startDraggingItem(point)
+      }
     }
   } else {
-    // Clicked on empty space - deselect items but keep active layer
-    console.log('Canvas click on empty space - deselecting all items');
+    // Clicked on empty space - start drag selection
+    console.log('Canvas click on empty space - starting drag selection');
     canvasService.deselectAll()
-    uiService.updateStatus('Deselected')
+    canvasService.startDragSelection(point)
+    uiService.updateStatus('Drag selection started')
   }
 }
 

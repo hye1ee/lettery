@@ -59,7 +59,7 @@ class UIService {
 
 
   private activeLayerId: string = '';
-  private selectedItemId: string = '';
+  private selectedItemIds: string[] = [];
 
   private constructor() { }
 
@@ -205,17 +205,16 @@ class UIService {
   // Update UI selection state based on canvas selection
   public updateItemSelection(itemId: string, selected: boolean, layerId?: string) {
     if (selected && itemId) {
-      // Clear previous item selection only
-      this.clearSelectedItems();
-
       if (layerId && itemId === layerId) {
         // Layer selected - clear item selection, set active layer
-        this.selectedItemId = '';
+        this.selectedItemIds = [];
         this.activeLayerId = layerId;
         this.setActiveLayer(layerId);
       } else {
-        // Item selected - set both item and layer
-        this.selectedItemId = itemId;
+        // Item selected - add to selection
+        if (!this.selectedItemIds.includes(itemId)) {
+          this.selectedItemIds.push(itemId);
+        }
         this.activeLayerId = layerId || '';
         this.setSelectedItem(itemId);
         if (layerId) {
@@ -225,20 +224,21 @@ class UIService {
     } else if (!selected && layerId && itemId === '') {
       // Deselected with active layer info - clear item selection, keep active layer
       console.log("Canvas deselection - clearing items, keeping active layer:", layerId);
-      this.selectedItemId = '';
+      this.selectedItemIds = [];
       this.activeLayerId = layerId;
       this.setActiveLayer(layerId);
       this.clearSelectedItems();
     } else if (!selected && layerId && itemId !== '') {
-      // Active layer changed (e.g., when a layer was deleted)
-      console.log("Active layer changed to:", layerId);
-      this.selectedItemId = '';
+      // Remove specific item from selection
+      this.selectedItemIds = this.selectedItemIds.filter(id => id !== itemId);
       this.activeLayerId = layerId;
       this.setActiveLayer(layerId);
+      this.clearSelectedItems(); // Clear all and reapply
+      this.selectedItemIds.forEach(id => this.setSelectedItem(id));
     } else {
       console.log("UI triggered deselection");
       // Deselected - clear item selection, keep active layer
-      this.selectedItemId = '';
+      this.selectedItemIds = [];
       this.clearSelectedItems();
     }
   }
@@ -270,6 +270,15 @@ class UIService {
     selectedElements.forEach(element => {
       element.classList.remove('selected');
     });
+
+    // Clear all selected item IDs
+    this.selectedItemIds.forEach(itemId => {
+      const element = document.querySelector(`[data-element-id="${itemId}"]`);
+      if (element) {
+        element.classList.remove('selected');
+      }
+    });
+    this.selectedItemIds = [];
   }
 
   public clearAllSelections() {
@@ -284,14 +293,18 @@ class UIService {
     activeElements.forEach(element => {
       element.classList.remove('active');
     });
+
+    this.selectedItemIds = [];
+    this.activeLayerId = '';
+  }
+
+  public getSelectedItemsCount(): number {
+    return this.selectedItemIds.length;
   }
 
   public clearSelectedItem() {
-    const element = document.querySelector(`[data-element-id="${this.selectedItemId}"]`);
-    if (element) {
-      element.classList.toggle('selected', false);
-    }
-    this.selectedItemId = '';
+    // Clear all selected items
+    this.clearSelectedItems();
   }
 
   public clearActiveLayer() {
@@ -308,7 +321,10 @@ class UIService {
 
     this.itemListContainer.innerHTML = '';
 
-    this.items.forEach((item) => {
+    // Filter out system items (items with names starting with 'system-')
+    const filteredItems = this.items.filter(item => !item.name?.startsWith('system-'));
+
+    filteredItems.forEach((item) => {
       const itemElements = this.createElementItem(item, 0);
       this.itemListContainer?.append(...itemElements);
     });
@@ -319,6 +335,11 @@ class UIService {
     if (!item.name) {
       this.itemIndex[item.className]++;
       item.name = `${item.className} ${this.itemIndex[item.className]}`;
+    }
+
+    // Skip system items (they should already be filtered out, but just in case)
+    if (item.name.startsWith('system-')) {
+      return [];
     }
 
     if (item.children) {
@@ -477,6 +498,7 @@ class UIService {
     const closeBtn = document.getElementById('modal-close-btn');
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const koreanInput = document.getElementById('korean-input') as HTMLInputElement;
+    const fontSelector = document.getElementById('font-selector') as HTMLSelectElement;
     const preview = document.getElementById('letter-preview');
 
     // Close modal functions
@@ -501,8 +523,9 @@ class UIService {
     // Confirm button
     confirmBtn?.addEventListener('click', () => {
       const inputText = koreanInput?.value.trim();
+      const selectedFont = fontSelector?.value || '';
       if (inputText) {
-        this.createLayersFromInput(inputText);
+        this.createLayersFromInput(inputText, selectedFont);
         closeModal();
       } else {
         this.updateStatus('Please enter Korean text');
@@ -523,16 +546,16 @@ class UIService {
     previewElement.innerHTML = letters.map((letter, index) => tags.letterItem(letter, index)).join('');
   }
 
-  private createLayersFromInput(inputText: string): void {
+  private createLayersFromInput(inputText: string, selectedFont: string): void {
     const letters = inputText.split('').filter(char => char.trim() !== '');
 
-
     letters.forEach((letter, index) => {
-      canvasService.addLayer(`letter_${index + 1}_${letter}`);
+      canvasService.addLayer(letter, index, selectedFont);
     });
 
     // Update the layer panel
-    this.updateStatus(`Created ${letters.length} layers for: ${inputText}`);
+    const fontInfo = selectedFont ? ` with font: ${selectedFont}` : ' with default font';
+    this.updateStatus(`Created ${letters.length} layers for: ${inputText}${fontInfo}`);
   }
 
 }

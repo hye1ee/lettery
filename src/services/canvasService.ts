@@ -1,9 +1,13 @@
 
-import paper from 'paper'
-import { lerpPoint } from '../utils/helper'
-import { colors } from '../utils/styles'
-import type { DrawingState } from '../types'
-import { findParentLayer } from '../utils/paperUtils'
+import paper from 'paper';
+import * as hangul from 'hangul-js';
+
+import { lerpPoint } from '../utils/helper';
+import { colors } from '../utils/styles';
+import type { DrawingState } from '../types';
+import { findParentLayer } from '../utils/paperUtils';
+import { previewBox } from '../helpers';
+
 
 class CanvasService {
   private static instance: CanvasService | null = null
@@ -17,9 +21,12 @@ class CanvasService {
   private drawingState: DrawingState = {
     currentDrawing: null,
     currentPath: null,
-    selectedItem: null,
+    selectedItems: [],
     selectedPoint: null,
-    dragOffset: null
+    dragOffset: null,
+    initialDragPositions: [],
+    isDragSelecting: false,
+    dragSelectionStart: null
   };
 
   // Callback for UI event listeners
@@ -31,7 +38,8 @@ class CanvasService {
   // Hover state management
   private hoveredItem: paper.Item | null = null;
 
-  private constructor() { }
+  private constructor() {
+  }
 
   static getInstance(): CanvasService {
     if (!CanvasService.instance) {
@@ -55,7 +63,11 @@ class CanvasService {
 
     this.project = paper.project;
 
-    this.createBackgroundLayer();
+    // create system helper layer
+    this.createHelperLayer();
+
+    this.setupHelpers();
+    // this.createBackgroundLayer();
 
     // Ensure there's always an active layer
     // this.ensureActiveLayer();
@@ -70,15 +82,30 @@ class CanvasService {
 
   updateItems() {
     if (this.updateItemsCallback && this.project) {
-      const layers = this.project.layers.filter(layer => layer.name !== 'Background');
+      const layers = this.project.layers.filter(layer => !layer.name.includes('system'));
       this.updateItemsCallback(layers || []);
     }
+  }
+
+  createHelperLayer(): void {
+    const helperLayer = new paper.Layer();
+    helperLayer.visible = true;
+    helperLayer.name = 'system-helper';
+    this.project?.addLayer(helperLayer);
+  }
+
+  setupHelpers(): void {
+    const helperLayer = this.project?.layers.find(layer => layer.name === 'system-helper');
+    if (!helperLayer) throw new Error("Helper layer not found");
+
+    previewBox.init();
+    helperLayer.addChild(previewBox.getPreviewBox());
   }
 
   createBackgroundLayer(): void {
     const backgroundLayer = new paper.Layer();
     backgroundLayer.visible = false;
-    backgroundLayer.name = 'Background';
+    backgroundLayer.name = 'system-backgrond';
     this.project?.addLayer(backgroundLayer);
 
     const background = new paper.Path.Rectangle(this.view!.bounds)
@@ -149,19 +176,41 @@ class CanvasService {
    * Manage the canvas
    */
 
-  addLayer(name: string): void {
-    console.log("Adding layer", name);
+  addLayer(name: string, index: number, font?: string): void {
+    // asume that the name is single Hangul letter
     if (!this.project) throw new Error("Project not found");
+
+    const disassembled = hangul.disassemble(name);
+
+    // add syllable layer
     const layer = new paper.Layer();
-    layer.name = name;
-
-    // Update active layer
-    this.activeLayer = layer;
+    layer.data.type = 'syllable';
+    layer.data.string = name;
+    layer.data.font = font || '';
+    layer.name = name + " " + (index + 1);
     this.project.addLayer(layer);
-    this.updateItems();
 
-    // Select the active layer
+    // add jamo layers
+    disassembled.forEach((jamo, jamoIndex) => {
+      const jamoLayer = new paper.Layer();
+      jamoLayer.data.type = 'jamo';
+      jamoLayer.data.string = jamo;
+      jamoLayer.data.font = font || '';
+      jamoLayer.name = jamo + " " + (jamoIndex + 1);
+      layer.addChild(jamoLayer);
+    });
+
+    // Select the letter layer
     this.selectItem(layer);
+    this.updateItems();
+  }
+
+  importFont(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const font = e.target?.result as string;
+      console.log("Importing font", font);
+    }
   }
 
 
@@ -434,24 +483,36 @@ class CanvasService {
   }
 
 
+  getAllItems(): paper.Item[] {
+    if (!this.project) throw new Error("Project not found");
+    return this.project.getItems({
+      class: paper.Path || paper.CompoundPath || paper.Shape
+    });
+  }
+
   /**
-   * Select an item
+   * Select an item (replaces previous selection)
    */
   selectItem(item: paper.Item): void {
     this.deselectAll();
 
     if (item instanceof paper.Layer) {
       // Layer selected - clear item selection, set active layer
-      this.activeLayer = item;
-      item.activate();
+      let layer = item;
+      if (layer.data.type === 'syllable') { // only jamo layer can be selected
+        layer = layer.children[0] as paper.Layer;
+      }
+
+      this.activeLayer = layer;
+      layer.activate();
 
       // Notify UI: layer selected, no item selected
-      if (item.id && this.alertSelectionChange) {
-        this.alertSelectionChange(item.id.toString(), true, item.id.toString());
+      if (layer.id && this.alertSelectionChange) {
+        this.alertSelectionChange(layer.id.toString(), true, layer.id.toString());
       }
     } else {
-      // Item selected - set both item and parent layer as active
-      this.drawingState.selectedItem = item;
+      // Item selected - add to selection array
+      this.drawingState.selectedItems = [item];
       item.selected = true;
 
       const parentLayer = findParentLayer(item);
@@ -472,6 +533,84 @@ class CanvasService {
     }
   }
 
+  /**
+   * Add item to selection (for multi-selection)
+   */
+  addToSelection(item: paper.Item): void {
+    if (item instanceof paper.Layer) {
+      // Layers can't be multi-selected, just select the layer
+      this.selectItem(item);
+      return;
+    }
+
+    // Check if item is already selected
+    const isAlreadySelected = this.drawingState.selectedItems.some(selectedItem => selectedItem.id === item.id);
+
+    if (!isAlreadySelected) {
+      // Add to selection
+      this.drawingState.selectedItems.push(item);
+      item.selected = true;
+
+      // Set active layer if this is the first item
+      if (this.drawingState.selectedItems.length === 1) {
+        const parentLayer = findParentLayer(item);
+        if (parentLayer) {
+          parentLayer.activate();
+          this.activeLayer = parentLayer;
+        }
+      }
+
+      // Notify UI about the selection
+      if (item.id && this.alertSelectionChange) {
+        this.alertSelectionChange(item.id.toString(), true, this.activeLayer?.id.toString());
+      }
+    }
+  }
+
+  /**
+   * Remove item from selection
+   */
+  removeFromSelection(item: paper.Item): void {
+    const index = this.drawingState.selectedItems.findIndex(selectedItem => selectedItem.id === item.id);
+
+    if (index !== -1) {
+      // Remove from selection
+      this.drawingState.selectedItems.splice(index, 1);
+      item.selected = false;
+
+      // Notify UI about the deselection
+      if (item.id && this.alertSelectionChange) {
+        this.alertSelectionChange(item.id.toString(), false, this.activeLayer?.id.toString());
+      }
+    }
+  }
+
+  /**
+   * Toggle item selection (for Ctrl/Cmd+click)
+   */
+  toggleItemSelection(item: paper.Item): void {
+    if (item instanceof paper.Layer) {
+      // Layers can't be multi-selected, just select the layer
+      this.selectItem(item);
+      return;
+    }
+
+    const isSelected = this.drawingState.selectedItems.some(selectedItem => selectedItem.id === item.id);
+
+    if (isSelected) {
+      this.removeFromSelection(item);
+    } else {
+      this.addToSelection(item);
+    }
+  }
+
+  /**
+   * Item selection methods
+   */
+
+  getSelectedItems(): any[] {
+    return this.drawingState.selectedItems;
+  }
   // When Item selected by UI
   updateItemSelection(id: string): void {
     const item = this.getItemById(id);
@@ -481,26 +620,17 @@ class CanvasService {
 
   }
 
-  /**
-   * Deselect a path
-   */
   deselectItem(item: paper.Item): void {
     item.selected = false;
 
   }
 
-  /**
-   * Select a point
-   */
   selectPoint(point: paper.PathItem): void {
     this.deselectAll()
     this.drawingState.selectedPoint = point
     point.fillColor = new paper.Color(colors.error)
   }
 
-  /**
-   * Deselect a point
-   */
   deselectPoint(point: paper.PathItem): void {
     point.fillColor = new paper.Color(colors.black)
   }
@@ -509,11 +639,12 @@ class CanvasService {
    * Deselect all items (but keep active layer)
    */
   deselectAll(): void {
-    if (this.drawingState.selectedItem) {
-      this.deselectItem(this.drawingState.selectedItem)
-      this.drawingState.selectedItem.selected = false;
-      this.drawingState.selectedItem = null
-    }
+    // Deselect all selected items
+    this.drawingState.selectedItems.forEach(item => {
+      this.deselectItem(item);
+      item.selected = false;
+    });
+    this.drawingState.selectedItems = [];
 
     if (this.drawingState.selectedPoint) {
       this.deselectPoint(this.drawingState.selectedPoint)
@@ -693,9 +824,16 @@ class CanvasService {
    * Start dragging a selected item (calculate offset)
    */
   startDraggingItem(grabPoint: paper.Point): void {
-    if (this.drawingState.selectedItem) {
-      // Calculate offset between grab point and item center
-      this.drawingState.dragOffset = grabPoint.subtract(this.drawingState.selectedItem.position);
+    if (this.drawingState.selectedItems.length > 0) {
+      // Store initial positions of all selected items
+      this.drawingState.initialDragPositions = this.drawingState.selectedItems.map(item => ({
+        item: item,
+        position: item.position.clone()
+      }));
+
+      // Calculate offset between grab point and first item center
+      const firstItem = this.drawingState.selectedItems[0];
+      this.drawingState.dragOffset = grabPoint.subtract(firstItem.position);
     }
   }
 
@@ -706,12 +844,29 @@ class CanvasService {
     if (this.drawingState.selectedPoint) {
       this.drawingState.selectedPoint.position = point;
     }
-    if (this.drawingState.selectedItem) {
-      // Use drag offset to maintain relative position
+
+    // Move all selected items
+    if (this.drawingState.selectedItems.length > 0 && this.drawingState.initialDragPositions.length > 0) {
       if (this.drawingState.dragOffset) {
-        this.drawingState.selectedItem.position = point.subtract(this.drawingState.dragOffset);
+        // Calculate the target position for the first item based on drag offset
+        const firstInitialPosition = this.drawingState.initialDragPositions[0].position;
+        const targetPosition = point.subtract(this.drawingState.dragOffset);
+
+        // Calculate the delta from initial position to target position
+        const delta = targetPosition.subtract(firstInitialPosition);
+
+        // Apply delta to all items based on their initial positions
+        this.drawingState.initialDragPositions.forEach((initialPos, index) => {
+          const item = this.drawingState.selectedItems[index];
+          if (item) {
+            item.position = initialPos.position.add(delta);
+          }
+        });
       } else {
-        this.drawingState.selectedItem.position = point;
+        // Fallback: move all items to the same position (shouldn't happen normally)
+        this.drawingState.selectedItems.forEach(item => {
+          item.position = point;
+        });
       }
     }
   }
@@ -721,6 +876,76 @@ class CanvasService {
    */
   stopDraggingItem(): void {
     this.drawingState.dragOffset = null;
+    this.drawingState.initialDragPositions = [];
+  }
+
+  /**
+   * Start drag selection (marquee selection)
+   */
+  startDragSelection(point: paper.Point): void {
+    this.drawingState.isDragSelecting = true;
+    this.drawingState.dragSelectionStart = point.clone();
+
+    // Use PreviewBox singleton to show the selection box
+    previewBox.show(point);
+
+  }
+
+  /**
+   * Update drag selection box
+   */
+  updateDragSelection(point: paper.Point): void {
+    if (this.drawingState.isDragSelecting) {
+      // Use PreviewBox singleton to update the selection box
+      previewBox.update(point);
+    }
+  }
+
+  /**
+   * Finish drag selection and select intersecting items
+   */
+  finishDragSelection(): void {
+    if (this.drawingState.isDragSelecting) {
+      console.log("finishDragSelection");
+      // Get the preview box bounds for intersection testing
+      const selectionBounds = previewBox.getBoundingBox();
+
+
+      // Find all items that intersect with the selection box
+      const intersectingItems: paper.Item[] = this.getAllItems().filter(item => selectionBounds.intersects(item.bounds) && !item.name.includes('system'));
+
+      // Select all intersecting items
+      if (intersectingItems.length > 0) {
+        this.drawingState.selectedItems = intersectingItems;
+        intersectingItems.forEach(item => {
+          item.selected = true;
+        });
+
+        // Notify UI about the selection
+        if (this.alertSelectionChange) {
+          this.alertSelectionChange(intersectingItems[0].id.toString(), true, this.activeLayer?.id.toString());
+        }
+      }
+
+      // Clean up drag selection using PreviewBox
+      previewBox.hide();
+      this.drawingState.dragSelectionStart = null;
+      this.drawingState.isDragSelecting = false;
+
+      console.log('Drag selection finished, selected items:', intersectingItems?.length || 0);
+    }
+  }
+
+  /**
+   * Cancel drag selection
+   */
+  cancelDragSelection(): void {
+    if (this.drawingState.isDragSelecting) {
+      // Use PreviewBox singleton to hide the selection box
+      previewBox.hide();
+      this.drawingState.dragSelectionStart = null;
+      this.drawingState.isDragSelecting = false;
+    }
   }
 
   /**

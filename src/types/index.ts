@@ -29,9 +29,12 @@ export interface AppState {
 export interface DrawingState {
   currentDrawing: any | null
   currentPath: any | null
-  selectedItem: any | null
+  selectedItems: any[] // Array of selected items
   selectedPoint: any | null
   dragOffset: any | null
+  initialDragPositions: any[] // Store initial positions when starting drag
+  isDragSelecting: boolean // Whether we're in drag selection mode
+  dragSelectionStart: any | null // Starting point of drag selection
 }
 
 // Canvas configuration
