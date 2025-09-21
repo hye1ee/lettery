@@ -20,6 +20,10 @@ export class SelectTool implements Tool {
   }
 
   deactivate(): void {
+    this.deselectAll();
+    this.dragStartPoint = null;
+    this.dragStartPositions.clear();
+    this.isDragSelecting = false;
     cursor.resetCursor();
     // TODO: Implement deactivate logic
   }
@@ -82,7 +86,6 @@ export class SelectTool implements Tool {
     } else {
       // Item selected - add to selection array
       item.selected = true;
-
       const parentLayer = findParentLayer(item);
       if (parentLayer) {
         parentLayer.activate();

@@ -53,12 +53,6 @@ class ToolService {
   }
 
   /**
-   * Get the currently active tool instance
-   */
-  getActiveTool(): any {
-    return this.currentTool;
-  }
-  /**
    * Switch to a different tool
    */
   switchTool = (tool: string): void => {

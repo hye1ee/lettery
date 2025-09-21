@@ -1,6 +1,8 @@
 import paper from 'paper'
 import type { Tool } from './index'
-import { cursor } from '../helpers';
+import { cursor, logger } from '../helpers';
+import { colors } from '../utils/styles';
+import { closePath, simplifyPath } from '../utils/paperUtils';
 
 export class PencilTool implements Tool {
   private static instance: PencilTool | null = null;
@@ -8,6 +10,8 @@ export class PencilTool implements Tool {
   readonly id: string = 'pencil';
   readonly shortcut: string = 'p';
   readonly cursorStyle: string = 'crosshair';
+
+  private path: paper.Path | null = null;
 
   activate(): void {
     cursor.updateCursor(this.cursorStyle);
@@ -29,13 +33,15 @@ export class PencilTool implements Tool {
   }
 
   onMouseDown = (event: paper.ToolEvent): void => {
-    // TODO: Implement mouse down logic
+    this.path = new paper.Path();
+    paper.project.activeLayer.addChild(this.path);
 
-    //   if (currentTool === TOOLS.PENCIL) {
-    //     const path = canvasService.startDrawing(event.point)
-    //     if (path) {
-    //       logger.updateStatus('Pencil drawing started')
-    //     }
+    this.path.selected = true;
+    this.path.strokeColor = new paper.Color(colors.black);
+    this.path.strokeWidth = 1;
+    this.path.add(event.point);
+
+    logger.updateStatus('Pencil drawing started')
   }
 
   onMouseMove = (event: paper.ToolEvent): void => {
@@ -43,28 +49,21 @@ export class PencilTool implements Tool {
   }
 
   onMouseUp = (event: paper.ToolEvent): void => {
-    // TODO: Implement mouse up logic
+    if (!this.path) return;
 
+    this.path.add(event.point);
+    const result = simplifyPath(this.path);
+    closePath(this.path);
 
-    //   if (currentTool === TOOLS.PENCIL) {
-    //     const result = canvasService.finishDrawing(event.point);
-    //     if (result.success) {
-    //       if (result.simplificationInfo) {
-    //         const { original, simplified, saved, percentage } = result.simplificationInfo;
-    //         logger.updateStatus(`Pencil drawing finished - Simplified: ${saved} segments removed (${percentage}% saved)`);
-    //       } else {
-    //         logger.updateStatus('Pencil drawing finished');
-    //       }
-    //       // Update layer after finishing drawing
-    //       canvasService.updateItems();
-    //     }
+    this.path.selected = false;
+    this.path = null;
+
+    logger.updateStatus(`Pencil drawing finished - Simplified: ${result?.saved} segments removed (${result?.percentage}% saved)`);
   }
 
   onMouseDrag = (event: paper.ToolEvent): void => {
-    // TODO: Implement mouse up logic
-
-    //   if (currentTool === TOOLS.PENCIL) {
-    //     canvasService.continueDrawing(event.point)
+    if (!this.path) return;
+    this.path.add(event.point);
 
   }
 }
