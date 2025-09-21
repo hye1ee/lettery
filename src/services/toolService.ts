@@ -1,9 +1,11 @@
-import type { ToolType } from '../types'
-import { TOOLS, KEYBOARD_SHORTCUTS } from '../types'
+import type { Tool } from '../tools'
 
 class ToolService {
   private static instance: ToolService | null = null
-  private currentTool: ToolType = TOOLS.SELECT
+  private currentTool: string | null = null;
+  private tools: Map<string, Tool> = new Map();
+  private buttons: Map<string, HTMLButtonElement> = new Map();
+
 
   private constructor() { }
 
@@ -18,150 +20,96 @@ class ToolService {
   }
 
   /**
-   * Get current tool
+   * Initialize all tools
    */
-  getCurrentTool(): ToolType {
-    return this.currentTool
+  initTools(tools: Tool[]): void {
+
+    const keys = new Map<string, string>();
+    tools.forEach((tool) => {
+      this.tools.set(tool.id, tool);
+
+      const button = document.getElementById(`${tool.id}-tool`) as HTMLButtonElement
+      if (button) {
+        button.addEventListener('click', () => {
+          this.switchTool(tool.id);
+        })
+        this.buttons.set(tool.id, button);
+      }
+      keys.set(tool.shortcut, tool.id);
+
+
+    })
+    // set up key event handler
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      const tool = keys.get(key);
+      if (tool) {
+        this.switchTool(tool);
+      }
+    })
+
+    // initialize with the first tool
+    this.switchTool(tools[0].id);
   }
 
+  /**
+   * Get the currently active tool instance
+   */
+  getActiveTool(): any {
+    return this.currentTool;
+  }
   /**
    * Switch to a different tool
    */
-  switchTool(tool: ToolType): void {
-    this.currentTool = tool
-  }
+  switchTool = (tool: string): void => {
+    if (this.currentTool === tool) return;
 
-  /**
-   * Toggle pen tool (if already active, switch to select)
-   */
-  togglePenTool(): ToolType {
-    if (this.currentTool === TOOLS.PEN) {
-      this.currentTool = TOOLS.SELECT
-      return TOOLS.SELECT
-    } else {
-      this.currentTool = TOOLS.PEN
-      return TOOLS.PEN
+    if (this.currentTool) {
+      this.tools.get(this.currentTool)?.deactivate();
+      this.buttons.get(this.currentTool)?.classList.remove('active');
     }
+    this.currentTool = tool;
+
+    this.tools.get(tool)?.activate();
+    this.buttons.get(tool)?.classList.add('active');
   }
 
-  /**
-   * Check if a specific tool is active
-   */
-  isToolActive(tool: ToolType): boolean {
-    return this.currentTool === tool
+  getEventHandlers(): {
+    onMouseDown: (event: paper.ToolEvent) => void;
+    onMouseDrag: (event: paper.ToolEvent) => void;
+    onMouseUp: (event: paper.ToolEvent) => void;
+    onMouseMove: (event: paper.ToolEvent) => void;
+  } {
+    return {
+      onMouseDown: (event) => {
+        const activeTool = this.tools.get(this.currentTool!);
+        if (activeTool) {
+          activeTool.onMouseDown(event);
+        }
+      },
+      onMouseDrag: (event) => {
+        const activeTool = this.tools.get(this.currentTool!);
+        if (activeTool) {
+          activeTool.onMouseDrag(event);
+        }
+      },
+      onMouseUp: (event) => {
+        const activeTool = this.tools.get(this.currentTool!);
+        if (activeTool) {
+          activeTool.onMouseUp(event);
+        }
+      },
+      onMouseMove: (event) => {
+        const activeTool = this.tools.get(this.currentTool!);
+        if (activeTool) {
+          activeTool.onMouseMove(event);
+        }
+      },
+    };
   }
 
-  /**
-   * Get tool name for display
-   */
-  getToolName(tool: ToolType): string {
-    switch (tool) {
-      case TOOLS.SELECT:
-        return 'Select Tool'
-      case TOOLS.PENCIL:
-        return 'PENCIL Tool'
-      case TOOLS.PEN:
-        return 'Add Point Tool'
-      default:
-        return 'Unknown Tool'
-    }
-  }
 
-  /**
-   * Get tool description
-   */
-  getToolDescription(tool: ToolType): string {
-    switch (tool) {
-      case TOOLS.SELECT:
-        return 'Select and manipulate paths and points'
-      case TOOLS.PENCIL:
-        return 'Draw freehand vector paths'
-      case TOOLS.PEN:
-        return 'Add control points to existing paths'
-      default:
-        return 'Unknown tool functionality'
-    }
-  }
 
-  /**
-   * Get keyboard shortcut for a tool
-   */
-  getToolShortcut(tool: ToolType): string {
-    switch (tool) {
-      case TOOLS.SELECT:
-        return KEYBOARD_SHORTCUTS.SELECT_TOOL.toUpperCase()
-      case TOOLS.PENCIL:
-        return KEYBOARD_SHORTCUTS.PENCIL_TOOL.toUpperCase()
-      case TOOLS.PEN:
-        return KEYBOARD_SHORTCUTS.PEN_TOOL.toUpperCase()
-      default:
-        return ''
-    }
-  }
-
-  /**
-   * Get cursor style for a tool
-   */
-  getToolCursor(tool: ToolType): string {
-    switch (tool) {
-      case TOOLS.SELECT:
-        return 'default'
-      case TOOLS.PENCIL:
-        return 'crosshair'
-      case TOOLS.PEN:
-        return 'pointer'
-      default:
-        return 'default'
-    }
-  }
-
-  /**
-   * Handle keyboard shortcut
-   */
-  handleKeyboardShortcut(key: string): ToolType | null {
-    const lowerKey = key.toLowerCase()
-
-    switch (lowerKey) {
-      case KEYBOARD_SHORTCUTS.SELECT_TOOL:
-        return TOOLS.SELECT
-      case KEYBOARD_SHORTCUTS.PENCIL_TOOL:
-        return TOOLS.PENCIL
-      case KEYBOARD_SHORTCUTS.PEN_TOOL:
-        return TOOLS.PEN
-      default:
-        return null
-    }
-  }
-
-  /**
-   * Get all available tools
-   */
-  getAllTools(): ToolType[] {
-    return [TOOLS.SELECT, TOOLS.PENCIL, TOOLS.PEN]
-  }
-
-  /**
-   * Get tool icon name (for UI)
-   */
-  getToolIcon(tool: ToolType): string {
-    switch (tool) {
-      case TOOLS.SELECT:
-        return 'cursor-pointer'
-      case TOOLS.PENCIL:
-        return 'PENCIL'
-      case TOOLS.PEN:
-        return 'plus-circle'
-      default:
-        return 'question-mark'
-    }
-  }
-
-  /**
-   * Validate tool type
-   */
-  isValidTool(tool: string): tool is ToolType {
-    return Object.values(TOOLS).includes(tool as ToolType)
-  }
 }
 
 export default ToolService;

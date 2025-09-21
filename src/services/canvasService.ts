@@ -6,7 +6,7 @@ import { lerpPoint } from '../utils/helper';
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
 import { findParentLayer } from '../utils/paperUtils';
-import { previewBox } from '../helpers';
+import { logger, previewBox } from '../helpers';
 
 
 class CanvasService {
@@ -15,7 +15,13 @@ class CanvasService {
   private view: paper.View | null = null
   private point: { x: number, y: number } = { x: 0, y: 0 };
   private activeLayer: paper.Layer | null = null;
+
   private updateItemsCallback: ((element: any) => void) | null = null;
+  private onMouseDownCallbacks: ((event: paper.ToolEvent) => void)[] = [];
+  private onMouseDragCallbacks: ((event: paper.ToolEvent) => void)[] = [];
+  private onMouseUpCallbacks: ((event: paper.ToolEvent) => void)[] = [];
+  private onMouseMoveCallbacks: ((event: paper.ToolEvent) => void)[] = [];
+
 
   // Drawing state (merged from DrawingService)
   private drawingState: DrawingState = {
@@ -66,7 +72,9 @@ class CanvasService {
     // create system helper layer
     this.createHelperLayer();
 
-    this.setupHelpers();
+    this.initHelpers();
+
+    this.initEventHandlers();
     // this.createBackgroundLayer();
 
     // Ensure there's always an active layer
@@ -94,7 +102,7 @@ class CanvasService {
     this.project?.addLayer(helperLayer);
   }
 
-  setupHelpers(): void {
+  initHelpers(): void {
     const helperLayer = this.project?.layers.find(layer => layer.name === 'system-helper');
     if (!helperLayer) throw new Error("Helper layer not found");
 
@@ -126,21 +134,44 @@ class CanvasService {
     backgroundLayer.sendToBack();
   }
 
-  setupEventHandlers(handlers: {
-    onMouseDown: (event: paper.ToolEvent) => void
-    onMouseDrag: (event: paper.ToolEvent) => void
-    onMouseUp: (event: paper.ToolEvent) => void
-    onMouseMove: (event: paper.ToolEvent) => void
-  }): void {
-    if (!this.view) throw new Error("view not found");
-
-    this.view.onMouseDown = handlers.onMouseDown
-    this.view.onMouseDrag = handlers.onMouseDrag
-    this.view.onMouseUp = handlers.onMouseUp
-    this.view.onMouseMove = (event: paper.ToolEvent) => {
+  initEventHandlers(): void {
+    this.onMouseMoveCallbacks.push((event: paper.ToolEvent) => {
       this.point = { x: event.point.x, y: event.point.y };
-      handlers.onMouseMove(event);
+      this.handleHover(event.point);
+      logger.updateCoordinates(event.point.x, event.point.y);
+    })
+  }
+
+  updateEventHandlers(): void {
+    if (!this.view) throw new Error("view not found");
+    this.view.onMouseDown = (event: paper.ToolEvent) => {
+      this.onMouseDownCallbacks.forEach((callback) => callback(event))
     }
+    this.view.onMouseDrag = (event: paper.ToolEvent) => {
+      this.onMouseDragCallbacks.forEach((callback) => callback(event))
+    }
+    this.view.onMouseUp = (event: paper.ToolEvent) => {
+      this.onMouseUpCallbacks.forEach((callback) => callback(event))
+    }
+    this.view.onMouseMove = (event: paper.ToolEvent) => {
+      this.onMouseMoveCallbacks.forEach((callback) => callback(event))
+    }
+  }
+
+  addEventHandlers({ onMouseDown, onMouseDrag, onMouseUp, onMouseMove }: {
+    onMouseDown?: (event: paper.ToolEvent) => void
+    onMouseDrag?: (event: paper.ToolEvent) => void
+    onMouseUp?: (event: paper.ToolEvent) => void
+    onMouseMove?: (event: paper.ToolEvent) => void
+  }): void {
+
+    console.log("adding event handlers", onMouseDown, onMouseDrag, onMouseUp, onMouseMove);
+    if (onMouseDown) this.onMouseDownCallbacks.push(onMouseDown);
+    if (onMouseDrag) this.onMouseDragCallbacks.push(onMouseDrag);
+    if (onMouseUp) this.onMouseUpCallbacks.push(onMouseUp);
+    if (onMouseMove) this.onMouseMoveCallbacks.push(onMouseMove);
+
+    this.updateEventHandlers();
   }
 
   /**
@@ -305,29 +336,6 @@ class CanvasService {
 
     const { x, y } = lerpPoint(this.view.center, { x: this.point.x, y: this.point.y }, 0.4);
     this.view.center = new paper.Point(x, y);
-  }
-
-  // Pan helpers
-  private panStartCenter: paper.Point | null = null;
-  private panStartPoint: paper.Point | null = null;
-
-  startPan(startPoint: paper.Point): void {
-    if (!this.view) throw new Error("View not found");
-    this.panStartCenter = this.view.center.clone();
-    this.panStartPoint = startPoint.clone();
-  }
-
-  panTo(currentPoint: paper.Point): void {
-    if (!this.view || !this.panStartCenter || !this.panStartPoint) return;
-    // Move opposite to mouse movement: newCenter = startCenter - (current - startPoint)
-    const dx = currentPoint.x - this.panStartPoint.x;
-    const dy = currentPoint.y - this.panStartPoint.y;
-    this.view.translate(new paper.Point(dx, dy));
-  }
-
-  endPan(): void {
-    this.panStartCenter = null;
-    this.panStartPoint = null;
   }
 
   // Drawing methods (merged from DrawingService)
@@ -568,49 +576,9 @@ class CanvasService {
   }
 
   /**
-   * Remove item from selection
-   */
-  removeFromSelection(item: paper.Item): void {
-    const index = this.drawingState.selectedItems.findIndex(selectedItem => selectedItem.id === item.id);
-
-    if (index !== -1) {
-      // Remove from selection
-      this.drawingState.selectedItems.splice(index, 1);
-      item.selected = false;
-
-      // Notify UI about the deselection
-      if (item.id && this.alertSelectionChange) {
-        this.alertSelectionChange(item.id.toString(), false, this.activeLayer?.id.toString());
-      }
-    }
-  }
-
-  /**
-   * Toggle item selection (for Ctrl/Cmd+click)
-   */
-  toggleItemSelection(item: paper.Item): void {
-    if (item instanceof paper.Layer) {
-      // Layers can't be multi-selected, just select the layer
-      this.selectItem(item);
-      return;
-    }
-
-    const isSelected = this.drawingState.selectedItems.some(selectedItem => selectedItem.id === item.id);
-
-    if (isSelected) {
-      this.removeFromSelection(item);
-    } else {
-      this.addToSelection(item);
-    }
-  }
-
-  /**
    * Item selection methods
    */
 
-  getSelectedItems(): any[] {
-    return this.drawingState.selectedItems;
-  }
   // When Item selected by UI
   updateItemSelection(id: string): void {
     const item = this.getItemById(id);
@@ -820,64 +788,24 @@ class CanvasService {
     }
   }
 
-  /**
-   * Start dragging a selected item (calculate offset)
-   */
-  startDraggingItem(grabPoint: paper.Point): void {
-    if (this.drawingState.selectedItems.length > 0) {
-      // Store initial positions of all selected items
-      this.drawingState.initialDragPositions = this.drawingState.selectedItems.map(item => ({
-        item: item,
-        position: item.position.clone()
-      }));
+  // /**
+  //  * Start dragging a selected item (calculate offset)
+  //  */
+  // startDraggingItem(grabPoint: paper.Point): void {
+  //   if (this.drawingState.selectedItems.length > 0) {
+  //     // Store initial positions of all selected items
+  //     this.drawingState.initialDragPositions = this.drawingState.selectedItems.map(item => ({
+  //       item: item,
+  //       position: item.position.clone()
+  //     }));
 
-      // Calculate offset between grab point and first item center
-      const firstItem = this.drawingState.selectedItems[0];
-      this.drawingState.dragOffset = grabPoint.subtract(firstItem.position);
-    }
-  }
+  //     // Calculate offset between grab point and first item center
+  //     const firstItem = this.drawingState.selectedItems[0];
+  //     this.drawingState.dragOffset = grabPoint.subtract(firstItem.position);
+  //   }
+  // }
 
-  /**
-   * Move a selected point
-   */
-  moveSelectedPoint(point: paper.Point): void {
-    if (this.drawingState.selectedPoint) {
-      this.drawingState.selectedPoint.position = point;
-    }
 
-    // Move all selected items
-    if (this.drawingState.selectedItems.length > 0 && this.drawingState.initialDragPositions.length > 0) {
-      if (this.drawingState.dragOffset) {
-        // Calculate the target position for the first item based on drag offset
-        const firstInitialPosition = this.drawingState.initialDragPositions[0].position;
-        const targetPosition = point.subtract(this.drawingState.dragOffset);
-
-        // Calculate the delta from initial position to target position
-        const delta = targetPosition.subtract(firstInitialPosition);
-
-        // Apply delta to all items based on their initial positions
-        this.drawingState.initialDragPositions.forEach((initialPos, index) => {
-          const item = this.drawingState.selectedItems[index];
-          if (item) {
-            item.position = initialPos.position.add(delta);
-          }
-        });
-      } else {
-        // Fallback: move all items to the same position (shouldn't happen normally)
-        this.drawingState.selectedItems.forEach(item => {
-          item.position = point;
-        });
-      }
-    }
-  }
-
-  /**
-   * Stop dragging (clear offset)
-   */
-  stopDraggingItem(): void {
-    this.drawingState.dragOffset = null;
-    this.drawingState.initialDragPositions = [];
-  }
 
   /**
    * Start drag selection (marquee selection)
@@ -891,49 +819,6 @@ class CanvasService {
 
   }
 
-  /**
-   * Update drag selection box
-   */
-  updateDragSelection(point: paper.Point): void {
-    if (this.drawingState.isDragSelecting) {
-      // Use PreviewBox singleton to update the selection box
-      previewBox.update(point);
-    }
-  }
-
-  /**
-   * Finish drag selection and select intersecting items
-   */
-  finishDragSelection(): void {
-    if (this.drawingState.isDragSelecting) {
-      console.log("finishDragSelection");
-      // Get the normalized preview box bounds for intersection testing
-      const selectionBounds = previewBox.getNormalizedBoundingBox();
-
-      // Find all items that intersect with the selection box
-      const intersectingItems: paper.Item[] = this.getAllItems().filter(item => selectionBounds.intersects(item.bounds) && !item.name.includes('system'));
-
-      // Select all intersecting items
-      if (intersectingItems.length > 0) {
-        this.drawingState.selectedItems = intersectingItems;
-        intersectingItems.forEach(item => {
-          item.selected = true;
-        });
-
-        // Notify UI about the selection
-        if (this.alertSelectionChange) {
-          this.alertSelectionChange(intersectingItems[0].id.toString(), true, this.activeLayer?.id.toString());
-        }
-      }
-
-      // Clean up drag selection using PreviewBox
-      previewBox.hide();
-      this.drawingState.dragSelectionStart = null;
-      this.drawingState.isDragSelecting = false;
-
-      console.log('Drag selection finished, selected items:', intersectingItems?.length || 0);
-    }
-  }
 
   /**
    * Cancel drag selection

@@ -1,9 +1,9 @@
-import type { ToolType } from '../types'
 import paper from 'paper'
 import { tags } from '../utils/tags'
 
 // It is allowed to directly call canvasService from uiService
 import { canvasService } from '.';
+import { logger } from '../helpers';
 
 export interface Layer {
   id: string;
@@ -40,9 +40,6 @@ export interface LayerAction {
 
 class UIService {
   private static instance: UIService | null = null;
-  private statusElement: HTMLSpanElement | null = null;
-  private coordinatesElement: HTMLSpanElement | null = null;
-  private toolButtons: Map<ToolType, HTMLButtonElement> = new Map();
 
   private items: paper.Item[] = [];
   private itemIndex: { [key: string]: number } = {
@@ -70,68 +67,10 @@ class UIService {
     return UIService.instance;
   }
 
-  public init(
-    statusElement: HTMLSpanElement,
-    coordinatesElement: HTMLSpanElement,
-    toolButtons: Map<ToolType, HTMLButtonElement>
-  ): void {
-    this.statusElement = statusElement;
-    this.coordinatesElement = coordinatesElement;
-    this.toolButtons = toolButtons;
+  public init(): void {
     this.itemListContainer = document.getElementById('layer-list');
   }
 
-  updateStatus(message: string): void {
-    if (this.statusElement) {
-      this.statusElement.textContent = message;
-    }
-    console.log('Status:', message);
-  }
-
-  updateCoordinates(x: number, y: number): void {
-    if (this.coordinatesElement) {
-      this.coordinatesElement.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
-    }
-  }
-
-  updateToolButtonStates(activeTool: ToolType): void {
-    this.toolButtons.forEach((button, tool) => {
-      const isActive = tool === activeTool;
-      button.classList.toggle('active', isActive);
-
-      // Special styling for pen tool when active
-      if (tool === 'pen') {
-        button.classList.toggle('pen-active', isActive);
-      } else {
-        button.classList.remove('pen-active');
-      }
-    });
-  }
-
-  updateCursor(tool: ToolType | "grabbing"): void {
-    const canvas = document.getElementById('vector-canvas') as HTMLCanvasElement;
-    if (canvas) {
-      switch (tool) {
-        case 'select':
-          canvas.style.cursor = 'default';
-          break;
-        case 'pencil':
-          canvas.style.cursor = 'crosshair';
-          break;
-        case 'pen':
-          canvas.style.cursor = 'default';
-          break;
-        case 'hand':
-          canvas.style.cursor = 'grab';
-          break;
-        case 'grabbing':
-          canvas.style.cursor = 'grabbing';
-          break;
-        default:
-          canvas.style.cursor = 'default';
-      }
-    }
-  }
 
   showTooltip(message: string, x: number, y: number): void {
     // Remove existing tooltip
@@ -156,30 +95,6 @@ class UIService {
     if (existingTooltip) {
       existingTooltip.remove();
     }
-  }
-
-  showLoading(message: string = 'Initializing'): void {
-    this.updateStatus(message);
-    // You could add a loading spinner here
-  }
-
-  hideLoading(message: string = 'Ready'): void {
-    this.updateStatus(message);
-    // Remove loading spinner here
-  }
-
-  showError(message: string): void {
-    this.updateStatus(`Error: ${message}`);
-    // You could add error styling here
-  }
-
-  showSuccess(message: string): void {
-    this.updateStatus(message);
-    // You could add success styling here
-  }
-
-  getToolButton(tool: ToolType): HTMLButtonElement | undefined {
-    return this.toolButtons.get(tool);
   }
 
 
@@ -400,7 +315,7 @@ class UIService {
 
       if (isDrawableItem) {
         canvasService.updateItemSelection(item.id.toString());
-        this.updateStatus(`${item.name || item.className} selected`);
+        logger.updateStatus(`${item.name || item.className} selected`);
         console.log('Selection callback triggered for item:', item.id);
       } else {
         console.log('Item is not drawable:', item.className);
@@ -410,7 +325,7 @@ class UIService {
 
   private handleLayerClick(layer: paper.Layer): void {
     canvasService.updateItemSelection(layer.id.toString());
-    this.updateStatus(`${layer.name} selected`);
+    logger.updateStatus(`${layer.name} selected`);
     console.log('Selection callback triggered for layer:', layer.id);
   }
 
@@ -450,7 +365,7 @@ class UIService {
   private handleDeleteItem(item: paper.Item): void {
     // Remove from canvas
     this.removeItem(item);
-    this.updateStatus(`Deleted ${item.name || item.className}`);
+    logger.updateStatus(`Deleted ${item.name || item.className}`);
   }
 
   private handleUngroupItem(target: paper.Item): void {
@@ -464,7 +379,7 @@ class UIService {
       }
       this.removeItem(target);
     } else {
-      this.updateStatus('Item is not a group');
+      logger.updateStatus('Item is not a group');
     }
   }
 
@@ -528,7 +443,7 @@ class UIService {
         this.createLayersFromInput(inputText, selectedFont);
         closeModal();
       } else {
-        this.updateStatus('Please enter Korean text');
+        logger.updateStatus('Please enter Korean text');
       }
     });
 
@@ -555,7 +470,7 @@ class UIService {
 
     // Update the layer panel
     const fontInfo = selectedFont ? ` with font: ${selectedFont}` : ' with default font';
-    this.updateStatus(`Created ${letters.length} layers for: ${inputText}${fontInfo}`);
+    logger.updateStatus(`Created ${letters.length} layers for: ${inputText}${fontInfo}`);
   }
 
 }

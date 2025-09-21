@@ -13,6 +13,13 @@ class PreviewBox {
     // Private constructor for singleton pattern
   }
 
+  public static getInstance(): PreviewBox {
+    if (!PreviewBox.instance) {
+      PreviewBox.instance = new PreviewBox();
+    }
+    return PreviewBox.instance;
+  }
+
   public init(): void {
     this.previewBox = new paper.Path.Rectangle(new paper.Point(0, 0), new paper.Size(10, 10));
     this.previewBox.strokeColor = new paper.Color(colors.primary);
@@ -48,12 +55,7 @@ class PreviewBox {
     return new paper.Rectangle(left, top, right - left, bottom - top);
   }
 
-  public static getInstance(): PreviewBox {
-    if (!PreviewBox.instance) {
-      PreviewBox.instance = new PreviewBox();
-    }
-    return PreviewBox.instance;
-  }
+
 
   public show(startPoint: paper.Point): void {
     if (!this.boundingBox || !this.previewBox) throw new Error("Bounding box or preview box not initialized");
