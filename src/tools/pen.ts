@@ -8,7 +8,7 @@ export class PenTool implements Tool {
   private static instance: PenTool | null = null;
 
   readonly id: string = 'pen';
-  readonly shortcut: string = 'a';
+  readonly shortcut: string = 'p';
   readonly cursorStyle: string = 'default';
 
   private path: paper.Path | null = null;

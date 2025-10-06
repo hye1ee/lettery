@@ -16,4 +16,6 @@ export interface Tool {
   onMouseMove(event: paper.ToolEvent): void;
   onMouseUp(event: paper.ToolEvent): void;
   onMouseDrag(event: paper.ToolEvent): void;
+  onDoubleClick?(event: paper.ToolEvent): void;
+  setToolSwitchCallback?(callback: (toolId: string) => void): void;
 }

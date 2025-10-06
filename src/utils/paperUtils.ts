@@ -39,3 +39,13 @@ export const closePath = (path: paper.Path): void => {
   path.strokeWidth = 0;
   path.fillColor = new paper.Color(colors.black);
 }
+
+export const ungroupItem = (item: paper.Item): void => {
+  if (item instanceof paper.Group) {
+    item.children.forEach(child => {
+      ungroupItem(child);
+      item.parent?.addChild(child.clone());
+    });
+    item.remove();
+  }
+}

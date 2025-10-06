@@ -28,6 +28,11 @@ class ToolService {
     tools.forEach((tool) => {
       this.tools.set(tool.id, tool);
 
+      // Set up tool switch callback for tools that support it
+      if (tool.setToolSwitchCallback) {
+        tool.setToolSwitchCallback(this.switchTool);
+      }
+
       const button = document.getElementById(`${tool.id}-tool`) as HTMLButtonElement
       if (button) {
         button.addEventListener('click', () => {
@@ -68,37 +73,59 @@ class ToolService {
     this.buttons.get(tool)?.classList.add('active');
   }
 
+  /**
+   * Get the current tool instance
+   */
+  getCurrentTool(): Tool | null {
+    if (!this.currentTool) return null;
+    return this.tools.get(this.currentTool) || null;
+  }
+
+  /**
+   * Get the current tool ID
+   */
+  getCurrentToolId(): string | null {
+    return this.currentTool;
+  }
+
   getEventHandlers(): {
     onMouseDown: (event: paper.ToolEvent) => void;
     onMouseDrag: (event: paper.ToolEvent) => void;
     onMouseUp: (event: paper.ToolEvent) => void;
     onMouseMove: (event: paper.ToolEvent) => void;
+    onDoubleClick: (event: paper.ToolEvent) => void;
   } {
     return {
       onMouseDown: (event) => {
         const activeTool = this.tools.get(this.currentTool!);
-        if (activeTool) {
+        if (activeTool && activeTool.onMouseDown) {
           activeTool.onMouseDown(event);
         }
       },
       onMouseDrag: (event) => {
         const activeTool = this.tools.get(this.currentTool!);
-        if (activeTool) {
+        if (activeTool && activeTool.onMouseDrag) {
           activeTool.onMouseDrag(event);
         }
       },
       onMouseUp: (event) => {
         const activeTool = this.tools.get(this.currentTool!);
-        if (activeTool) {
+        if (activeTool && activeTool.onMouseUp) {
           activeTool.onMouseUp(event);
         }
       },
       onMouseMove: (event) => {
         const activeTool = this.tools.get(this.currentTool!);
-        if (activeTool) {
+        if (activeTool && activeTool.onMouseMove) {
           activeTool.onMouseMove(event);
         }
       },
+      onDoubleClick: (event) => {
+        const activeTool = this.tools.get(this.currentTool!);
+        if (activeTool && activeTool.onDoubleClick) {
+          activeTool.onDoubleClick(event);
+        }
+      }
     };
   }
 

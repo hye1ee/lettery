@@ -40,13 +40,47 @@ export const tags = {
 
 
   // Element Item Templates
-  elementItem: (item: any) => `
-    <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
-    <div class="text-body" style="flex:1">${item.name}</div>
-    <div class="element-actions">
-      ${getElementActionButton(item)}
-    </div>
-  `,
+  elementItem: (item: any) => {
+    // For Layer items, use card layout
+    if (item.className === 'Layer') {
+      return `
+      <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
+      <div class="text-body" style="flex:1">${item.name}</div>
+      <div class="element-actions">
+        ${getElementActionButton(item)}
+      </div>
+      `;
+    }
+
+    // For other items, use the original layout
+    return `
+      <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
+      <div class="text-body" style="flex:1">${item.name}</div>
+      <div class="element-actions">
+        ${getElementActionButton(item)}
+      </div>
+    `;
+  },
+
+  layerItem: (item: any) => {
+    // For Layer items, use card layout
+    return `
+      <div class="layer-card">
+          <div class="layer-card-content">
+            <div class="layer-preview">
+              <div class="layer-preview-placeholder">${item.data?.string || item.name}</div>
+            </div>
+            <div class="layer-info">
+              <div class="layer-name">${item.name}</div>
+              <div class="layer-type">${item.data?.type || 'Layer'}</div>
+            </div>
+          </div>
+          <div class="layer-actions">
+            ${getElementActionButton(item)}
+          </div>
+        </div>
+      `;
+  },
 
   // Element Action Buttons
   elementActionButtons: {
@@ -98,4 +132,34 @@ export function getElementActionButton(item: any): string {
   }
 
   return actionButtons.default(item);
+}
+
+export const updateLayerSelection = (layerId: string) => {
+  console.log('Updating layer selection', layerId);
+  const layerItems = document.querySelectorAll('.layer-card');
+  layerItems.forEach((element) => {
+    element.classList.remove('active');
+  });
+
+  const element = document.querySelector(`.layer-card[data-layer-id="${layerId}"]`);
+  if (element) {
+    element.classList.add('active');
+  }
+  console.log('Layer selection updated', element);
+}
+
+export const updateItemSelection = (itemId: string) => {
+  clearItemSelection();
+
+  const element = document.querySelector(`.element-item[data-item-id="${itemId}"]`);
+  if (element) {
+    element.classList.add('active');
+  }
+}
+
+export const clearItemSelection = () => {
+  const itemItems = document.querySelectorAll('.element-item');
+  itemItems.forEach((element) => {
+    element.classList.remove('active');
+  });
 }

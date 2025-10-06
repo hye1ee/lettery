@@ -10,66 +10,104 @@
     <div id="app">
       <div class="header">
         <span class="text-title">Hangul Ja</span>
+
+        <!-- Header Actions -->
+        <div class="header-actions">
+          <!-- Zoom Controls -->
+          <div class="zoom-controls">
+            <button class="zoom-btn" id="zoom-out" title="Zoom Out">
+              <span class="zoom-icon">−</span>
+            </button>
+            <span class="zoom-value" id="zoom-percentage">100%</span>
+            <button class="zoom-btn" id="zoom-in" title="Zoom In">
+              <span class="zoom-icon">+</span>
+            </button>
+          </div>
+          <button
+            class="header-action-btn"
+            id="layer-export-svg"
+            title="Export SVG"
+          >
+            <img src="/save.svg" alt="Export SVG" width="16" height="16" />
+          </button>
+        </div>
       </div>
-
-      <div class="canvas-container">
-        <canvas id="vector-canvas" width="800" height="600"></canvas>
-
+      <div class="body">
         <!-- Tool Panel -->
         <div class="tool-panel">
           <button id="hand-tool" class="tool-btn" title="Hand Tool (H)">
             <img src="/hand.svg" alt="Hand Tool" width="18" height="18" />
+            <div class="tool-name">Move</div>
           </button>
           <button id="select-tool" class="tool-btn" title="Select Tool (V)">
             <img src="/select.svg" alt="Select Tool" width="18" height="18" />
+            <div class="tool-name">Select</div>
+          </button>
+          <button id="edit-tool" class="tool-btn" title="Edit Tool (E)">
+            <img src="/edit.svg" alt="Edit Tool" width="18" height="18" />
+            <div class="tool-name">Edit</div>
           </button>
           <button id="pencil-tool" class="tool-btn" title="Pencil Tool (P)">
             <img src="/pencil.svg" alt="Pencil Tool" width="18" height="18" />
+            <div class="tool-name">Pencil</div>
           </button>
           <button id="pen-tool" class="tool-btn" title="Pen Tool (A)">
             <img src="/pen.svg" alt="Pen Tool" width="18" height="18" />
+            <div class="tool-name">Pen</div>
           </button>
         </div>
+        <div class="canvas-container">
+          <canvas id="vector-canvas" width="800" height="600"></canvas>
 
-        <!-- Layer Panel -->
-        <div class="layer-panel">
-          <div class="layer-header">
-            <span class="text-title">Letters</span>
-            <button
-              class="header-plus-btn"
-              id="header-plus-btn"
-              title="Add New Element"
-            >
-              <img src="/plus.svg" alt="Add" width="16" height="16" />
-            </button>
-          </div>
-          <div class="layer-list" id="layer-list">
-            <!-- Layers will be dynamically added here -->
-          </div>
-          <div class="layer-actions">
-            <button
-              class="layer-action-btn"
-              id="layer-import-svg"
-              title="Import SVG"
-            >
-              <img src="/import.svg" alt="Import SVG" width="16" height="16" />
-              <span class="text-body">Import SVG</span>
-            </button>
-            <button
-              class="layer-action-btn"
-              id="layer-export-svg"
-              title="Export SVG"
-            >
-              <img src="/save.svg" alt="Export SVG" width="16" height="16" />
-              <span class="text-body">Export SVG</span>
-            </button>
+          <!-- Status Bar -->
+          <div class="status-bar">
+            <span class="text-body" id="status-text">Ready</span>
+            <span class="text-body" id="coordinates">X: 0, Y: 0</span>
           </div>
         </div>
-      </div>
-
-      <div class="status-bar">
-        <span class="text-body" id="status-text">Ready</span>
-        <span class="text-body" id="coordinates">X: 0, Y: 0</span>
+        <div class="layer-panel">
+          <!-- Letters Section -->
+          <div class="layer-section letters-section">
+            <div class="layer-header">
+              <span class="text-title">Layers</span>
+              <div class="header-actions">
+                <button
+                  class="header-plus-btn"
+                  id="header-plus-btn"
+                  title="Add New Element"
+                >
+                  <img src="/plus.svg" alt="Add" width="16" height="16" />
+                </button>
+              </div>
+            </div>
+            <div class="layer-list" id="layer-list">
+              <!-- Layers will be dynamically added here -->
+            </div>
+          </div>
+          <!-- Paths Section -->
+          <div class="layer-section paths-section">
+            <div class="layer-header">
+              <span class="text-title">Items</span>
+              <div class="header-actions">
+                <button
+                  class="header-action-btn"
+                  id="layer-import-svg"
+                  title="Import SVG"
+                >
+                  <img
+                    src="/import.svg"
+                    alt="Import SVG"
+                    width="16"
+                    height="16"
+                  />
+                </button>
+              </div>
+            </div>
+            <div class="paths-list" id="paths-list">
+              <!-- TempLayer children will be displayed here -->
+            </div>
+          </div>
+        </div>
       </div>
 
       <input type="file" id="file-input" accept=".svg" style="display: none" />

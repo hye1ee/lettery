@@ -13,6 +13,7 @@ export class SelectTool implements Tool {
   private isDragSelecting: boolean = false;
   private dragStartPoint: paper.Point | null = null;
   private dragStartPositions: Map<number, paper.Point> = new Map();
+  private onToolSwitch: ((toolId: string) => void) | null = null;
 
   activate(): void {
     cursor.updateCursor(this.cursorStyle);
@@ -20,7 +21,7 @@ export class SelectTool implements Tool {
   }
 
   deactivate(): void {
-    this.deselectAll();
+    paper.project.deselectAll();
     this.dragStartPoint = null;
     this.dragStartPositions.clear();
     this.isDragSelecting = false;
@@ -37,16 +38,38 @@ export class SelectTool implements Tool {
     return SelectTool.instance
   }
 
+  /**
+   * Set the callback for tool switching
+   */
+  setToolSwitchCallback(callback: (toolId: string) => void): void {
+    this.onToolSwitch = callback;
+  }
+
+  onDoubleClick = (event: paper.ToolEvent): void => {
+    event.preventDefault();
+
+    console.log('onDoubleClick', event);
+
+    const hitResult = paper.project.hitTest(event.point);
+    if (hitResult && this.onToolSwitch) {
+      localStorage.setItem('edit-item', hitResult.item.id.toString());
+
+      paper.project.deselectAll();
+      this.selectItem(hitResult.item);
+      this.onToolSwitch('edit');
+      logger.updateStatus('Switched to edit tool - Double click on item to edit');
+    }
+  }
+
   onMouseDown = (event: paper.ToolEvent): void => {
     event.preventDefault();
-    event.stopPropagation();
 
     const hitResult = paper.project.hitTest(event.point);
     const isMultiSelect = event && (event.modifiers?.control || event.modifiers?.meta);
 
     if (hitResult) { // (1) Select Item
       if (!isMultiSelect && !this.getSelectedItems().some(item => item.id === hitResult.item.id)) {
-        this.deselectAll();
+        paper.project.deselectAll();
       }
 
       this.selectItem(hitResult.item);
@@ -54,7 +77,7 @@ export class SelectTool implements Tool {
       logger.updateStatus('Item selected');
     } else {
       // (2) Drag Selection
-      this.deselectAll();
+      paper.project.deselectAll();
 
       this.isDragSelecting = true;
       previewBox.show(event.point);
@@ -63,12 +86,6 @@ export class SelectTool implements Tool {
       logger.updateStatus('Drag selection started')
     }
   }
-
-  deselectAll(): void {
-    paper.project.selectedItems.forEach((item) => {
-      item.selected = false;
-    })
-  };
 
   selectItem(item: paper.Item): void {
     if (item instanceof paper.Layer) {
@@ -121,7 +138,7 @@ export class SelectTool implements Tool {
   }
 
   makeDragSelection(): void {
-    this.deselectAll();
+    paper.project.deselectAll();
     const selectionBounds = previewBox.getNormalizedBoundingBox();
 
     paper.project.getItems({
@@ -130,11 +147,11 @@ export class SelectTool implements Tool {
       .forEach(item => item.selected = true)
   }
 
-  onMouseMove = (event: paper.ToolEvent): void => {
+  onMouseMove = (_event: paper.ToolEvent): void => {
     // TODO: Implement mouse move logic
   }
 
-  onMouseUp = (event: paper.ToolEvent): void => {
+  onMouseUp = (_event: paper.ToolEvent): void => {
     if (this.isDragSelecting) { // (1) Drag Selection
       this.makeDragSelection();
       previewBox.hide();

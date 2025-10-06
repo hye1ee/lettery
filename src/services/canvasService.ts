@@ -1,12 +1,12 @@
 
 import paper from 'paper';
-import * as hangul from 'hangul-js';
 
 import { lerpPoint } from '../utils/helper';
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
-import { findParentLayer } from '../utils/paperUtils';
+import { findParentLayer, ungroupItem } from '../utils/paperUtils';
 import { logger, previewBox } from '../helpers';
+import { uiService } from '.';
 
 
 class CanvasService {
@@ -14,13 +14,12 @@ class CanvasService {
   private project: paper.Project | null = null
   private view: paper.View | null = null
   private point: { x: number, y: number } = { x: 0, y: 0 };
-  private activeLayer: paper.Layer | null = null;
 
-  private updateItemsCallback: ((element: any) => void) | null = null;
   private onMouseDownCallbacks: ((event: paper.ToolEvent) => void)[] = [];
   private onMouseDragCallbacks: ((event: paper.ToolEvent) => void)[] = [];
   private onMouseUpCallbacks: ((event: paper.ToolEvent) => void)[] = [];
   private onMouseMoveCallbacks: ((event: paper.ToolEvent) => void)[] = [];
+  private onDoubleClickCallbacks: ((event: paper.ToolEvent) => void)[] = [];
 
 
   // Drawing state (merged from DrawingService)
@@ -36,7 +35,7 @@ class CanvasService {
   };
 
   // Callback for UI event listeners
-  private alertSelectionChange: ((itemId: string, selected: boolean, layerId?: string) => void) | null = null;
+  private alertSelectionChange: (({ id, layer }: { id: string | null, layer?: boolean }) => void) | null = null;
 
   // Path simplification configuration
   private simplificationTolerance: number = 10;
@@ -70,7 +69,7 @@ class CanvasService {
     this.project = paper.project;
 
     // create system helper layer
-    this.createHelperLayer();
+    this.createSystemLayer();
 
     this.initHelpers();
 
@@ -80,22 +79,10 @@ class CanvasService {
     // Ensure there's always an active layer
     // this.ensureActiveLayer();
 
-    // Periodic sync check (fallback)
-    this.setupPeriodicSync();
   }
 
-  setUpdateItemsCallback(callback: (element: any) => void): void {
-    this.updateItemsCallback = callback;
-  }
 
-  updateItems() {
-    if (this.updateItemsCallback && this.project) {
-      const layers = this.project.layers.filter(layer => !layer.name.includes('system'));
-      this.updateItemsCallback(layers || []);
-    }
-  }
-
-  createHelperLayer(): void {
+  createSystemLayer(): void {
     const helperLayer = new paper.Layer();
     helperLayer.visible = true;
     helperLayer.name = 'system-helper';
@@ -156,20 +143,24 @@ class CanvasService {
     this.view.onMouseMove = (event: paper.ToolEvent) => {
       this.onMouseMoveCallbacks.forEach((callback) => callback(event))
     }
+    this.view.onDoubleClick = (event: paper.ToolEvent) => {
+      this.onDoubleClickCallbacks.forEach((callback) => callback(event))
+    }
   }
 
-  addEventHandlers({ onMouseDown, onMouseDrag, onMouseUp, onMouseMove }: {
+  addEventHandlers({ onMouseDown, onMouseDrag, onMouseUp, onMouseMove, onDoubleClick }: {
     onMouseDown?: (event: paper.ToolEvent) => void
     onMouseDrag?: (event: paper.ToolEvent) => void
     onMouseUp?: (event: paper.ToolEvent) => void
     onMouseMove?: (event: paper.ToolEvent) => void
+    onDoubleClick?: (event: paper.ToolEvent) => void
   }): void {
 
-    console.log("adding event handlers", onMouseDown, onMouseDrag, onMouseUp, onMouseMove);
     if (onMouseDown) this.onMouseDownCallbacks.push(onMouseDown);
     if (onMouseDrag) this.onMouseDragCallbacks.push(onMouseDrag);
     if (onMouseUp) this.onMouseUpCallbacks.push(onMouseUp);
     if (onMouseMove) this.onMouseMoveCallbacks.push(onMouseMove);
+    if (onDoubleClick) this.onDoubleClickCallbacks.push(onDoubleClick);
 
     this.updateEventHandlers();
   }
@@ -198,43 +189,6 @@ class CanvasService {
     return this.project.getItem({ id: parseInt(id) });
   }
 
-  getActiveLayer(): paper.Layer | null {
-    if (!this.project) throw new Error("Layer not found");
-    return this.project.activeLayer;
-  }
-
-  /**
-   * Manage the canvas
-   */
-
-  addLayer(name: string, index: number, font?: string): void {
-    // asume that the name is single Hangul letter
-    if (!this.project) throw new Error("Project not found");
-
-    const disassembled = hangul.disassemble(name);
-
-    // add syllable layer
-    const layer = new paper.Layer();
-    layer.data.type = 'syllable';
-    layer.data.string = name;
-    layer.data.font = font || '';
-    layer.name = name + " " + (index + 1);
-    this.project.addLayer(layer);
-
-    // add jamo layers
-    disassembled.forEach((jamo, jamoIndex) => {
-      const jamoLayer = new paper.Layer();
-      jamoLayer.data.type = 'jamo';
-      jamoLayer.data.string = jamo;
-      jamoLayer.data.font = font || '';
-      jamoLayer.name = jamo + " " + (jamoIndex + 1);
-      layer.addChild(jamoLayer);
-    });
-
-    // Select the letter layer
-    this.selectItem(layer);
-    this.updateItems();
-  }
 
   importFont(file: File): void {
     const reader = new FileReader();
@@ -246,33 +200,30 @@ class CanvasService {
 
 
   importSVG(file: File): void {
-    if (!this.project || !this.activeLayer) throw new Error("Project or layer not found");
+    if (!this.project || !paper.project.activeLayer) throw new Error("Project or layer not found");
 
     const reader = new FileReader();
     console.log("Reading SVG file", file.name);
 
     reader.onload = (e) => {
-      if (!this.activeLayer) throw new Error("Active layer not found");
       const svgContent = e.target?.result as string;
 
       try {
+        const activeLayer = paper.project.activeLayer;
         // Import SVG to active layer
-        console.log("Importing SVG to active layer", this.activeLayer.name);
-        const svg = this.activeLayer.importSVG(svgContent);
+        console.log("Importing SVG to active layer", activeLayer.name);
+        const svg = activeLayer.importSVG(svgContent);
 
         if (svg instanceof paper.Group) {
           svg.clipped = false;
         }
-
         // Give the imported SVG a unique name to avoid conflicts
         if (svg) {
           svg.name = `${file.name}_${Date.now()}`;
         }
 
-        this.updateItems();
-        if (this.alertSelectionChange) { // select current active layer
-          this.alertSelectionChange(this.activeLayer.id.toString(), true, this.activeLayer.id.toString());
-        }
+        ungroupItem(svg);
+        uiService.renderPathItems();
 
         console.log("SVG imported successfully:", svg?.name);
       } catch (error) {
@@ -350,7 +301,7 @@ class CanvasService {
   /**
    * Set selection change callback
    */
-  setAlertSelectionChangeCallback(callback: (itemId: string, selected: boolean, layerId?: string) => void): void {
+  setAlertSelectionChangeCallback(callback: (({ id, layer }: { id: string | null, layer?: boolean }) => void)): void {
     this.alertSelectionChange = callback;
   }
 
@@ -375,12 +326,11 @@ class CanvasService {
         layer = layer.children[0] as paper.Layer;
       }
 
-      this.activeLayer = layer;
       layer.activate();
 
       // Notify UI: layer selected, no item selected
       if (layer.id && this.alertSelectionChange) {
-        this.alertSelectionChange(layer.id.toString(), true, layer.id.toString());
+        this.alertSelectionChange({ id: layer.id.toString(), layer: true });
       }
     } else {
       // Item selected - add to selection array
@@ -390,51 +340,16 @@ class CanvasService {
       const parentLayer = findParentLayer(item);
       if (parentLayer) {
         parentLayer.activate();
-        this.activeLayer = parentLayer;
 
         // Notify UI: item selected, parent layer active
         if (item.id && this.alertSelectionChange) {
-          this.alertSelectionChange(item.id.toString(), true, parentLayer.id.toString());
+          this.alertSelectionChange({ id: item.id.toString() });
         }
       } else {
         // No parent layer found
-        if (item.id && this.alertSelectionChange) {
-          this.alertSelectionChange(item.id.toString(), true);
-        }
-      }
-    }
-  }
-
-  /**
-   * Add item to selection (for multi-selection)
-   */
-  addToSelection(item: paper.Item): void {
-    if (item instanceof paper.Layer) {
-      // Layers can't be multi-selected, just select the layer
-      this.selectItem(item);
-      return;
-    }
-
-    // Check if item is already selected
-    const isAlreadySelected = this.drawingState.selectedItems.some(selectedItem => selectedItem.id === item.id);
-
-    if (!isAlreadySelected) {
-      // Add to selection
-      this.drawingState.selectedItems.push(item);
-      item.selected = true;
-
-      // Set active layer if this is the first item
-      if (this.drawingState.selectedItems.length === 1) {
-        const parentLayer = findParentLayer(item);
-        if (parentLayer) {
-          parentLayer.activate();
-          this.activeLayer = parentLayer;
-        }
-      }
-
-      // Notify UI about the selection
-      if (item.id && this.alertSelectionChange) {
-        this.alertSelectionChange(item.id.toString(), true, this.activeLayer?.id.toString());
+        // if (item.id && this.alertSelectionChange) {
+        //   this.alertSelectionChange(item.id.toString(), true);
+        // }
       }
     }
   }
@@ -489,8 +404,9 @@ class CanvasService {
 
     // Clear item selection in UI (but keep active layer)
     if (this.alertSelectionChange) {
-      console.log('Canvas deselectAll - notifying UI with layerId:', this.activeLayer?.id.toString());
-      this.alertSelectionChange('', false, this.activeLayer?.id.toString() ?? ''); // Empty string indicates clear item selection
+      const activeLayer = paper.project.activeLayer;
+      console.log('Canvas deselectAll - notifying UI with layerId:', activeLayer.id.toString());
+      this.alertSelectionChange({ id: null }); // Empty string indicates clear item selection
     }
   }
 
@@ -499,11 +415,10 @@ class CanvasService {
    */
   clearAllSelections(): void {
     this.deselectAll();
-    this.activeLayer = null;
 
     // Clear all selections in UI
     if (this.alertSelectionChange) {
-      this.alertSelectionChange('', false, ''); // Clear everything
+      this.alertSelectionChange({ id: null }); // Clear everything
     }
   }
 
@@ -511,62 +426,13 @@ class CanvasService {
    * Ensure there's always an active layer
    */
   ensureActiveLayer(): void {
-    if (!this.activeLayer && this.project) {
-      // Find the first layer or create one
-      const layers = this.project.layers;
-      if (layers.length > 0) {
-        this.activeLayer = layers[0];
-        this.activeLayer.activate();
-      } else {
-        // Create a default layer
-        window.alert('Please add a layer first');
-      }
+    if (paper.project.activeLayer.name.includes('system')) {
+      // change active layer to the first layer
+      paper.project.layers.filter((layer) => !layer.name.includes('system'))[0].activate();
+
     }
   }
 
-
-  /**
-   * Handle when the active layer changes (e.g., when a layer is deleted)
-   */
-  private handleActiveLayerChange(): void {
-    if (!this.project) return;
-
-    // Get the current active layer from Paper.js
-    const newActiveLayer = this.project.activeLayer;
-
-    // Update our internal state
-    this.activeLayer = newActiveLayer;
-
-    // Notify UI about the active layer change
-    if (this.alertSelectionChange && newActiveLayer) {
-      this.alertSelectionChange('', false, newActiveLayer.id.toString());
-    }
-
-    console.log('Active layer updated to:', newActiveLayer.name);
-  }
-
-  /**
-   * Manually sync active layer from Paper.js (useful for debugging)
-   */
-  public syncActiveLayerFromPaper(): void {
-    if (!this.project) return;
-
-    const paperActiveLayer = this.project.activeLayer;
-    if (paperActiveLayer && paperActiveLayer !== this.activeLayer) {
-      console.log('Syncing active layer from Paper.js:', paperActiveLayer.name);
-      this.handleActiveLayerChange();
-    }
-  }
-
-  /**
-   * Setup periodic sync as fallback (in case events don't catch everything)
-   */
-  private setupPeriodicSync(): void {
-    // Check every 1 second if we're still in sync
-    setInterval(() => {
-      this.syncActiveLayerFromPaper();
-    }, 1000);
-  }
 
   /**
    * Set the simplification tolerance for pencil tool

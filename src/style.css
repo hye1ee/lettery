@@ -30,61 +30,66 @@ body {
 }
 
 #app {
+  width: 100vw;
   height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .header {
-  background: white;
-  padding: 6px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-
+  flex: 0 0 auto;
   width: 100%;
   height: 50px;
 
-  position: relative;
-  top: 0;
-  left: 0;
+  box-sizing: border-box;
+  padding: 0 20px;
 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: white;
   border-bottom: 1px solid lightgray;
 }
 
+.body {
+  width: 100%;
+  flex: 1;
+
+  display: flex;
+  flex-direction: row;
+}
+
 .tool-panel {
-  background: white;
+  width: fit-content;
+  height: 100%;
+
+  box-sizing: border-box;
   padding: 6px;
+
   display: flex;
   flex-direction: column;
   gap: 6px;
   align-items: center;
 
-  position: absolute;
-  top: calc(50% - 10px);
-  left: 25px;
-  transform: translateY(-50%);
-
-  border-radius: 8px;
-  border: 1px solid lightgray;
-
-  height: fit-content;
-  width: fit-content;
+  background: white;
+  padding-left: 8px;
+  border-right: 1px solid lightgray;
 }
 
 .tool-btn {
-  width: 36px;
-  height: 36px;
+  width: 60px;
+  height: 60px;
   border: none;
   background: transparent;
   color: black;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   transition: all 0.2s ease;
   position: relative;
 }
@@ -113,20 +118,27 @@ body {
 .tool-btn:hover img {
   filter: brightness(0) invert(0); /* Keep white on hover */
 }
+
+.tool-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: black;
+  text-align: center;
+  line-height: 1;
+}
 /* Zoom controls styling */
 .zoom-controls {
   display: flex;
-  padding: 8px;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   color: black;
   font-size: 12px;
   font-weight: 500;
 }
 
 .zoom-btn {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: 1px solid rgba(0, 0, 0, 0.3);
   background: transparent;
   color: black;
@@ -143,10 +155,18 @@ body {
   border-color: rgba(0, 0, 0, 0.5);
 }
 
+.zoom-icon {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .zoom-value {
   min-width: 40px;
   text-align: center;
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .canvas-container {
@@ -158,12 +178,15 @@ body {
   /* Ensure canvas fills the entire available space */
   width: 100%;
   height: 100%;
+
+  display: flex;
+  flex-direction: row;
 }
 
 #vector-canvas {
   width: 100%;
   height: 100%;
-  cursor: crosshair;
+  cursor: default;
   background: transparent;
 
   /* Ensure canvas fills container completely */
@@ -171,16 +194,17 @@ body {
 }
 
 .status-bar {
-  opacity: 0.6;
+  opacity: 0.8;
   background: white;
 
   box-sizing: border-box;
   padding: 8px 16px;
   border-radius: 8px;
+  border: 1px solid lightgray;
 
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  top: 20px;
+  right: 20px;
 
   z-index: 99;
 }
@@ -241,10 +265,7 @@ body {
 
 /* Layer Panel */
 .layer-panel {
-  position: absolute;
-  right: 0px;
-  top: 0px;
-  width: 240px;
+  width: 300px;
   height: 100%;
   background: white;
   border-left: 1px solid lightgray;
@@ -255,15 +276,131 @@ body {
   flex-direction: column;
 
   box-sizing: border-box;
-  padding-bottom: 10px;
+  padding-right: 10px;
+}
+
+/* Layer Section */
+.layer-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.letters-section {
+  flex: 2;
+  border-bottom: 1px solid lightgray;
+}
+
+.paths-section {
+  flex: 1;
+  background: #f8f9fa;
+}
+
+.paths-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+/* Path Item Styling */
+.path-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  margin: 2px 8px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+}
+
+.path-item:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.path-item.selected {
+  background: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.path-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.path-icon img {
+  width: 100%;
+  height: 100%;
+  filter: brightness(0) invert(0) opacity(0.7);
+}
+
+.path-name {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.path-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.path-item:hover .path-actions {
+  opacity: 1;
+}
+
+.path-action-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.path-action-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.path-action-btn img {
+  filter: brightness(0) invert(0);
+  width: 12px;
+  height: 12px;
 }
 
 .layer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 20px;
   padding-right: 15px;
+  flex-shrink: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .layer-header h3 {
@@ -291,6 +428,30 @@ body {
 }
 
 .header-plus-btn img {
+  filter: brightness(0) invert(0);
+  width: 16px;
+  height: 16px;
+}
+
+.header-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid lightgray;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-action-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: darkgray;
+}
+
+.header-action-btn img {
   filter: brightness(0) invert(0);
   width: 16px;
   height: 16px;
@@ -511,42 +672,12 @@ body {
 
 .layer-list {
   flex: 1;
-  max-height: calc(100vh - 200px);
   overflow-y: auto;
-}
-
-.layer-actions {
-  padding: 16px;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.layer-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid lightgray;
-  background: white;
-  color: black;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.layer-action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: darkgray;
-}
-
-.layer-action-btn img {
-  filter: brightness(0) invert(0);
-  width: 16px;
-  height: 16px;
+  overflow-x: hidden;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 12px;
 }
 
 /* Element items styling (now the main items) */
@@ -670,4 +801,117 @@ body {
 
 .layer-list::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
+}
+
+/* Layer Card Styles */
+.layer-card {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  min-height: 100px;
+}
+
+.layer-card:hover {
+  background: #e9ecef;
+  border-color: #ccc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.layer-card.selected {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.layer-card.active {
+  background: #fff3e0;
+  border-color: #ff9800;
+  box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
+}
+
+.layer-card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.layer-preview {
+  flex: 1;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  min-height: 50px;
+}
+
+.layer-preview-placeholder {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.layer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.layer-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-type {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.layer-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.layer-card:hover .layer-actions {
+  opacity: 1;
+}
+
+.layer-actions .element-action-btn {
+  width: 18px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+.layer-actions .element-action-btn:hover {
+  background: #ff4444;
+  border-color: #ff4444;
+}
+
+.layer-actions .element-action-btn img {
+  width: 10px;
+  height: 10px;
+  filter: brightness(0) invert(0);
+}
+
+.layer-actions .element-action-btn:hover img {
+  filter: brightness(0) invert(1);
 }

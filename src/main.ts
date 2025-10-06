@@ -115,11 +115,9 @@ const initCanvas = () => {
   // Initialize canvas service
   canvasService.init('vector-canvas')
 
-  canvasService.setUpdateItemsCallback(updateItemsCallback);
-
   // Set up selection callbacks from canvas -> UI
-  canvasService.setAlertSelectionChangeCallback((itemId: string, selected: boolean, layerId?: string) => {
-    uiService.updateItemSelection(itemId, selected, layerId);
+  canvasService.setAlertSelectionChangeCallback(({ id, layer }: { id: string | null, layer?: boolean }) => {
+    uiService.updateItemSelection({ id, layer });
   });
 
   // Initialize UI
@@ -133,22 +131,12 @@ const initTools = () => {
     PencilTool.getInstance(),
     PenTool.getInstance(),
     HandTool.getInstance(),
-    // EditTool.getInstance()
+    EditTool.getInstance()
   ]
 
   toolService.initTools(tools);
   canvasService.addEventHandlers(toolService.getEventHandlers());
 }
-
-
-// Selection handling from canvas -> UI
-
-
-
-const updateItemsCallback = (items: paper.Item[]) => {
-  uiService.updateItems(items);
-}
-
 
 
 initApp();

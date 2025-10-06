@@ -1,8 +1,7 @@
 import paper from 'paper'
-import { tags } from '../utils/tags'
+import { tags, updateLayerSelection, updateItemSelection, clearItemSelection } from '../utils/tags'
 
-// It is allowed to directly call canvasService from uiService
-import { canvasService } from '.';
+import * as hangul from 'hangul-js';
 import { logger } from '../helpers';
 
 export interface Layer {
@@ -41,7 +40,6 @@ export interface LayerAction {
 class UIService {
   private static instance: UIService | null = null;
 
-  private items: paper.Item[] = [];
   private itemIndex: { [key: string]: number } = {
     'Group': 0,
     'Layer': 0,
@@ -54,8 +52,6 @@ class UIService {
   };
   private itemListContainer: HTMLElement | null = null;
 
-
-  private activeLayerId: string = '';
   private selectedItemIds: string[] = [];
 
   private constructor() { }
@@ -98,207 +94,144 @@ class UIService {
   }
 
 
-  public updateItems(items: paper.Item[]) {
-    this.items = items;
-    this.renderItems();
-
-    // Ensure there's always an active layer
-    this.ensureActiveLayer();
+  public renderAll() {
+    this.renderLayers();
+    this.renderPathItems();
   }
 
-  private ensureActiveLayer() {
-    // If no active layer, set the first layer as active
-    if (!this.activeLayerId && this.items.length > 0) {
-      const firstLayer = this.items.find(item => item instanceof paper.Layer);
-      if (firstLayer) {
-        this.activeLayerId = firstLayer.id.toString();
-        this.setActiveLayer(this.activeLayerId);
-      }
-    }
-  }
 
   // Update UI selection state based on canvas selection
-  public updateItemSelection(itemId: string, selected: boolean, layerId?: string) {
-    if (selected && itemId) {
-      if (layerId && itemId === layerId) {
-        // Layer selected - clear item selection, set active layer
-        this.selectedItemIds = [];
-        this.activeLayerId = layerId;
-        this.setActiveLayer(layerId);
-      } else {
-        // Item selected - add to selection
-        if (!this.selectedItemIds.includes(itemId)) {
-          this.selectedItemIds.push(itemId);
-        }
-        this.activeLayerId = layerId || '';
-        this.setSelectedItem(itemId);
-        if (layerId) {
-          this.setActiveLayer(layerId);
-        }
-      }
-    } else if (!selected && layerId && itemId === '') {
-      // Deselected with active layer info - clear item selection, keep active layer
-      console.log("Canvas deselection - clearing items, keeping active layer:", layerId);
-      this.selectedItemIds = [];
-      this.activeLayerId = layerId;
-      this.setActiveLayer(layerId);
-      this.clearSelectedItems();
-    } else if (!selected && layerId && itemId !== '') {
-      // Remove specific item from selection
-      this.selectedItemIds = this.selectedItemIds.filter(id => id !== itemId);
-      this.activeLayerId = layerId;
-      this.setActiveLayer(layerId);
-      this.clearSelectedItems(); // Clear all and reapply
-      this.selectedItemIds.forEach(id => this.setSelectedItem(id));
+  public updateItemSelection({ id, layer }: { id: string | null, layer?: boolean }) {
+    if (id === null) {
+      // [1] deselect items
+      clearItemSelection();
+    } else if (layer === true) {
+      // [2] select layer
+      updateLayerSelection(id);
+      this.renderPathItems();
     } else {
-      console.log("UI triggered deselection");
-      // Deselected - clear item selection, keep active layer
-      this.selectedItemIds = [];
-      this.clearSelectedItems();
+      // [3] select item within layer
+      updateItemSelection(id);
     }
   }
 
-  private setActiveLayer(layerId: string) {
-    // Clear previous active layer
-    const prevActiveLayer = document.querySelector('.element-item.active');
-    if (prevActiveLayer) {
-      prevActiveLayer.classList.remove('active');
-    }
-
-    // Set new active layer
-    const newActiveLayer = document.querySelector(`[data-element-id="${layerId}"]`);
-    if (newActiveLayer) {
-      newActiveLayer.classList.add('active');
-    }
-  }
-
-  private setSelectedItem(itemId: string) {
-    const selectedItem = document.querySelector(`[data-element-id="${itemId}"]`);
-    if (selectedItem) {
-      selectedItem.classList.add('selected');
-    }
-  }
-
-  public clearSelectedItems() {
-    // Clear selected items only
-    const selectedElements = document.querySelectorAll('.element-item.selected');
-    selectedElements.forEach(element => {
-      element.classList.remove('selected');
-    });
-
-    // Clear all selected item IDs
-    this.selectedItemIds.forEach(itemId => {
-      const element = document.querySelector(`[data-element-id="${itemId}"]`);
-      if (element) {
-        element.classList.remove('selected');
-      }
-    });
-    this.selectedItemIds = [];
-  }
-
-  public clearAllSelections() {
-    // Clear selected items
-    const selectedElements = document.querySelectorAll('.element-item.selected');
-    selectedElements.forEach(element => {
-      element.classList.remove('selected');
-    });
-
-    // Clear active layers
-    const activeElements = document.querySelectorAll('.element-item.active');
-    activeElements.forEach(element => {
-      element.classList.remove('active');
-    });
-
-    this.selectedItemIds = [];
-    this.activeLayerId = '';
-  }
-
-  public getSelectedItemsCount(): number {
-    return this.selectedItemIds.length;
-  }
-
-  public clearSelectedItem() {
-    // Clear all selected items
-    this.clearSelectedItems();
-  }
-
-  public clearActiveLayer() {
-    const element = document.querySelector(`[data-layer-id="${this.activeLayerId}"]`);
-    if (element) {
-      element.classList.toggle('active', false);
-    }
-    this.activeLayerId = '';
-  }
-
-
-  public renderItems() {
+  private renderLayers() {
     if (!this.itemListContainer) return;
 
     this.itemListContainer.innerHTML = '';
 
-    // Filter out system items (items with names starting with 'system-')
-    const filteredItems = this.items.filter(item => !item.name?.startsWith('system-'));
+    // Filter to show only letter layers (syllable layers)
+    const letterLayers = paper.project.layers.filter((layer: paper.Layer) =>
+      !layer.name?.startsWith('system-') &&
+      layer.data?.type === 'syllable'
+    );
 
-    filteredItems.forEach((item) => {
-      const itemElements = this.createElementItem(item, 0);
-      this.itemListContainer?.append(...itemElements);
+    letterLayers.forEach((layer) => {
+      const layerItem = this.createLayerItem(layer);
+      this.itemListContainer?.appendChild(layerItem);
     });
+
+    // Update the active layer
+    updateLayerSelection(paper.project.activeLayer?.id.toString() || '');
   }
 
-  private createElementItem(item: paper.Item, index: number): HTMLDivElement[] {
-    //'Group', 'Layer', 'Path', 'CompoundPath', 'Shape', 'Raster', 'SymbolItem', 'PointText'
+  public renderPathItems() {
+    const pathsListContainer = document.getElementById('paths-list');
+    if (!pathsListContainer) return;
+
+    pathsListContainer.innerHTML = '';
+
+    // Find the currently selected/active layer
+    const activeLayer = paper.project.activeLayer;
+
+    // Get children of the active layer
+    const children = activeLayer?.children || [];
+    if (children.length === 0) {
+      // Show empty state
+      const emptyState = document.createElement('div');
+      emptyState.className = 'paths-empty-state';
+      emptyState.textContent = 'No components in this letter';
+      emptyState.style.cssText = `
+        padding: 20px;
+        text-align: center;
+        color: #666;
+        font-size: 12px;
+        font-style: italic;
+      `;
+      pathsListContainer.appendChild(emptyState);
+      return;
+    }
+
+    // Render each child as a path item
+    children.forEach((child) => {
+      const pathItem = this.createPathItem(child, 0);
+      pathsListContainer.append(...pathItem);
+    });
+
+  }
+
+  private createLayerItem(layer: paper.Layer): HTMLDivElement {
+    if (!layer.name) {
+      this.itemIndex[layer.className]++;
+      layer.name = `${layer.className} ${this.itemIndex[layer.className]}`;
+    }
+
+    const layerItem = document.createElement('div');
+    layerItem.className = 'layer-card';
+    layerItem.dataset.layerId = layer.id.toString();
+    layerItem.innerHTML = tags.layerItem(layer);
+
+    // Add click handler for selection
+    layerItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.handleLayerClick(layer);
+    });
+
+    // Add action button event listeners
+    this.setupActionButtonListeners(layerItem, layer);
+
+    return layerItem;
+  }
+
+  private createPathItem(item: paper.Item, index: number): HTMLDivElement[] {
     if (!item.name) {
       this.itemIndex[item.className]++;
       item.name = `${item.className} ${this.itemIndex[item.className]}`;
     }
 
-    // Skip system items (they should already be filtered out, but just in case)
+    // Skip system items
     if (item.name.startsWith('system-')) {
       return [];
     }
 
+    const pathItems: HTMLDivElement[] = [];
+
+    // create path item div
+    const pathItem = document.createElement('div');
+    pathItem.className = `element-item ${item.selected ? 'selected' : ''} ${item.visible ? 'visible' : 'hidden'}`;
+    pathItem.dataset.elementId = item.id.toString();
+    pathItem.innerHTML = tags.elementItem(item);
+    pathItem.style.paddingLeft = `${(index + 1) * 15}px`;
+
+    // Add click handler for selection
+    pathItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.handleItemClick(item);
+    });
+
+    // Add action button event listeners
+    this.setupActionButtonListeners(pathItem, item);
+    pathItems.push(pathItem);
+
+    // check if item has a children
     if (item.children) {
-      const parentItem = document.createElement('div');
-      parentItem.className = `element-item ${item.selected ? 'selected' : ''} ${item.visible ? 'visible' : 'hidden'}`;
-      parentItem.dataset.elementId = item.id.toString();
-
-      parentItem.innerHTML = tags.elementItem(item);
-      parentItem.style.paddingLeft = `${(index + 1) * 15}px`;
-
-      // Add click handler for selection
-      parentItem.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.handleItemClick(item);
-      });
-
-      // Add action button event listeners
-      this.setupActionButtonListeners(parentItem, item);
-
-      const items = [parentItem];
       item.children.forEach((child) => {
-        items.push(...this.createElementItem(child, index + 1));
+        const childPathItem = this.createPathItem(child, index + 1);
+        pathItems.push(...childPathItem);
       });
-      return items;
-
-    } else {
-      const childItem = document.createElement('div');
-      childItem.className = `element-item ${item.selected ? 'selected' : ''} ${item.visible ? 'visible' : 'hidden'}`;
-      childItem.dataset.elementId = item.id.toString();
-
-      childItem.innerHTML = tags.elementItem(item);
-      childItem.style.paddingLeft = `${(index + 1) * 15}px`;
-
-      // Add click handler for selection
-      childItem.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.handleItemClick(item);
-      });
-
-      // Add action button event listeners
-      this.setupActionButtonListeners(childItem, item);
-
-      return [childItem];
     }
+
+    return pathItems;
   }
 
   private handleItemClick(item: paper.Item): void {
@@ -314,7 +247,7 @@ class UIService {
         item instanceof paper.Shape;
 
       if (isDrawableItem) {
-        canvasService.updateItemSelection(item.id.toString());
+        item.selected = true;
         logger.updateStatus(`${item.name || item.className} selected`);
         console.log('Selection callback triggered for item:', item.id);
       } else {
@@ -324,10 +257,25 @@ class UIService {
   }
 
   private handleLayerClick(layer: paper.Layer): void {
-    canvasService.updateItemSelection(layer.id.toString());
+    if (layer.id === paper.project.activeLayer?.id) return;
+
+    layer.activate();
+    if (layer.data.type === 'syllable') {
+      (layer.children[0] as paper.Layer).activate();
+    }
+
+    // Set this layer as the active layer and refresh paths section
+    updateLayerSelection(layer.id.toString());
+    this.renderPathItems();
+
     logger.updateStatus(`${layer.name} selected`);
     console.log('Selection callback triggered for layer:', layer.id);
   }
+
+
+  /**
+   * Path Item action button listeners
+   */
 
   private setupActionButtonListeners(element: HTMLElement, item: paper.Item): void {
     const actionButtons = element.querySelectorAll('.element-action-btn');
@@ -355,16 +303,25 @@ class UIService {
     });
   }
 
-  private removeItem(target: paper.Item): void {
-    this.items = this.items.filter(item => item.id !== target.id);
-    target.remove();
-    this.renderItems();
-    this.updateItemSelection(this.activeLayerId, true, this.activeLayerId);
-  }
-
   private handleDeleteItem(item: paper.Item): void {
-    // Remove from canvas
-    this.removeItem(item);
+    if (item instanceof paper.Layer) {
+      // only triggered in layer panel
+      if (paper.project.activeLayer?.id === item.id) {
+        // remove active layer
+        item.remove();
+        this.renderLayers();
+        this.renderPathItems();
+      }
+      else { // remove other layer
+        item.remove();
+        this.renderLayers();
+      }
+    } else {
+      // Remove from canvas
+      item.remove();
+      this.renderPathItems();
+    }
+
     logger.updateStatus(`Deleted ${item.name || item.className}`);
   }
 
@@ -377,20 +334,19 @@ class UIService {
           target.parent?.addChild(child);
         });
       }
-      this.removeItem(target);
+      this.handleDeleteItem(target);
     } else {
       logger.updateStatus('Item is not a group');
     }
   }
 
+  /**
+   * Add Layer Modal Handler
+   */
+
   public addLayer(): void {
     console.log('Adding layer');
 
-    // Create popup modal
-    this.showAddLayerModal();
-  }
-
-  private showAddLayerModal(): void {
     // Create modal overlay using centralized template
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'modal-overlay';
@@ -465,7 +421,28 @@ class UIService {
     const letters = inputText.split('').filter(char => char.trim() !== '');
 
     letters.forEach((letter, index) => {
-      canvasService.addLayer(letter, index, selectedFont);
+      const disassembled = hangul.disassemble(letter);
+
+      // add syllable layer
+      const layer = new paper.Layer();
+      layer.data.type = 'syllable';
+      layer.data.string = letter;
+      layer.data.font = selectedFont || '';
+      layer.name = letter + " " + (index + 1);
+      paper.project.addLayer(layer);
+
+      // add jamo layers
+      disassembled.forEach((jamo, jamoIndex) => {
+        const jamoLayer = new paper.Layer();
+        jamoLayer.data.type = 'jamo';
+        jamoLayer.data.string = jamo;
+        jamoLayer.data.font = selectedFont || '';
+        jamoLayer.name = jamo + " " + (jamoIndex + 1);
+        layer.addChild(jamoLayer);
+      });
+
+      // update ui
+      this.renderLayers();
     });
 
     // Update the layer panel
