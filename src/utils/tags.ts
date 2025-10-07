@@ -41,18 +41,17 @@ export const tags = {
 
   // Element Item Templates
   elementItem: (item: any) => {
-    // For Layer items, use card layout
+    // For Layer items, show children count instead of delete button
     if (item.className === 'Layer') {
+      const childrenCount = item.children ? item.children.length : 0;
       return `
       <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
       <div class="text-body" style="flex:1">${item.name}</div>
-      <div class="element-actions">
-        ${getElementActionButton(item)}
-      </div>
+      <div class="element-children-count">${childrenCount} items</div>
       `;
     }
 
-    // For other items, use the original layout
+    // For other items, use the original layout with delete button
     return `
       <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
       <div class="text-body" style="flex:1">${item.name}</div>
@@ -64,22 +63,19 @@ export const tags = {
 
   layerItem: (item: any) => {
     // For Layer items, use card layout
+    const childrenCount = item.children ? item.children.length : 0;
     return `
-      <div class="layer-card">
-          <div class="layer-card-content">
-            <div class="layer-preview">
-              <div class="layer-preview-placeholder">${item.data?.string || item.name}</div>
-            </div>
-            <div class="layer-info">
-              <div class="layer-name">${item.name}</div>
-              <div class="layer-type">${item.data?.type || 'Layer'}</div>
-            </div>
-          </div>
-          <div class="layer-actions">
-            ${getElementActionButton(item)}
-          </div>
+      <div class="layer-card-content">
+        <div class="layer-preview">
+          <div class="layer-preview-placeholder">${item.data?.string || item.name}</div>
         </div>
-      `;
+        <div class="layer-info">
+          <div class="layer-name">${item.name}</div>
+          <div class="layer-type">${item.data?.type || 'Layer'}</div>
+          <div class="layer-children-count">${childrenCount} items</div>
+        </div>
+      </div>
+    `;
   },
 
   // Element Action Buttons

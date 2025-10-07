@@ -99,6 +99,12 @@ class UIService {
     this.renderPathItems();
   }
 
+  private updateItemsCount(count: number) {
+    const itemsCountElement = document.getElementById('items-count');
+    if (itemsCountElement) {
+      itemsCountElement.textContent = count.toString();
+    }
+  }
 
   // Update UI selection state based on canvas selection
   public updateItemSelection({ id, layer }: { id: string | null, layer?: boolean }) {
@@ -143,7 +149,6 @@ class UIService {
 
     // Find the currently selected/active layer
     const activeLayer = paper.project.activeLayer;
-
     // Get children of the active layer
     const children = activeLayer?.children || [];
     if (children.length === 0) {
@@ -159,6 +164,9 @@ class UIService {
         font-style: italic;
       `;
       pathsListContainer.appendChild(emptyState);
+
+      // Update the items count to 0
+      this.updateItemsCount(0);
       return;
     }
 
@@ -168,6 +176,8 @@ class UIService {
       pathsListContainer.append(...pathItem);
     });
 
+    // Update the items count
+    this.updateItemsCount(children.length);
   }
 
   private createLayerItem(layer: paper.Layer): HTMLDivElement {
@@ -194,6 +204,7 @@ class UIService {
   }
 
   private createPathItem(item: paper.Item, index: number): HTMLDivElement[] {
+
     if (!item.name) {
       this.itemIndex[item.className]++;
       item.name = `${item.className} ${this.itemIndex[item.className]}`;
@@ -239,7 +250,7 @@ class UIService {
 
     if (item instanceof paper.Layer) {
       // Layer clicked - clear item selection, set active layer
-      this.handleLayerClick(item);
+      // this.handleLayerClick(item);
     } else {
       // Item clicked - select item and set parent layer as active
       const isDrawableItem = item instanceof paper.Path ||
@@ -260,10 +271,9 @@ class UIService {
     if (layer.id === paper.project.activeLayer?.id) return;
 
     layer.activate();
-    if (layer.data.type === 'syllable') {
-      (layer.children[0] as paper.Layer).activate();
+    if (layer.data.type === 'jamo') {
+      (layer.parent as paper.Layer).activate();
     }
-
     // Set this layer as the active layer and refresh paths section
     updateLayerSelection(layer.id.toString());
     this.renderPathItems();
@@ -442,7 +452,9 @@ class UIService {
       });
 
       // update ui
+      layer.activate();
       this.renderLayers();
+      this.renderPathItems();
     });
 
     // Update the layer panel
