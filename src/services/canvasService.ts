@@ -4,7 +4,7 @@ import paper from 'paper';
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
 import { findParentLayer, ungroupItem } from '../utils/paperUtils';
-import { logger, previewBox, zoom } from '../helpers';
+import { boundingBox, logger, previewBox, zoom } from '../helpers';
 import { uiService } from '.';
 
 
@@ -93,6 +93,7 @@ class CanvasService {
     if (!helperLayer) throw new Error("Helper layer not found");
 
     previewBox.init();
+    boundingBox.init();
     helperLayer.addChild(previewBox.getPreviewBox());
   }
 

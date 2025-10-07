@@ -1,4 +1,5 @@
 import paper from 'paper';
+import { boundingBox } from '.';
 
 /**
  * Singleton class for managing zoom
@@ -28,6 +29,7 @@ class Zoom {
   public setZoom(zoom: number): void {
     paper.project.view.zoom = zoom;
     this.updateZoomValue();
+    boundingBox.updateHandles();
   }
 
   public updateZoomValue(): void {

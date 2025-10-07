@@ -1,7 +1,7 @@
 import './style.css'
 import paper from 'paper'
-import { canvasService, toolService, uiService } from './services'
-import { SelectTool, PencilTool, PenTool, HandTool, EditTool } from './tools'
+import { canvasService, historyService, toolService, uiService } from './services'
+import { selectTool, pencilTool, penTool, handTool, editTool } from './tools'
 import { cursor, logger } from './helpers'
 
 
@@ -39,8 +39,6 @@ const initApp = () => {
 
   console.log('All DOM elements found, setting up event listeners...')
 
-  // Initialize services
-  uiService.init();
 
   // Set up event listeners
   setupEventListeners();
@@ -48,6 +46,10 @@ const initApp = () => {
   // Initialize Paper.js
   initCanvas();
   initTools();
+
+  // Initialize services
+  uiService.init();
+  historyService.init();
 
   // Initialize helpers
   logger.init(statusText, coordinates);
@@ -123,11 +125,11 @@ const initCanvas = () => {
 const initTools = () => {
   // Get tool instances
   const tools = [
-    SelectTool.getInstance(),
-    PencilTool.getInstance(),
-    PenTool.getInstance(),
-    HandTool.getInstance(),
-    EditTool.getInstance()
+    selectTool,
+    pencilTool,
+    penTool,
+    handTool,
+    editTool
   ]
 
   toolService.setRenderCallback(uiService.renderPathItems)

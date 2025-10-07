@@ -1,9 +1,10 @@
 import paper from 'paper'
 import type { Tool } from './index'
-import { cursor, logger, previewBox } from '../helpers';
+import { boundingBox, cursor, logger, previewBox } from '../helpers';
 import { findParentLayer } from '../utils/paperUtils';
+import { historyService } from '../services';
 
-export class SelectTool implements Tool {
+export default class SelectTool implements Tool {
   private static instance: SelectTool | null = null;
 
   readonly id: string = 'select';
@@ -11,6 +12,7 @@ export class SelectTool implements Tool {
   readonly cursorStyle: string = 'default';
 
   private isDragSelecting: boolean = false;
+  private isDragMoving: boolean = false;
   private dragStartPoint: paper.Point | null = null;
   private dragStartPositions: Map<number, paper.Point> = new Map();
   private onToolSwitch: ((toolId: string) => void) | null = null;
@@ -25,6 +27,7 @@ export class SelectTool implements Tool {
     this.dragStartPoint = null;
     this.dragStartPositions.clear();
     this.isDragSelecting = false;
+    this.isDragMoving = false;
     cursor.resetCursor();
     // TODO: Implement deactivate logic
   }
@@ -160,8 +163,13 @@ export class SelectTool implements Tool {
     } else { // (2) Drag Moving
       this.dragStartPoint = null;
       this.dragStartPositions.clear();
-    }
 
+      if (this.isDragMoving) {
+        historyService.saveSnapshot("move");
+      }
+      this.isDragMoving = false;
+    }
+    boundingBox.show(this.getSelectedItems());
   }
 
   onMouseDrag = (event: paper.ToolEvent): void => {
@@ -169,6 +177,7 @@ export class SelectTool implements Tool {
       previewBox.update(event.point);
     } else if (this.dragStartPoint && this.dragStartPositions.size > 0) {
       // (2) Drag Moving
+      boundingBox.hide();
       const delta = event.point.subtract(this.dragStartPoint);
 
       // Apply delta to all items based on their initial positions
@@ -177,6 +186,7 @@ export class SelectTool implements Tool {
       });
       paper.project.view.update();
 
+      this.isDragMoving = true;
       logger.updateStatus('Items moved')
     }
   }

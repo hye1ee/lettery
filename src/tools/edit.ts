@@ -3,7 +3,7 @@ import type { Tool } from './index'
 import { cursor, logger, previewBox } from '../helpers';
 import { snapDeltaToAngle, isColinear } from '../utils/math';
 
-export class EditTool implements Tool {
+export default class EditTool implements Tool {
   private static instance: EditTool | null = null;
 
   readonly id: string = 'edit';
@@ -30,7 +30,6 @@ export class EditTool implements Tool {
     handles: true,
     fill: true,
     guide: false,
-    tolerance: 3 / paper.view.zoom
   };
 
   activate(): void {

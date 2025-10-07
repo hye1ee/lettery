@@ -14,15 +14,25 @@
         <!-- Header Actions -->
         <div class="header-actions">
           <!-- Zoom Controls -->
-          <div class="zoom-controls">
-            <button class="zoom-btn" id="zoom-out" title="Zoom Out">
-              <span class="zoom-icon">−</span>
+          <div class="header-action-buttons">
+            <button class="header-action-btn" id="zoom-out" title="Zoom Out">
+              <img src="/minus.svg" alt="Zoom Out" width="16" height="16" />
             </button>
             <span class="zoom-value" id="zoom-percentage">100%</span>
-            <button class="zoom-btn" id="zoom-in" title="Zoom In">
-              <span class="zoom-icon">+</span>
+            <button class="header-action-btn" id="zoom-in" title="Zoom In">
+              <img src="/plus.svg" alt="Zoom Out" width="16" height="16" />
             </button>
           </div>
+
+          <div class="header-action-buttons">
+            <button class="header-action-btn" id="undo" title="Undo">
+              <img src="/undo.svg" alt="Undo" width="16" height="16" />
+            </button>
+            <button class="header-action-btn" id="redo" title="Redo">
+              <img src="/redo.svg" alt="Redo" width="16" height="16" />
+            </button>
+          </div>
+
           <button
             class="header-action-btn"
             id="layer-export-svg"

@@ -3,8 +3,9 @@ import type { Tool } from './index'
 import { cursor, logger } from '../helpers';
 import { colors } from '../utils/styles';
 import { closePath, simplifyPath } from '../utils/paperUtils';
+import { historyService } from '../services';
 
-export class PencilTool implements Tool {
+export default class PencilTool implements Tool {
   private static instance: PencilTool | null = null;
 
   readonly id: string = 'pencil';
@@ -64,6 +65,7 @@ export class PencilTool implements Tool {
     this.path.selected = false;
     this.path = null;
 
+    historyService.saveSnapshot("pencil");
     logger.updateStatus(`Pencil drawing finished - Simplified: ${result?.saved} segments removed (${result?.percentage}% saved)`);
   }
 

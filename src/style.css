@@ -127,27 +127,19 @@ body {
   line-height: 1;
 }
 /* Zoom controls styling */
-.zoom-controls {
+.header-action-buttons {
   display: flex;
   align-items: center;
   gap: 8px;
   color: black;
   font-size: 12px;
   font-weight: 500;
-}
 
-.zoom-btn {
-  width: 24px;
-  height: 24px;
-  border: 1px solid rgba(0, 0, 0, 0.3);
-  background: transparent;
-  color: black;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
+  padding-right: 20px;
+}
+.header-action-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .zoom-btn:hover {
@@ -445,7 +437,7 @@ body {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid lightgray;
+  border: none;
   background: white;
   border-radius: 6px;
   cursor: pointer;

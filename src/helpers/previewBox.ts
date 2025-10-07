@@ -27,6 +27,7 @@ class PreviewBox {
     this.previewBox.strokeWidth = 1;
     this.previewBox.fillColor = rgbaToPaperColor(hexToRgba(colors.quaternary, 0.2)); // No fill color for selection box
     this.previewBox.locked = true;
+    this.previewBox.strokeScaling = false;
 
     this.boundingBox = this.previewBox.bounds;
     this.previewBox.name = 'system-selection-box';

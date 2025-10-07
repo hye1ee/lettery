@@ -3,8 +3,9 @@ import { tags, updateLayerSelection, updateItemSelection, clearItemSelection, se
 
 import * as hangul from 'hangul-js';
 import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../helpers';
+import { boundingBox, logger } from '../helpers';
 import type { ItemClassName, Syllable } from '../types';
+import { selectTool } from '../tools';
 
 export interface Layer {
   id: string;
@@ -262,23 +263,26 @@ class UIService {
   private handleItemClick(item: paper.Item): void {
     console.log('Layer panel item clicked:', item.name, 'ID:', item.id, 'Type:', item.className);
 
-    if (item instanceof paper.Layer) {
-      // Layer clicked - clear item selection, set active layer
-      // this.handleLayerClick(item);
-    } else {
-      // Item clicked - select item and set parent layer as active
-      const isDrawableItem = item instanceof paper.Path ||
-        item instanceof paper.CompoundPath ||
-        item instanceof paper.Shape;
+    selectTool.selectItem(item);
+    boundingBox.show([item]);
+    // if (item instanceof paper.Layer) {
+    //   // Layer clicked - clear item selection, set active layer
+    //   // this.handleLayerClick(item);
+    // } else {
+    //   // Item clicked - select item and set parent layer as active
+    //   const isDrawableItem = item instanceof paper.Path ||
+    //     item instanceof paper.CompoundPath ||
+    //     item instanceof paper.Shape;
 
-      if (isDrawableItem) {
-        item.selected = true;
-        logger.updateStatus(`${item.name || item.className} selected`);
-        console.log('Selection callback triggered for item:', item.id);
-      } else {
-        console.log('Item is not drawable:', item.className);
-      }
-    }
+    //   if (isDrawableItem) {
+    //     item.selected = true;
+    //     boundingBox.show([item]);
+    //     logger.updateStatus(`${item.name || item.className} selected`);
+    //     console.log('Selection callback triggered for item:', item.id);
+    //   } else {
+    //     console.log('Item is not drawable:', item.className);
+    //   }
+    // }
   }
 
   private handleSyllableClick(syllable: Syllable): void {

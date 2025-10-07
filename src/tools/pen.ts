@@ -3,8 +3,9 @@ import type { Tool } from './index'
 import { cursor, logger } from '../helpers';
 import { colors } from '../utils/styles';
 import { closePath } from '../utils/paperUtils';
+import { historyService } from '../services';
 
-export class PenTool implements Tool {
+export default class PenTool implements Tool {
   private static instance: PenTool | null = null;
 
   readonly id: string = 'pen';
@@ -76,6 +77,8 @@ export class PenTool implements Tool {
         currentSegment.handleIn = direction.normalize();
       }
     }
+
+    historyService.saveSnapshot("pen");
     logger.updateStatus('Point added - continue clicking to add more points');
   }
 

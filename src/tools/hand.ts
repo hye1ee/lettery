@@ -2,7 +2,7 @@ import paper from 'paper'
 import type { Tool } from './index'
 import { cursor, logger } from '../helpers';
 
-export class HandTool implements Tool {
+export default class HandTool implements Tool {
   private static instance: HandTool | null = null;
 
   readonly id: string = 'hand';
