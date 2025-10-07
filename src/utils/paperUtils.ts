@@ -49,3 +49,7 @@ export const ungroupItem = (item: paper.Item): void => {
     item.remove();
   }
 }
+
+export const rgbaToPaperColor = (rgba: { r: number, g: number, b: number, a?: number }): paper.Color => {
+  return new paper.Color(rgba.r, rgba.g, rgba.b, rgba.a);
+}

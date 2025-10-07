@@ -1,5 +1,6 @@
 import paper from 'paper';
-import { colors } from '../utils/styles';
+import { colors, hexToRgba } from '../utils/styles';
+import { rgbaToPaperColor } from '../utils/paperUtils';
 
 /**
  * Singleton class for managing drag selection preview box
@@ -22,10 +23,9 @@ class PreviewBox {
 
   public init(): void {
     this.previewBox = new paper.Path.Rectangle(new paper.Point(0, 0), new paper.Size(10, 10));
-    this.previewBox.strokeColor = new paper.Color(colors.primary);
+    this.previewBox.strokeColor = new paper.Color(colors.secondary);
     this.previewBox.strokeWidth = 1;
-    this.previewBox.dashArray = [5, 8];
-    this.previewBox.fillColor = null; // No fill color for selection box
+    this.previewBox.fillColor = rgbaToPaperColor(hexToRgba(colors.quaternary, 0.2)); // No fill color for selection box
     this.previewBox.locked = true;
 
     this.boundingBox = this.previewBox.bounds;

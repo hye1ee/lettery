@@ -9,13 +9,13 @@ export const colors = {
   green: '#00ff00',
   yellow: '#ffff00',
   primary: // brown
-    '#8b4513',
+    '#4e2a20',
   secondary: // light brown
-    '#d2b48c',
+    '#8e6f60',
   tertiary: // dark brown
-    '#5c3d2e',
+    '#c99a8d',
   quaternary: // very dark brown
-    '#362620',
+    '#e5c8c0',
   quinary: // black
     '#000000',
   error: // red
@@ -26,4 +26,16 @@ export const colors = {
     '#ffff00',
   info: // blue
     '#0000ff',
+}
+
+export const hexToRgb = (hex: string): { r: number, g: number, b: number } => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return { r, g, b };
+}
+
+export const hexToRgba = (hex: string, alpha: number): { r: number, g: number, b: number, a: number } => {
+  const { r, g, b } = hexToRgb(hex);
+  return { r, g, b, a: alpha };
 }
