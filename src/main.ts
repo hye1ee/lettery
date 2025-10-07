@@ -90,11 +90,7 @@ const setupEventListeners = () => {
   // Zoom controls
   document.addEventListener("wheel", function (event: WheelEvent) {
     if (event.ctrlKey || event.metaKey) {
-      if (event.deltaY > 0) {
-        canvasService.zoomOut();
-      } else {
-        canvasService.zoomIn();
-      }
+      canvasService.zoomAtPoint(event, event.deltaY < 0)
       event.preventDefault();
     }
   }, { passive: false });
@@ -134,6 +130,7 @@ const initTools = () => {
     EditTool.getInstance()
   ]
 
+  toolService.setRenderCallback(uiService.renderPathItems)
   toolService.initTools(tools);
   canvasService.addEventHandlers(toolService.getEventHandlers());
 }

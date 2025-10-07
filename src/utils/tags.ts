@@ -1,4 +1,8 @@
 // HTML Template Tags - Centralized HTML string management
+import paper from 'paper';
+
+import Sortable from "sortablejs";
+import type { ItemClassName } from "../types";
 
 export const tags = {
   // Modal Templates
@@ -41,13 +45,15 @@ export const tags = {
 
   // Element Item Templates
   elementItem: (item: any) => {
-    // For Layer items, show children count instead of delete button
+    // For Layer items, show active indicator instead of delete button
     if (item.className === 'Layer') {
-      const childrenCount = item.children ? item.children.length : 0;
+      const isActive = item.id === paper.project.activeLayer?.id;
       return `
       <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
       <div class="text-body" style="flex:1">${item.name}</div>
-      <div class="element-children-count">${childrenCount} items</div>
+      <div class="element-active-indicator">
+        <div class="active-dot ${isActive ? 'active' : 'inactive'}"></div>
+      </div>
       `;
     }
 
@@ -61,18 +67,17 @@ export const tags = {
     `;
   },
 
-  layerItem: (item: any) => {
-    // For Layer items, use card layout
-    const childrenCount = item.children ? item.children.length : 0;
+  syllableItem: (syllable: any) => {
+    // For Syllable items, use card layout
     return `
       <div class="layer-card-content">
         <div class="layer-preview">
-          <div class="layer-preview-placeholder">${item.data?.string || item.name}</div>
+          <div class="layer-preview-placeholder">${syllable.string}</div>
         </div>
         <div class="layer-info">
-          <div class="layer-name">${item.name}</div>
-          <div class="layer-type">${item.data?.type || 'Layer'}</div>
-          <div class="layer-children-count">${childrenCount} items</div>
+          <div class="layer-name">${syllable.string}</div>
+          <div class="layer-type">${'Layer'}</div>
+          <div class="layer-children-count">${syllable.id}</div>
         </div>
       </div>
     `;
@@ -157,5 +162,74 @@ export const clearItemSelection = () => {
   const itemItems = document.querySelectorAll('.element-item');
   itemItems.forEach((element) => {
     element.classList.remove('active');
+  });
+}
+
+export const setSortable = (container: HTMLElement, className: ItemClassName): Sortable => {
+  switch (className) {
+    case 'Layer':
+      return setSortableLayer(container);
+      break;
+    case 'CompoundPath':
+      return setSortableCompoundPath(container);
+      break;
+    case 'Path':
+      return setSortablePath(container);
+      break;
+    default:
+      return setSortableItem(container);
+      break;
+  }
+}
+
+export const setSortableLayer = (container: HTMLElement): Sortable => {
+  return new Sortable(container, {
+    group: {
+      name: 'layer',
+      put: ['layer', 'path', 'item', 'compoundPath'],
+    },
+    draggable: '.draggable',
+    animation: 150,
+  });
+}
+
+
+export const setSortablePath = (container: HTMLElement): Sortable => {
+  return new Sortable(container, {
+    group: {
+      name: 'path',
+      put: false,
+    },
+    sort: false,
+    animation: 150,
+    draggable: '.draggable',
+
+  });
+}
+
+export const setSortableItem = (container: HTMLElement): Sortable => {
+  return new Sortable(container, {
+    group: {
+      name: 'item',
+      put: false,
+    },
+    sort: false,
+    animation: 150,
+    draggable: '.draggable',
+  });
+}
+
+
+export const setSortableCompoundPath = (container: HTMLElement): Sortable => {
+  return new Sortable(container, {
+    group: {
+      name: 'compoundPath',
+      put: (to, from, dragEl) => {
+        return dragEl.dataset.elementClassName === 'Path' || dragEl.dataset.elementClassName === 'Shape';
+      },
+    },
+    sort: false,
+    animation: 150,
+    draggable: '.draggable',
   });
 }

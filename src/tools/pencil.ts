@@ -12,6 +12,7 @@ export class PencilTool implements Tool {
   readonly cursorStyle: string = 'crosshair';
 
   private path: paper.Path | null = null;
+  private renderCallback: (() => void) | null = null;
 
   activate(): void {
     cursor.updateCursor(this.cursorStyle);
@@ -21,6 +22,10 @@ export class PencilTool implements Tool {
   deactivate(): void {
     cursor.resetCursor();
     // TODO: Implement deactivate logic
+  }
+
+  setRenderCallback(callback: () => void): void {
+    this.renderCallback = callback;
   }
 
   private constructor() { }
@@ -35,6 +40,7 @@ export class PencilTool implements Tool {
   onMouseDown = (event: paper.ToolEvent): void => {
     this.path = new paper.Path();
     paper.project.activeLayer.addChild(this.path);
+    this.renderCallback?.();
 
     this.path.selected = true;
     this.path.strokeColor = new paper.Color(colors.black);

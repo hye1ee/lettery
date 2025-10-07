@@ -1,11 +1,10 @@
 
 import paper from 'paper';
 
-import { lerpPoint } from '../utils/helper';
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
 import { findParentLayer, ungroupItem } from '../utils/paperUtils';
-import { logger, previewBox } from '../helpers';
+import { logger, previewBox, zoom } from '../helpers';
 import { uiService } from '.';
 
 
@@ -271,23 +270,31 @@ class CanvasService {
     this.createBackgroundLayer();
   }
 
-  zoomIn(): void {
-    if (!this.view) throw new Error("View not found");
-    this.view.zoom += 0.05;
-    this.moveCenter();
-  }
-
-  zoomOut(): void {
-    if (!this.view) throw new Error("View not found");
-    this.view.zoom -= 0.05;
-  }
-
-  moveCenter(): void {
+  zoomAtPoint(event: MouseEvent, zoomIn: boolean): void {
     if (!this.view) throw new Error("View not found");
 
-    const { x, y } = lerpPoint(this.view.center, { x: this.point.x, y: this.point.y }, 0.4);
-    this.view.center = new paper.Point(x, y);
+    const oldZoom = this.view.zoom;
+    const zoomFactor = zoomIn ? 1.1 : 0.9;
+    const newZoom = oldZoom * zoomFactor;
+
+    // Get mouse position in screen (view) coordinates
+    const mousePoint = new paper.Point(event.offsetX, event.offsetY);
+
+    // Convert mouse position to project (world) coordinates before zoom
+    const viewPositionBefore = this.view.viewToProject(mousePoint);
+
+    zoom.setZoom(newZoom);
+
+    // Convert mouse position again after zoom
+    const viewPositionAfter = this.view.viewToProject(mousePoint);
+
+    // Calculate how much the world point moved due to zoom change
+    const offset = viewPositionBefore.subtract(viewPositionAfter);
+
+    // Adjust view center so the point under the cursor stays fixed
+    this.view.center = this.view.center.add(offset);
   }
+
 
   // Drawing methods (merged from DrawingService)
 

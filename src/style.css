@@ -737,14 +737,6 @@ body {
   border-left-color: var(--color-tertiary);
 }
 
-.element-item.visible {
-  opacity: 1;
-}
-
-.element-item.hidden {
-  opacity: 0.4;
-}
-
 .element-visibility {
   width: 20px;
   height: 20px;
@@ -811,6 +803,45 @@ body {
   margin-left: 8px;
 }
 
+/* Active indicator styles */
+.element-active-indicator,
+.layer-active-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+}
+
+.active-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.active-dot.active {
+  background-color: var(--color-secondary); /* Brown color */
+}
+
+.active-dot.inactive {
+  background-color: transparent;
+  border: 1px solid #ddd;
+}
+
+/* Sortable styles */
+.sortable-list {
+  display: flex;
+  flex-direction: column;
+
+  justify-self: stretch;
+  height: fit-content;
+  min-height: 30px;
+
+  margin-left: 20px;
+
+  border-left: 2px solid var(--color-quaternary);
+}
+
 /* Scrollbar styling for element list */
 .layer-list::-webkit-scrollbar {
   width: 6px;
@@ -844,21 +875,12 @@ body {
 
 .layer-card:hover {
   background: #e9ecef;
-  border-color: #ccc;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.layer-card.selected {
-  background: #e3f2fd;
-  border-color: #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
 }
 
 .layer-card.active {
-  background: #fff3e0;
-  border-color: #ff9800;
-  box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
+  background: var(--color-quaternary);
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 2px var(--color-quaternary);
 }
 
 .layer-card-content {

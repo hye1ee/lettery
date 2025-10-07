@@ -12,6 +12,7 @@ export class PenTool implements Tool {
   readonly cursorStyle: string = 'default';
 
   private path: paper.Path | null = null;
+  private renderCallback: (() => void) | null = null;
 
   activate(): void {
     cursor.updateCursor(this.cursorStyle);
@@ -22,6 +23,10 @@ export class PenTool implements Tool {
     this.terminatePathing();
     cursor.resetCursor();
     // TODO: Implement deactivate logic
+  }
+
+  setRenderCallback(callback: () => void): void {
+    this.renderCallback = callback;
   }
 
   private constructor() { }
@@ -36,7 +41,10 @@ export class PenTool implements Tool {
   onMouseDown = (event: paper.ToolEvent): void => {
     if (!this.path) { // (1) Start a new path
       this.path = new paper.Path();
+
       paper.project.activeLayer.addChild(this.path);
+      this.renderCallback?.();
+
       this.path.strokeColor = new paper.Color(colors.black);
       this.path.strokeWidth = 1;
       this.path.add(event.point);

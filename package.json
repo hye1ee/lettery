@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/sortablejs": "^1.15.8",
     "typescript": "~5.8.3",
     "vite": "^7.1.2"
   },
@@ -17,6 +18,8 @@
     "clipper-lib": "^6.4.2",
     "hangul-js": "^0.2.6",
     "martinez-polygon-clipping": "^0.7.4",
-    "paper": "^0.12.17"
+    "paper": "^0.12.17",
+    "sortablejs": "^1.15.6",
+    "uuid": "^13.0.0"
   }
 }

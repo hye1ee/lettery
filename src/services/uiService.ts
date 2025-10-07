@@ -1,8 +1,10 @@
 import paper from 'paper'
-import { tags, updateLayerSelection, updateItemSelection, clearItemSelection } from '../utils/tags'
+import { tags, updateLayerSelection, updateItemSelection, clearItemSelection, setSortable } from '../utils/tags'
 
 import * as hangul from 'hangul-js';
+import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../helpers';
+import type { ItemClassName, Syllable } from '../types';
 
 export interface Layer {
   id: string;
@@ -40,7 +42,7 @@ export interface LayerAction {
 class UIService {
   private static instance: UIService | null = null;
 
-  private itemIndex: { [key: string]: number } = {
+  private itemIndex: { [key in ItemClassName]: number } = {
     'Group': 0,
     'Layer': 0,
     'Path': 0,
@@ -53,6 +55,7 @@ class UIService {
   private itemListContainer: HTMLElement | null = null;
 
   private selectedItemIds: string[] = [];
+  private syllables: Syllable[] = [];
 
   private constructor() { }
 
@@ -66,7 +69,6 @@ class UIService {
   public init(): void {
     this.itemListContainer = document.getElementById('layer-list');
   }
-
 
   showTooltip(message: string, x: number, y: number): void {
     // Remove existing tooltip
@@ -94,16 +96,9 @@ class UIService {
   }
 
 
-  public renderAll() {
+  public renderAll = () => {
     this.renderLayers();
     this.renderPathItems();
-  }
-
-  private updateItemsCount(count: number) {
-    const itemsCountElement = document.getElementById('items-count');
-    if (itemsCountElement) {
-      itemsCountElement.textContent = count.toString();
-    }
   }
 
   // Update UI selection state based on canvas selection
@@ -121,106 +116,66 @@ class UIService {
     }
   }
 
-  private renderLayers() {
+  private renderLayers = () => {
     if (!this.itemListContainer) return;
 
     this.itemListContainer.innerHTML = '';
 
     // Filter to show only letter layers (syllable layers)
-    const letterLayers = paper.project.layers.filter((layer: paper.Layer) =>
-      !layer.name?.startsWith('system-') &&
-      layer.data?.type === 'syllable'
-    );
-
-    letterLayers.forEach((layer) => {
-      const layerItem = this.createLayerItem(layer);
+    this.syllables.forEach((syllable) => {
+      const layerItem = this.createSyllableItem(syllable);
       this.itemListContainer?.appendChild(layerItem);
     });
 
     // Update the active layer
-    updateLayerSelection(paper.project.activeLayer?.id.toString() || '');
+    updateLayerSelection(paper.project.activeLayer?.data.syllableId || '');
   }
 
-  public renderPathItems() {
+  public renderPathItems = () => {
+    // init path list container
     const pathsListContainer = document.getElementById('paths-list');
-    if (!pathsListContainer) return;
-
+    if (!pathsListContainer) throw new Error('Paths list container not found');
     pathsListContainer.innerHTML = '';
 
     // Find the currently selected/active layer
-    const activeLayer = paper.project.activeLayer;
+    const syllable = this.syllables.find((syllable) => syllable.id === paper.project.activeLayer?.data.syllableId);
+    if (!syllable) throw new Error('Syllable not found');
+
     // Get children of the active layer
-    const children = activeLayer?.children || [];
-    if (children.length === 0) {
-      // Show empty state
-      const emptyState = document.createElement('div');
-      emptyState.className = 'paths-empty-state';
-      emptyState.textContent = 'No components in this letter';
-      emptyState.style.cssText = `
-        padding: 20px;
-        text-align: center;
-        color: #666;
-        font-size: 12px;
-        font-style: italic;
-      `;
-      pathsListContainer.appendChild(emptyState);
-
-      // Update the items count to 0
-      this.updateItemsCount(0);
-      return;
-    }
-
-    // Render each child as a path item
-    children.forEach((child) => {
-      const pathItem = this.createPathItem(child, 0);
-      pathsListContainer.append(...pathItem);
+    syllable.jamoIds.forEach((jamoId) => {
+      const jamoLayer = paper.project.getItem({ data: { id: jamoId } }) as paper.Layer;
+      if (!jamoLayer) throw new Error('Jamo layer not found');
+      pathsListContainer.append(this.createPathItem(jamoLayer, 0));
     });
-
-    // Update the items count
-    this.updateItemsCount(children.length);
   }
 
-  private createLayerItem(layer: paper.Layer): HTMLDivElement {
-    if (!layer.name) {
-      this.itemIndex[layer.className]++;
-      layer.name = `${layer.className} ${this.itemIndex[layer.className]}`;
-    }
+  private createSyllableItem(syllable: Syllable): HTMLDivElement {
 
     const layerItem = document.createElement('div');
     layerItem.className = 'layer-card';
-    layerItem.dataset.layerId = layer.id.toString();
-    layerItem.innerHTML = tags.layerItem(layer);
+    layerItem.dataset.layerId = syllable.id;
+    layerItem.innerHTML = tags.syllableItem(syllable);
 
     // Add click handler for selection
     layerItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.handleLayerClick(layer);
+      this.handleSyllableClick(syllable);
     });
 
     // Add action button event listeners
-    this.setupActionButtonListeners(layerItem, layer);
-
     return layerItem;
   }
 
-  private createPathItem(item: paper.Item, index: number): HTMLDivElement[] {
-
+  private createPathItem(item: paper.Item, index: number): HTMLDivElement {
     if (!item.name) {
-      this.itemIndex[item.className]++;
-      item.name = `${item.className} ${this.itemIndex[item.className]}`;
+      this.itemIndex[item.className as ItemClassName]++;
+      item.name = `${item.className} ${this.itemIndex[item.className as ItemClassName]}`;
     }
-
-    // Skip system items
-    if (item.name.startsWith('system-')) {
-      return [];
-    }
-
-    const pathItems: HTMLDivElement[] = [];
-
     // create path item div
     const pathItem = document.createElement('div');
     pathItem.className = `element-item ${item.selected ? 'selected' : ''} ${item.visible ? 'visible' : 'hidden'}`;
     pathItem.dataset.elementId = item.id.toString();
+    pathItem.dataset.elementClassName = item.className;
     pathItem.innerHTML = tags.elementItem(item);
     pathItem.style.paddingLeft = `${(index + 1) * 15}px`;
 
@@ -232,17 +187,76 @@ class UIService {
 
     // Add action button event listeners
     this.setupActionButtonListeners(pathItem, item);
-    pathItems.push(pathItem);
 
-    // check if item has a children
-    if (item.children) {
+    // For layer items, create nested sortable container
+    if (item instanceof paper.Layer || item instanceof paper.CompoundPath) {
+      const itemContainer = document.createElement('div');
+      itemContainer.style = 'display: flex; flex-direction: column; width: 100%; height: fit-content;';
+      itemContainer.dataset.elementId = item.id.toString();
+      itemContainer.dataset.elementClassName = item.className;
+      if (!(item instanceof paper.Layer)) itemContainer.classList.add('draggable');
+
+      const childContainer = document.createElement('div');
+      childContainer.className = 'sortable-list';
+      childContainer.dataset.elementId = item.id.toString();
+      childContainer.dataset.elementClassName = item.className;
+
+      setSortable(childContainer, item.className as ItemClassName).options.onEnd = this.handleSortableEnd;
+      // Add children to child container
       item.children.forEach((child) => {
-        const childPathItem = this.createPathItem(child, index + 1);
-        pathItems.push(...childPathItem);
+        childContainer.appendChild(this.createPathItem(child, index));
       });
-    }
 
-    return pathItems;
+      itemContainer.append(pathItem, childContainer);
+      return itemContainer;
+    } else {
+      pathItem.classList.add('draggable');
+      // For non-layer items with children, create regular nested structure
+      setSortable(pathItem, item.className as ItemClassName).options.onEnd = this.handleSortableEnd;
+
+      return pathItem;
+    }
+  }
+
+  private handleSortableEnd(event: any): void {
+    const { item, from, to } = event;
+
+    const targetItem = paper.project.getItem({ id: parseInt(item.dataset.elementId) });
+    const oldParent = paper.project.getItem({ id: parseInt(from.dataset.elementId) });
+    const newParent = paper.project.getItem({ id: parseInt(to.dataset.elementId) });
+    if (!newParent || !targetItem || !oldParent) return;
+
+    newParent.addChild(targetItem);
+
+    logger.updateStatus(`Moved ${targetItem.name} from ${oldParent.name} to ${newParent.name}`);
+    // if (!itemId) return;
+
+    // // Find the paper item by ID
+    // const paperItem = paper.project.getItem({ id: parseInt(itemId) });
+    // if (!paperItem) return;
+
+    // // Determine source and target layers
+    // const sourceLayer = from.closest('.nested-items')?.dataset.layerId
+    //   ? paper.project.getItem({ id: parseInt(from.closest('.nested-items').dataset.layerId) })
+    //   : paper.project.activeLayer;
+
+    // const targetLayer = to.closest('.nested-items')?.dataset.layerId
+    //   ? paper.project.getItem({ id: parseInt(to.closest('.nested-items').dataset.layerId) })
+    //   : paper.project.activeLayer;
+
+    // if (!sourceLayer || !targetLayer) return;
+
+    // // Move the item between layers
+    // if (sourceLayer.id !== targetLayer.id) {
+    //   paperItem.remove();
+    //   targetLayer.addChild(paperItem);
+
+    //   logger.updateStatus(`Moved ${paperItem.name} to ${targetLayer.name}`);
+
+    //   // Update UI after move - only render what's necessary
+    //   this.renderPathItems();
+    //   this.renderLayers();
+    // }
   }
 
   private handleItemClick(item: paper.Item): void {
@@ -267,19 +281,19 @@ class UIService {
     }
   }
 
-  private handleLayerClick(layer: paper.Layer): void {
-    if (layer.id === paper.project.activeLayer?.id) return;
+  private handleSyllableClick(syllable: Syllable): void {
+    if (syllable.jamoIds.includes(paper.project.activeLayer?.data.id)) return;
 
-    layer.activate();
-    if (layer.data.type === 'jamo') {
-      (layer.parent as paper.Layer).activate();
-    }
+    const jamoLayer = paper.project.getItem({ data: { id: syllable.jamoIds[0] } }) as paper.Layer;
+    if (!jamoLayer) throw new Error('Jamo layer not found');
+    jamoLayer.activate();
+
     // Set this layer as the active layer and refresh paths section
-    updateLayerSelection(layer.id.toString());
+    updateLayerSelection(syllable.id);
     this.renderPathItems();
 
-    logger.updateStatus(`${layer.name} selected`);
-    console.log('Selection callback triggered for layer:', layer.id);
+    logger.updateStatus(`${syllable.string} selected`);
+    console.log('Selection callback triggered for layer:', syllable.id);
   }
 
 
@@ -430,32 +444,32 @@ class UIService {
   private createLayersFromInput(inputText: string, selectedFont: string): void {
     const letters = inputText.split('').filter(char => char.trim() !== '');
 
-    letters.forEach((letter, index) => {
+    letters.forEach((letter) => {
       const disassembled = hangul.disassemble(letter);
 
       // add syllable layer
-      const layer = new paper.Layer();
-      layer.data.type = 'syllable';
-      layer.data.string = letter;
-      layer.data.font = selectedFont || '';
-      layer.name = letter + " " + (index + 1);
-      paper.project.addLayer(layer);
+      const syllable: Syllable = {
+        id: uuidv4(),
+        string: letter,
+        jamo: disassembled,
+        jamoIds: disassembled.map(() => uuidv4()),
+      };
+      this.syllables.push(syllable);
 
       // add jamo layers
-      disassembled.forEach((jamo, jamoIndex) => {
+      syllable.jamo.forEach((jamoString, jamoIndex) => {
         const jamoLayer = new paper.Layer();
-        jamoLayer.data.type = 'jamo';
-        jamoLayer.data.string = jamo;
-        jamoLayer.data.font = selectedFont || '';
-        jamoLayer.name = jamo + " " + (jamoIndex + 1);
-        layer.addChild(jamoLayer);
-      });
+        jamoLayer.name = jamoString;
+        jamoLayer.data.id = syllable.jamoIds[jamoIndex];
+        jamoLayer.data.syllableId = syllable.id;
+        jamoLayer.data.syllableString = syllable.string;
 
-      // update ui
-      layer.activate();
-      this.renderLayers();
-      this.renderPathItems();
+        paper.project.addLayer(jamoLayer);
+      });
     });
+    // update ui
+    this.renderLayers();
+    this.renderPathItems();
 
     // Update the layer panel
     const fontInfo = selectedFont ? ` with font: ${selectedFont}` : ' with default font';

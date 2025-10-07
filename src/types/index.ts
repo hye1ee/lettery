@@ -1,4 +1,14 @@
 
+export interface Syllable {
+  id: string;
+  string: string;
+  jamo: string[];
+  jamoIds: string[];
+
+}
+
+export type ItemClassName = 'Group' | 'Layer' | 'Path' | 'CompoundPath' | 'Shape' | 'Raster' | 'SymbolItem' | 'PointText';
+
 // Drawing state
 export interface DrawingState {
   currentDrawing: any | null

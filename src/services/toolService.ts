@@ -5,7 +5,7 @@ class ToolService {
   private currentTool: string | null = null;
   private tools: Map<string, Tool> = new Map();
   private buttons: Map<string, HTMLButtonElement> = new Map();
-
+  private renderCallback: (() => void) | null = null;
 
   private constructor() { }
 
@@ -17,6 +17,10 @@ class ToolService {
       ToolService.instance = new ToolService()
     }
     return ToolService.instance
+  }
+
+  setRenderCallback(callback: () => void): void {
+    this.renderCallback = callback;
   }
 
   /**
@@ -31,6 +35,10 @@ class ToolService {
       // Set up tool switch callback for tools that support it
       if (tool.setToolSwitchCallback) {
         tool.setToolSwitchCallback(this.switchTool);
+      }
+
+      if (tool.setRenderCallback && this.renderCallback) {
+        tool.setRenderCallback(this.renderCallback);
       }
 
       const button = document.getElementById(`${tool.id}-tool`) as HTMLButtonElement

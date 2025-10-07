@@ -13,6 +13,7 @@ export class EditTool implements Tool {
   // Tool state
   private editItem: paper.Item | null = null;
   private onToolSwitch: ((toolId: string) => void) | null = null;
+  private renderCallback: (() => void) | null = null;
 
   private isDragSelecting: boolean = false;
   private dragStartPoint: paper.Point | null = null;
@@ -78,6 +79,10 @@ export class EditTool implements Tool {
    */
   setToolSwitchCallback(callback: (toolId: string) => void): void {
     this.onToolSwitch = callback;
+  }
+
+  setRenderCallback(callback: () => void): void {
+    this.renderCallback = callback;
   }
 
   private setupKeyHandlers(): void {
