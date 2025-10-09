@@ -34,10 +34,11 @@ export const simplifyPath = (path: paper.Path): { original: number; simplified: 
   return null;
 }
 
-export const closePath = (path: paper.Path): void => {
+export const closePath = (path: paper.Path): paper.Path => {
   path.closed = true;
   path.strokeWidth = 0;
   path.fillColor = new paper.Color(colors.black);
+  return path;
 }
 
 export const ungroupItem = (item: paper.Item): void => {

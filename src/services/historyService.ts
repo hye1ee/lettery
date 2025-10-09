@@ -2,12 +2,17 @@ import paper from "paper";
 import { uiService } from ".";
 import { logger } from "../helpers";
 
+interface HistoryState {
+  json: string;
+  action: string;
+  activeLayerId: string;
+}
+
 class HistoryService {
   private static instance: HistoryService;
 
-  private undoStack: (string | object)[] = [];
-  private redoStack: (string | object)[] = [];
-  private lastSnapshot: string | null = null;
+  private undoStack: HistoryState[] = [];
+  private redoStack: HistoryState[] = [];
   private readonly maxUndos = 80;
 
   private constructor() {
@@ -36,14 +41,19 @@ class HistoryService {
   /**
    * Save a snapshot — either as a full state or as a diff
    */
-  saveSnapshot(type: string): void {
+  saveSnapshot(action: string): void {
     const currentJSON = paper.project.exportJSON({ asString: true });
+    const activeLayerId = paper.project.activeLayer?.id.toString() || '';
+
+    const state: HistoryState = {
+      json: currentJSON,
+      activeLayerId: activeLayerId,
+      action
+    };
 
     // Only record meaningful changes
-
-    this.undoStack.push(currentJSON);
+    this.undoStack.push(state);
     this.redoStack = []; // clear redo history
-    this.lastSnapshot = currentJSON;
 
     if (this.undoStack.length > this.maxUndos) {
       this.undoStack.shift();
@@ -69,11 +79,6 @@ class HistoryService {
     }
   }
 
-  /** Simple difference check using string comparison or hash */
-  private isDifferent(prev: string, next: string): boolean {
-    // Fast string diff check — could be replaced with deep diff if needed
-    return prev.length !== next.length || prev !== next;
-  }
 
   public undo(): void {
     console.log("Undo");
@@ -101,22 +106,24 @@ class HistoryService {
     logger.updateStatus(`Redo success`);
   }
 
-  private restore(snapshot: string | object): void {
-    const json = typeof snapshot === "string" ? snapshot : JSON.stringify(snapshot);
-
+  private restore(snapshot: HistoryState): void {
     paper.project.clear();
     paper.view.update();
-    paper.project.importJSON(json);
+    paper.project.importJSON(snapshot.json);
+
+    // Restore the active layer
+    if (snapshot.activeLayerId) {
+      const layer = paper.project.getItem({ id: snapshot.activeLayerId });
+      if (layer instanceof paper.Layer) layer.activate();
+    }
 
     uiService.renderAll();
-
     paper.view.update();
   }
 
   clear(): void {
     this.undoStack = [];
     this.redoStack = [];
-    this.lastSnapshot = null;
   }
 
   getHistoryInfo(): { undo: number; redo: number } {

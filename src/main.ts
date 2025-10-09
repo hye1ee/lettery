@@ -1,7 +1,7 @@
 import './style.css'
 import paper from 'paper'
 import { canvasService, historyService, toolService, uiService } from './services'
-import { selectTool, pencilTool, penTool, handTool, editTool } from './tools'
+import { selectTool, pencilTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
 import { cursor, logger } from './helpers'
 
 
@@ -129,7 +129,9 @@ const initTools = () => {
     pencilTool,
     penTool,
     handTool,
-    editTool
+    editTool,
+    rectangleTool,
+    ellipseTool
   ]
 
   toolService.setRenderCallback(uiService.renderPathItems)

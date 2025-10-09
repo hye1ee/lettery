@@ -65,6 +65,23 @@
             <img src="/pen.svg" alt="Pen Tool" width="18" height="18" />
             <div class="tool-name">Pen</div>
           </button>
+          <button
+            id="rectangle-tool"
+            class="tool-btn"
+            title="Rectangle Tool (R)"
+          >
+            <img
+              src="/rectangle.svg"
+              alt="Rectangle Tool"
+              width="18"
+              height="18"
+            />
+            <div class="tool-name">Rectangle</div>
+          </button>
+          <button id="ellipse-tool" class="tool-btn" title="Ellipse Tool (L)">
+            <img src="/ellipse.svg" alt="Ellipse Tool" width="18" height="18" />
+            <div class="tool-name">Ellipse</div>
+          </button>
         </div>
         <div class="canvas-container">
           <canvas id="vector-canvas" width="800" height="600"></canvas>
@@ -82,7 +99,7 @@
               <span class="text-title">Syllables</span>
               <div class="header-actions">
                 <button
-                  class="header-plus-btn"
+                  class="header-action-btn border"
                   id="header-plus-btn"
                   title="Add New Element"
                 >
@@ -102,7 +119,7 @@
               </div>
               <div class="header-actions">
                 <button
-                  class="header-action-btn"
+                  class="header-action-btn border"
                   id="layer-import-svg"
                   title="Import SVG"
                 >

@@ -7,8 +7,8 @@
 :root {
   --color-primary: #4e2a20;
   --color-secondary: #8e6f60;
-  --color-tertiary: #c99a8d;
-  --color-quaternary: #e5c8c0;
+  --color-tertiary: #e2cfca;
+  --color-quaternary: #f0eae8;
 }
 
 body {
@@ -90,8 +90,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: all 0.2s ease;
   position: relative;
+  transition: all 0.2s ease;
+}
+
+.tool-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .tool-btn:hover {
@@ -100,7 +105,7 @@ body {
 
 .tool-btn.active {
   background: var(--color-secondary);
-  color: #000000;
+  color: #ffffff;
 }
 
 .tool-btn img {
@@ -108,21 +113,15 @@ body {
   width: 18px;
   height: 18px;
   filter: brightness(0) invert(0); /* Make SVG white by default */
-  transition: all 0.2s ease;
 }
 
 .tool-btn.active img {
   filter: brightness(0) invert(1); /* Make SVG black when active (sky blue background) */
 }
 
-.tool-btn:hover img {
-  filter: brightness(0) invert(0); /* Keep white on hover */
-}
-
 .tool-name {
   font-size: 10px;
   font-weight: 500;
-  color: black;
   text-align: center;
   line-height: 1;
 }
@@ -138,7 +137,7 @@ body {
   padding-right: 20px;
 }
 .header-action-btn.disabled {
-  opacity: 0.5;
+  opacity: 0.2;
   cursor: not-allowed;
 }
 
@@ -280,7 +279,7 @@ body {
 }
 
 .letters-section {
-  flex: 2;
+  flex: 1;
   border-bottom: 1px solid lightgray;
 }
 
@@ -407,28 +406,10 @@ body {
   gap: 8px;
 }
 
-.header-plus-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+.header-action-btn.border {
   border: 1px solid lightgray;
   background: white;
   border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.header-plus-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: darkgray;
-}
-
-.header-plus-btn img {
-  filter: brightness(0) invert(0);
-  width: 16px;
-  height: 16px;
 }
 
 .header-action-btn {
@@ -438,7 +419,7 @@ body {
   width: 28px;
   height: 28px;
   border: none;
-  background: white;
+  background: transparent;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -672,8 +653,9 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   gap: 12px;
   padding: 12px;
 }
@@ -709,8 +691,7 @@ body {
 }
 
 .element-item.selected {
-  background: rgba(0, 0, 0, 0.05);
-  border-left-color: var(--color-secondary);
+  background: var(--color-quaternary);
 }
 
 .element-item.active {
@@ -851,7 +832,8 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  min-height: 100px;
+  height: fit-content;
+  min-height: 50px;
 }
 
 .layer-card:hover {

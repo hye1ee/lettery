@@ -173,8 +173,14 @@ class UIService {
       item.name = `${item.className} ${this.itemIndex[item.className as ItemClassName]}`;
     }
     // create path item div
+
+    let selected = item.selected;
+    if (item instanceof paper.Layer && !item.children.every(child => child.selected)) {
+      selected = false;
+    }
+
     const pathItem = document.createElement('div');
-    pathItem.className = `element-item ${item.selected ? 'selected' : ''} ${item.visible ? 'visible' : 'hidden'}`;
+    pathItem.className = `element-item ${selected ? 'selected' : ''}`;
     pathItem.dataset.elementId = item.id.toString();
     pathItem.dataset.elementClassName = item.className;
     pathItem.innerHTML = tags.elementItem(item);
@@ -183,7 +189,7 @@ class UIService {
     // Add click handler for selection
     pathItem.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.handleItemClick(item);
+      this.handleItemClick(e, item);
     });
 
     // Add action button event listeners
@@ -260,29 +266,12 @@ class UIService {
     // }
   }
 
-  private handleItemClick(item: paper.Item): void {
+  private handleItemClick(e: MouseEvent, item: paper.Item): void {
     console.log('Layer panel item clicked:', item.name, 'ID:', item.id, 'Type:', item.className);
 
+    paper.project.deselectAll();
     selectTool.selectItem(item);
-    boundingBox.show([item]);
-    // if (item instanceof paper.Layer) {
-    //   // Layer clicked - clear item selection, set active layer
-    //   // this.handleLayerClick(item);
-    // } else {
-    //   // Item clicked - select item and set parent layer as active
-    //   const isDrawableItem = item instanceof paper.Path ||
-    //     item instanceof paper.CompoundPath ||
-    //     item instanceof paper.Shape;
-
-    //   if (isDrawableItem) {
-    //     item.selected = true;
-    //     boundingBox.show([item]);
-    //     logger.updateStatus(`${item.name || item.className} selected`);
-    //     console.log('Selection callback triggered for item:', item.id);
-    //   } else {
-    //     console.log('Item is not drawable:', item.className);
-    //   }
-    // }
+    boundingBox.show(paper.project.selectedItems);
   }
 
   private handleSyllableClick(syllable: Syllable): void {

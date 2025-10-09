@@ -2,7 +2,7 @@ import paper from 'paper'
 import type { Tool } from './index'
 import { boundingBox, cursor, logger, previewBox } from '../helpers';
 import { findParentLayer } from '../utils/paperUtils';
-import { historyService } from '../services';
+import { historyService, uiService } from '../services';
 
 export default class SelectTool implements Tool {
   private static instance: SelectTool | null = null;
@@ -51,17 +51,17 @@ export default class SelectTool implements Tool {
   onDoubleClick = (event: paper.ToolEvent): void => {
     event.preventDefault();
 
-    console.log('onDoubleClick', event);
+    // console.log('onDoubleClick', event);
 
-    const hitResult = paper.project.hitTest(event.point);
-    if (hitResult && this.onToolSwitch) {
-      localStorage.setItem('edit-item', hitResult.item.id.toString());
+    // const hitResult = paper.project.hitTest(event.point);
+    // if (hitResult && this.onToolSwitch) {
+    //   localStorage.setItem('edit-item', hitResult.item.id.toString());
 
-      paper.project.deselectAll();
-      this.selectItem(hitResult.item);
-      this.onToolSwitch('edit');
-      logger.updateStatus('Switched to edit tool - Double click on item to edit');
-    }
+    //   paper.project.deselectAll();
+    //   this.selectItem(hitResult.item);
+    //   this.onToolSwitch('edit');
+    //   logger.updateStatus('Switched to edit tool - Double click on item to edit');
+    // }
   }
 
   onMouseDown = (event: paper.ToolEvent): void => {
@@ -73,6 +73,7 @@ export default class SelectTool implements Tool {
     if (hitResult) { // (1) Select Item
       if (!isMultiSelect && !this.getSelectedItems().some(item => item.id === hitResult.item.id)) {
         paper.project.deselectAll();
+        uiService.renderPathItems();
       }
 
       this.selectItem(hitResult.item);
@@ -81,6 +82,7 @@ export default class SelectTool implements Tool {
     } else {
       // (2) Drag Selection
       paper.project.deselectAll();
+      uiService.renderPathItems();
 
       this.isDragSelecting = true;
       previewBox.show(event.point);
@@ -91,36 +93,14 @@ export default class SelectTool implements Tool {
   }
 
   selectItem(item: paper.Item): void {
-    if (item instanceof paper.Layer) {
-      // Layer selected - clear item selection, set active layer
-      let layer = item;
-      if (layer.data.type === 'syllable') { // only jamo layer can be selected
-        layer = layer.children[0] as paper.Layer;
-      }
-      layer.activate();
+    item.selected = true;
 
-      // TODO) Notify UI: layer selected, no item selected
-      // if (layer.id && this.alertSelectionChange) {
-      //   this.alertSelectionChange(layer.id.toString(), true, layer.id.toString());
-      // }
-    } else {
-      // Item selected - add to selection array
-      item.selected = true;
-      const parentLayer = findParentLayer(item);
-      if (parentLayer) {
-        parentLayer.activate();
-
-        // Notify UI: item selected, parent layer active
-        // if (item.id && this.alertSelectionChange) {
-        //   this.alertSelectionChange(item.id.toString(), true, parentLayer.id.toString());
-        // }
-      } else {
-        // No parent layer found
-        // if (item.id && this.alertSelectionChange) {
-        //   this.alertSelectionChange(item.id.toString(), true);
-        // }
-      }
+    const parentLayer = findParentLayer(item);
+    if (parentLayer) {
+      parentLayer.activate();
     }
+    // change active layer
+    uiService.renderPathItems();
   }
 
   grabPoint(grabPoint: paper.Point): void {
@@ -159,7 +139,9 @@ export default class SelectTool implements Tool {
       this.makeDragSelection();
       previewBox.hide();
       this.isDragSelecting = false;
-      logger.updateStatus(`${this.getSelectedItems().length} items selected`)
+
+      logger.updateStatus(`${this.getSelectedItems().length} items selected`);
+      uiService.renderPathItems();
     } else { // (2) Drag Moving
       this.dragStartPoint = null;
       this.dragStartPositions.clear();
