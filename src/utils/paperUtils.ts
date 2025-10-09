@@ -70,7 +70,7 @@ export const alignItems = (items: paper.Item[], align: 'top' | 'horizontal' | 'b
       break;
     case 'horizontal':
       items.forEach(item => {
-        item.bounds.y = (bounds.top + bounds.bottom) / 2;
+        item.bounds.center.y = (bounds.top + bounds.bottom) / 2;
       });
       break;
     case 'bottom':
@@ -85,7 +85,7 @@ export const alignItems = (items: paper.Item[], align: 'top' | 'horizontal' | 'b
       break;
     case 'vertical':
       items.forEach(item => {
-        item.bounds.x = (bounds.left + bounds.right) / 2;
+        item.bounds.center.x = (bounds.left + bounds.right) / 2;
       });
       break;
     case 'right':

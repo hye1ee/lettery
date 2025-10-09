@@ -1,7 +1,7 @@
 import paper from 'paper';
 import { alignItems, closePath, flipItems, makeCompoundPath, releaseCompoundPath } from '../utils/paperUtils';
 import { historyService, uiService } from '../services';
-import { boundingBox, previewBox } from '.';
+import { boundingBox } from '.';
 
 /**
  * Singleton class for managing context menu
@@ -92,10 +92,10 @@ class ContextMenu {
       {
         label: 'Remove',
         onClick: () => {
+          boundingBox.hide();
           selection.forEach(item => {
             item.remove();
           });
-          previewBox.hide();
           uiService.renderPathItems();
           historyService.saveSnapshot('Remove');
         },

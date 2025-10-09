@@ -160,7 +160,22 @@ export default class SelectTool implements Tool {
     } else if (this.dragStartPoint && this.dragStartPositions.size > 0) {
       // (2) Drag Moving
       boundingBox.hide();
-      const delta = event.point.subtract(this.dragStartPoint);
+      let delta = event.point.subtract(this.dragStartPoint);
+
+      // Shift-drag: constrain to horizontal or vertical movement
+      if (event.modifiers?.shift) {
+        const absDeltaX = Math.abs(delta.x);
+        const absDeltaY = Math.abs(delta.y);
+
+        // Lock to the axis with greater movement
+        if (absDeltaX > absDeltaY) {
+          // Horizontal movement only
+          delta = new paper.Point(delta.x, 0);
+        } else {
+          // Vertical movement only
+          delta = new paper.Point(0, delta.y);
+        }
+      }
 
       // Apply delta to all items based on their initial positions
       this.getSelectedItems().forEach((item) => {
@@ -169,7 +184,14 @@ export default class SelectTool implements Tool {
       paper.project.view.update();
 
       this.isDragMoving = true;
-      logger.updateStatus('Items moved')
+
+      // Update status message to show constraint
+      if (event.modifiers?.shift) {
+        const isHorizontal = Math.abs(delta.x) > Math.abs(delta.y);
+        logger.updateStatus(`Items moved ${isHorizontal ? 'horizontally' : 'vertically'} (shift-constrained)`);
+      } else {
+        logger.updateStatus('Items moved');
+      }
     }
   }
 }

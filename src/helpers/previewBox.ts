@@ -99,7 +99,6 @@ class PreviewBox {
 
   public hide(): void {
     if (!this.previewBox) throw new Error("Preview box not initialized");
-
     this.previewBox.visible = false;
   }
 }
