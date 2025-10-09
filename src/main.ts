@@ -2,7 +2,7 @@ import './style.css'
 import paper from 'paper'
 import { canvasService, historyService, toolService, uiService } from './services'
 import { selectTool, pencilTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
-import { cursor, logger } from './helpers'
+import { cursor, logger, contextMenu } from './helpers'
 
 
 let layerImportSvgBtn: HTMLButtonElement
@@ -54,6 +54,7 @@ const initApp = () => {
   // Initialize helpers
   logger.init(statusText, coordinates);
   cursor.init(canvas);
+  contextMenu.init();
 
   console.log('App initialization complete')
 }
