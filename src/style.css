@@ -526,7 +526,7 @@ body {
 .modal-content {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 1px solid lightgray;
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
@@ -539,8 +539,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid lightgray;
+  padding: 14px 18px;
+  /* border-bottom: 1px solid lightgray; */
 }
 
 .modal-close-btn {
@@ -567,13 +567,19 @@ body {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 0px 18px;
+
   flex: 1;
+  height: fit-content;
   overflow-y: auto;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .input-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .input-group label {
@@ -598,11 +604,12 @@ body {
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
-.font-selector-group {
-  margin-bottom: 20px;
+.modal-group {
+  display: flex;
+  flex-direction: column;
 }
 
-.font-selector-group label {
+.modal-group label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
@@ -625,7 +632,7 @@ body {
 }
 
 .preview-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .preview-section label {
@@ -659,11 +666,83 @@ body {
   color: #333;
 }
 
+/* Jamo Preview */
+.jamo-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid lightgray;
+  border-radius: 8px;
+  background: #f8f9fa;
+  min-height: 60px;
+}
+
+.preview-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.preview-char {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: 1px solid lightgray;
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Import Info */
+.modal-info {
+  padding: 12px;
+  background: #f0f7ff;
+  border-left: 3px solid var(--color-secondary);
+  border-radius: 4px;
+}
+
+.modal-info p {
+  margin: 0;
+  color: #333;
+}
+
+/* Load Option Radio Group */
+.load-option-group {
+  margin-bottom: 16px;
+}
+
+.load-option-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+  cursor: pointer;
+}
+
 .modal-footer {
   display: flex;
   gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid lightgray;
+  padding: 14px 18px;
   justify-content: flex-end;
 }
 
@@ -675,6 +754,11 @@ body {
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
+}
+
+.modal-btn:hover {
+  background: var(--color-quaternary);
+  border-color: darkgray;
 }
 
 .cancel-btn {

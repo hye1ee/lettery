@@ -1,9 +1,7 @@
 import paper from 'paper'
 import { tags, updateLayerSelection, updateItemSelection, clearItemSelection, setSortable } from '../utils/tags'
 
-import * as hangul from 'hangul-js';
-import { v4 as uuidv4 } from 'uuid';
-import { boundingBox, logger } from '../helpers';
+import { boundingBox, logger, syllableModal, jamoModal } from '../helpers';
 import type { ItemClassName, Syllable } from '../types';
 import { selectTool } from '../tools';
 
@@ -358,115 +356,29 @@ class UIService {
   }
 
   /**
-   * Add Layer Modal Handler
+   * Add Syllable Modal Handler
    */
+  public addSyllable(): void {
+    syllableModal.show((syllables: Syllable[]) => {
+      // Add syllables to the list
+      this.syllables.push(...syllables);
 
-  public addLayer(): void {
-    console.log('Adding layer');
-
-    // Create modal overlay using centralized template
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'modal-overlay';
-    modalOverlay.id = 'add-layer-modal';
-
-    // Create modal content using centralized template
-    const modalContent = document.createElement('div');
-    modalContent.className = 'modal-content';
-    modalContent.innerHTML = tags.addLayerModal;
-
-    modalOverlay.appendChild(modalContent);
-    document.body.appendChild(modalOverlay);
-
-    // Set up event listeners
-    this.setupModalEventListeners();
+      // Update UI
+      this.renderLayers();
+      this.renderPathItems();
+    });
   }
 
-  private setupModalEventListeners(): void {
-    const modal = document.getElementById('add-layer-modal');
-    const closeBtn = document.getElementById('modal-close-btn');
-    const confirmBtn = document.getElementById('modal-confirm-btn');
-    const koreanInput = document.getElementById('korean-input') as HTMLInputElement;
-    const fontSelector = document.getElementById('font-selector') as HTMLSelectElement;
-    const preview = document.getElementById('letter-preview');
+  /**
+   * Add Jamo Modal Handler
+   */
+  public addJamo(): void {
+    jamoModal.show(() => {
 
-    // Close modal functions
-    const closeModal = () => {
-      if (modal) {
-        modal.remove();
-      }
-    };
-
-    // Event listeners
-    closeBtn?.addEventListener('click', closeModal);
-    modal?.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
+      // Update UI
+      this.renderLayers();
+      this.renderPathItems();
     });
-
-    // Real-time preview
-    koreanInput?.addEventListener('input', (e) => {
-      const input = e.target as HTMLInputElement;
-      this.updateLetterPreview(input.value, preview);
-    });
-
-    // Confirm button
-    confirmBtn?.addEventListener('click', () => {
-      const inputText = koreanInput?.value.trim();
-      const selectedFont = fontSelector?.value || '';
-      if (inputText) {
-        this.createLayersFromInput(inputText, selectedFont);
-        closeModal();
-      } else {
-        logger.updateStatus('Please enter Korean text');
-      }
-    });
-
-    // Focus input
-    koreanInput?.focus();
-  }
-
-  private updateLetterPreview(text: string, previewElement: HTMLElement | null): void {
-    if (!previewElement) return;
-
-    // Split Korean text into individual characters
-    const letters = text.split('').filter(char => char.trim() !== '');
-
-    // Use centralized helper function
-    previewElement.innerHTML = letters.map((letter, index) => tags.letterItem(letter, index)).join('');
-  }
-
-  private createLayersFromInput(inputText: string, selectedFont: string): void {
-    const letters = inputText.split('').filter(char => char.trim() !== '');
-
-    letters.forEach((letter) => {
-      const disassembled = hangul.disassemble(letter);
-
-      // add syllable layer
-      const syllable: Syllable = {
-        id: uuidv4(),
-        string: letter,
-        jamo: disassembled,
-        jamoIds: disassembled.map(() => uuidv4()),
-      };
-      this.syllables.push(syllable);
-
-      // add jamo layers
-      syllable.jamo.forEach((jamoString, jamoIndex) => {
-        const jamoLayer = new paper.Layer();
-        jamoLayer.name = jamoString;
-        jamoLayer.data.id = syllable.jamoIds[jamoIndex];
-        jamoLayer.data.syllableId = syllable.id;
-        jamoLayer.data.syllableString = syllable.string;
-
-        paper.project.addLayer(jamoLayer);
-      });
-    });
-    // update ui
-    this.renderLayers();
-    this.renderPathItems();
-
-    // Update the layer panel
-    const fontInfo = selectedFont ? ` with font: ${selectedFont}` : ' with default font';
-    logger.updateStatus(`Created ${letters.length} layers for: ${inputText}${fontInfo}`);
   }
 
 }

@@ -8,6 +8,7 @@ import { cursor, logger, contextMenu } from './helpers'
 let layerImportSvgBtn: HTMLButtonElement
 let layerExportSvgBtn: HTMLButtonElement
 let addLayerBtn: HTMLButtonElement
+let addJamoBtn: HTMLButtonElement
 let fileInput: HTMLInputElement
 
 // Initialize the application
@@ -18,6 +19,7 @@ const initApp = () => {
   layerImportSvgBtn = document.getElementById('layer-import-svg') as HTMLButtonElement
   layerExportSvgBtn = document.getElementById('layer-export-svg') as HTMLButtonElement
   addLayerBtn = document.getElementById('header-plus-btn') as HTMLButtonElement
+  addJamoBtn = document.getElementById('jamo-plus-btn') as HTMLButtonElement
   fileInput = document.getElementById('file-input') as HTMLInputElement
 
   const statusText = document.getElementById('status-text') as HTMLSpanElement;
@@ -25,11 +27,12 @@ const initApp = () => {
   const canvas = document.getElementById('vector-canvas') as HTMLElement;
 
   // Check if all elements are found
-  if (!layerImportSvgBtn || !layerExportSvgBtn || !addLayerBtn || !fileInput || !statusText || !coordinates) {
+  if (!layerImportSvgBtn || !layerExportSvgBtn || !addLayerBtn || !addJamoBtn || !fileInput || !statusText || !coordinates) {
     console.error('Some DOM elements not found:', {
       layerImportSvgBtn: !!layerImportSvgBtn,
       layerExportSvgBtn: !!layerExportSvgBtn,
       addLayerBtn: !!addLayerBtn,
+      addJamoBtn: !!addJamoBtn,
       fileInput: !!fileInput,
       statusText: !!statusText,
       coordinates: !!coordinates
@@ -70,11 +73,16 @@ const setupEventListeners = () => {
     canvasService.exportSVG();
   })
 
-  // Header plus button
+  // Header plus button (syllables)
   addLayerBtn.addEventListener('click', () => {
     console.log('Header plus button clicked');
+    uiService.addSyllable();
+  })
 
-    uiService.addLayer();
+  // Jamo plus button
+  addJamoBtn.addEventListener('click', () => {
+    console.log('Jamo plus button clicked');
+    uiService.addJamo();
   })
 
   // File input change
