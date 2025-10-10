@@ -92,7 +92,7 @@ export default class EditTool implements Tool {
     document.removeEventListener('keydown', this.onKeyDown);
   }
 
-  private onKeyDown = (event: KeyboardEvent): void => {
+  onKeyDown = (event: KeyboardEvent): void => {
     console.log('onKeyDown', event.key);
 
     switch (event.key) {

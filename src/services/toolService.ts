@@ -102,6 +102,7 @@ class ToolService {
     onMouseUp: (event: paper.ToolEvent) => void;
     onMouseMove: (event: paper.ToolEvent) => void;
     onDoubleClick: (event: paper.ToolEvent) => void;
+    onKeyDown: (event: KeyboardEvent) => void;
   } {
     return {
       onMouseDown: (event) => {
@@ -132,6 +133,12 @@ class ToolService {
         const activeTool = this.tools.get(this.currentTool!);
         if (activeTool && activeTool.onDoubleClick) {
           activeTool.onDoubleClick(event);
+        }
+      },
+      onKeyDown: (event) => {
+        const activeTool = this.tools.get(this.currentTool!);
+        if (activeTool && activeTool.onKeyDown) {
+          activeTool.onKeyDown(event);
         }
       }
     };

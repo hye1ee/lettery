@@ -106,6 +106,17 @@ const setupEventListeners = () => {
     }
   }, { passive: false });
 
+  // Keyboard events
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'z' && (event.ctrlKey || event.metaKey) && !event.shiftKey) {
+      event.preventDefault();
+      historyService.undo();
+    } else if (event.key === 'z' && (event.ctrlKey || event.metaKey) && event.shiftKey) {
+      event.preventDefault();
+      historyService.redo();
+    }
+  })
+
   // Clear hover effects when mouse leaves canvas
   const canvas = document.getElementById('vector-canvas') as HTMLCanvasElement;
   if (canvas) {

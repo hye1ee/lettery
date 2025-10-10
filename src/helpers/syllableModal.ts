@@ -35,7 +35,7 @@ class SyllableModal {
     // Create modal content
     const modalContent = document.createElement('div');
     modalContent.className = 'modal-content';
-    modalContent.innerHTML = tags.addLayerModal;
+    modalContent.innerHTML = tags.syllableModal();
 
     modalOverlay.appendChild(modalContent);
     document.body.appendChild(modalOverlay);

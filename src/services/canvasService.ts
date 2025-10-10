@@ -3,7 +3,7 @@ import paper from 'paper';
 
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
-import { findParentLayer, ungroupItem } from '../utils/paperUtils';
+import { findParentLayer, ungroupItem, ungroupSVG } from '../utils/paperUtils';
 import { boundingBox, logger, previewBox, zoom } from '../helpers';
 import { uiService } from '.';
 
@@ -19,7 +19,7 @@ class CanvasService {
   private onMouseUpCallbacks: ((event: paper.ToolEvent) => void)[] = [];
   private onMouseMoveCallbacks: ((event: paper.ToolEvent) => void)[] = [];
   private onDoubleClickCallbacks: ((event: paper.ToolEvent) => void)[] = [];
-
+  private onKeyDownCallbacks: ((event: KeyboardEvent) => void)[] = [];
 
   // Drawing state (merged from DrawingService)
   private drawingState: DrawingState = {
@@ -146,14 +146,18 @@ class CanvasService {
     this.view.onDoubleClick = (event: paper.ToolEvent) => {
       this.onDoubleClickCallbacks.forEach((callback) => callback(event))
     }
+    document.addEventListener('keydown', (event: KeyboardEvent) => {
+      this.onKeyDownCallbacks.forEach((callback) => callback(event))
+    })
   }
 
-  addEventHandlers({ onMouseDown, onMouseDrag, onMouseUp, onMouseMove, onDoubleClick }: {
+  addEventHandlers({ onMouseDown, onMouseDrag, onMouseUp, onMouseMove, onDoubleClick, onKeyDown }: {
     onMouseDown?: (event: paper.ToolEvent) => void
     onMouseDrag?: (event: paper.ToolEvent) => void
     onMouseUp?: (event: paper.ToolEvent) => void
     onMouseMove?: (event: paper.ToolEvent) => void
     onDoubleClick?: (event: paper.ToolEvent) => void
+    onKeyDown?: (event: KeyboardEvent) => void
   }): void {
 
     if (onMouseDown) this.onMouseDownCallbacks.push(onMouseDown);
@@ -161,6 +165,7 @@ class CanvasService {
     if (onMouseUp) this.onMouseUpCallbacks.push(onMouseUp);
     if (onMouseMove) this.onMouseMoveCallbacks.push(onMouseMove);
     if (onDoubleClick) this.onDoubleClickCallbacks.push(onDoubleClick);
+    if (onKeyDown) this.onKeyDownCallbacks.push(onKeyDown);
 
     this.updateEventHandlers();
   }
@@ -222,7 +227,7 @@ class CanvasService {
           svg.name = `${file.name}_${Date.now()}`;
         }
 
-        ungroupItem(svg);
+        ungroupSVG(svg);
         uiService.renderPathItems();
 
         console.log("SVG imported successfully:", svg?.name);

@@ -124,3 +124,16 @@ export const ungroupItem = (item: paper.Item): void => {
 export const rgbaToPaperColor = (rgba: { r: number, g: number, b: number, a?: number }): paper.Color => {
   return new paper.Color(rgba.r, rgba.g, rgba.b, rgba.a);
 }
+
+export const ungroupSVG = (item: paper.Item): void => {
+  if (!(item instanceof paper.Group)) return;
+
+  item.children.forEach(child => {
+    console.log('child', child, child.parent);
+    if (child instanceof paper.Path || child instanceof paper.CompoundPath) {
+      const newChild = child.clone();
+      item.parent?.addChild(newChild);
+    }
+  });
+  item.remove();
+}

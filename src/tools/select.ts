@@ -48,6 +48,34 @@ export default class SelectTool implements Tool {
     this.onToolSwitch = callback;
   }
 
+  onKeyDown = (event: KeyboardEvent): void => {
+    // backspace or delete
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault();
+      this.getSelectedItems().forEach(item => item.remove());
+
+      boundingBox.hide();
+      uiService.renderPathItems();
+      historyService.saveSnapshot('delete');
+      logger.updateStatus(`Deleted ${this.getSelectedItems().length} item(s)`);
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown') { // arrow keys
+      event.preventDefault();
+
+      this.getSelectedItems().forEach(item => {
+        item.position = item.position.add(
+          new paper.Point(
+            event.key === 'ArrowLeft' ? -10 : event.key === 'ArrowRight' ? 10 : 0,
+            event.key === 'ArrowUp' ? -10 : event.key === 'ArrowDown' ? 10 : 0
+          ).multiply(event.shiftKey ? 10 : 1)
+        );
+      });
+
+      boundingBox.show(this.getSelectedItems());
+      historyService.saveSnapshot('move');
+      logger.updateStatus(`Moved ${this.getSelectedItems().length} item(s)`);
+    }
+  }
+
   onDoubleClick = (event: paper.ToolEvent): void => {
     event.preventDefault();
 

@@ -369,6 +369,10 @@ class UIService {
     });
   }
 
+  public getSyllableById(id: string): Syllable | undefined {
+    return this.syllables.find((syllable) => syllable.id === id);
+  }
+
   /**
    * Add Jamo Modal Handler
    */

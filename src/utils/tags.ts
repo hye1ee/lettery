@@ -3,10 +3,11 @@ import paper from 'paper';
 
 import Sortable from "sortablejs";
 import type { ItemClassName } from "../types";
+import { fontLoader } from "../helpers";
 
 export const tags = {
   // Modal Templates
-  addLayerModal: `
+  syllableModal: () => `
     <div class="modal-header">
       <h2 class="text-title">Add Korean Letters</h2>
       <button class="modal-close-btn" id="modal-close-btn">
@@ -14,7 +15,7 @@ export const tags = {
       </button>
     </div>
     <div class="modal-body">
-      <div class="input-group">
+      <div class="modal-group">
         <label for="korean-input" class="text-body">Enter Korean words:</label>
         <input 
           type="text" 
@@ -24,7 +25,7 @@ export const tags = {
           maxlength="50"
         />
       </div>
-      <div class="preview-section">
+      <div class="modal-group">
         <label class="text-body">Preview:</label>
         <div id="letter-preview" class="letter-preview"></div>
       </div>
@@ -33,6 +34,55 @@ export const tags = {
       <button class="modal-btn modal-btn-primary" id="modal-confirm-btn">Create Layers</button>
     </div>
   `,
+
+  jamoModal: (syllable: string) => {
+    const fontList = fontLoader.getFontList();
+    const fontOptions = fontList.map(font =>
+      `<option value="${font.value}">${font.name}</option>`
+    ).join('');
+
+    return `
+      <div class="modal-header">
+         <h2 class="text-title">Import Jamo</h2>
+         <button id="jamo-modal-close-btn" class="modal-close-btn">
+           <img src="/x.svg" alt="Close" width="16" height="16" />
+         </button>
+       </div>
+       <div class="modal-body">
+         <div class="modal-info">
+           <p class="text-body">Import jamo text path for syllable '${syllable}'</p>
+         </div>
+         <div class="modal-group">
+           <label class="text-body" for="jamo-font-selector">Font:</label>
+           <select id="jamo-font-selector" class="font-selector text-body">
+             ${fontOptions}
+           </select>
+         </div>
+         <div class="modal-group">
+           <label class="text-body">Load as:</label>
+           <div class="radio-group">
+             <label class="radio-label">
+               <input type="radio" name="load-option" value="decomposed" checked />
+               <span class="text-body">Decomposed Jamos</span>
+             </label>
+             <label class="radio-label">
+               <input type="radio" name="load-option" value="composed" />
+               <span class="text-body">Composed Syllables</span>
+             </label>
+           </div>
+         </div>
+         <div class="modal-group">
+           <label class="text-body">Preview:</label>
+           <div id="jamo-preview" class="jamo-preview"></div>
+         </div>
+       </div>
+       <div class="modal-footer">
+         <button id="jamo-modal-confirm-btn" class="modal-btn modal-btn-primary">
+           Import
+         </button>
+       </div>
+    `;
+  },
 
 
 
@@ -110,9 +160,11 @@ export const tags = {
     `
   },
 
-  // Letter Preview Template
+  // Legacy alias for backward compatibility
   letterItem: (letter: string, index: number) =>
-    `<span class="letter-item" data-letter="${letter}">${letter}</span>`,
+    `<div class="preview-item" key="${index}">
+      <div class="preview-char">${letter}</div>
+    </div>`,
 
 };
 

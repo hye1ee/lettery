@@ -1,7 +1,8 @@
 import paper from 'paper';
 import * as hangul from 'hangul-js';
-import { v4 as uuidv4 } from 'uuid';
-import { logger } from '.';
+import { tags } from '../utils/tags';
+import { logger, fontLoader } from '.';
+import { uiService } from '../services';
 
 /**
  * Singleton class for managing jamo modal
@@ -9,7 +10,7 @@ import { logger } from '.';
 class JamoModal {
   private static instance: JamoModal;
   private modalElement: HTMLElement | null = null;
-  private onConfirmCallback: ((jamoLayer: paper.Layer) => void) | null = null;
+  private onConfirmCallback: (() => void) | null = null;
 
   private constructor() {
     // Private constructor for singleton pattern
@@ -22,7 +23,7 @@ class JamoModal {
     return JamoModal.instance;
   }
 
-  public show(onConfirm: (jamoLayer: paper.Layer) => void): void {
+  public show(onConfirm: () => void): void {
     this.onConfirmCallback = onConfirm;
 
     // Get active layer syllable
@@ -42,7 +43,7 @@ class JamoModal {
     // Create modal content
     const modalContent = document.createElement('div');
     modalContent.className = 'modal-content';
-    modalContent.innerHTML = this.getModalTemplate(syllable);
+    modalContent.innerHTML = tags.jamoModal(syllable);
 
     modalOverlay.appendChild(modalContent);
     document.body.appendChild(modalOverlay);
@@ -51,51 +52,6 @@ class JamoModal {
 
     // Set up event listeners with syllable
     this.setupEventListeners(syllable);
-  }
-
-  private getModalTemplate(syllable: string): string {
-    return `
-      <div class="modal-header">
-        <h2 class="text-title">Import Jamo</h2>
-        <button id="jamo-modal-close-btn" class="modal-close-btn">
-          <img src="/x.svg" alt="Close" width="16" height="16" />
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-info">
-          <p class="text-body">Import jamo text path for syllable '${syllable}'</p>
-        </div>
-        <div class="modal-group">
-          <label class="text-body" for="jamo-font-selector">Font:</label>
-          <select id="jamo-font-selector" class="font-selector">
-            <option value="">베이스 폰트 선택 없음</option>
-            <option value="Noto Sans Korean">Noto Sans Korean</option>
-          </select>
-        </div>
-        <div class="modal-group">
-          <label class="text-body">Load as:</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="load-option" value="decomposed" checked />
-              <span class="text-body">Decomposed Jamos</span>
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="load-option" value="composed" />
-              <span class="text-body">Composed Syllables</span>
-            </label>
-          </div>
-        </div>
-        <div class="modal-group">
-          <label class="text-body">Preview:</label>
-          <div id="jamo-preview" class="jamo-preview"></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="jamo-modal-confirm-btn" class="modal-btn modal-btn-primary">
-          Import
-        </button>
-      </div>
-    `;
   }
 
   private setupEventListeners(syllable: string): void {
@@ -134,11 +90,11 @@ class JamoModal {
     });
 
     // Confirm button
-    confirmBtn?.addEventListener('click', () => {
-      const selectedFont = fontSelector?.value || '';
+    confirmBtn?.addEventListener('click', async () => {
+      const selectedFont = fontSelector?.value || 'Noto Sans KR';
       const loadOption = (document.querySelector('input[name="load-option"]:checked') as HTMLInputElement)?.value;
 
-      this.createJamoLayers(syllable, selectedFont, loadOption);
+      await this.createJamoText(syllable, selectedFont, loadOption);
       closeModal();
     });
   }
@@ -165,57 +121,64 @@ class JamoModal {
       previewItems = text.split('').filter(char => char.trim() !== '');
     }
 
-    // Display preview
+    // Display preview using unified template
     previewElement.innerHTML = previewItems
-      .map((item, index) => `
-        <div class="preview-item" key="${index}">
-          <div class="preview-char">${item}</div>
-        </div>
-      `)
+      .map((item, index) => tags.letterItem(item, index))
       .join('');
   }
 
-  private createJamoLayers(inputText: string, selectedFont: string, loadOption: string): void {
-    const layers: paper.Layer[] = [];
+  private async createJamoText(inputText: string, selectedFont: string, loadOption: string): Promise<void> {
+    const syllable = uiService.getSyllableById(paper.project.activeLayer.data.syllableId);
+    if (!syllable) throw new Error('Syllable not found');
 
-    if (loadOption === 'decomposed') {
-      // Decompose into jamos
-      const syllables = inputText.split('').filter(char => char.trim() !== '');
-      syllables.forEach(syllable => {
-        const jamos = hangul.disassemble(syllable);
-        jamos.forEach(jamo => {
-          const jamoLayer = new paper.Layer();
-          jamoLayer.name = jamo;
-          jamoLayer.data.id = uuidv4();
-          paper.project.addLayer(jamoLayer);
-          layers.push(jamoLayer);
-        });
-      });
-    } else {
-      // Composed syllables
-      const syllables = inputText.split('').filter(char => char.trim() !== '');
-      syllables.forEach(syllable => {
-        const syllableLayer = new paper.Layer();
-        syllableLayer.name = syllable;
-        syllableLayer.data.id = uuidv4();
-        paper.project.addLayer(syllableLayer);
-        layers.push(syllableLayer);
-      });
+    try {
+      if (loadOption === 'decomposed') {
+        // Create text path for each jamo
+        for (let index = 0; index < syllable.jamoIds.length; index++) {
+          const jamoId = syllable.jamoIds[index];
+          const jamoText = syllable.jamo[index];
+
+          // Find the target layer
+          const targetLayer = paper.project.getItem({ data: { id: jamoId } }) as paper.Layer;
+
+          if (targetLayer) {
+            // Create text path using fontLoader
+            const textItem = await fontLoader.importTextToPaper(
+              jamoText,
+              selectedFont,
+              100,
+              targetLayer
+            );
+
+            // Position at view center with offset for multiple items
+            textItem.position = paper.view.center.clone().add(new paper.Point(index * 100, 0));
+          }
+        }
+      } else {
+        // Create composed syllable
+        const targetLayer = paper.project.getItem({ data: { id: syllable.jamoIds[0] } }) as paper.Layer;
+
+        if (targetLayer) {
+          // Create text path for the whole syllable
+          const textItem = await fontLoader.importTextToPaper(
+            inputText,
+            selectedFont,
+            100,
+            targetLayer
+          );
+
+          textItem.position = paper.view.center;
+        }
+      }
+
+      // Call callback if exists
+      this.onConfirmCallback && this.onConfirmCallback();
+
+      const typeInfo = loadOption === 'decomposed' ? 'decomposed jamos' : 'composed syllables';
+      logger.updateStatus(`Imported ${typeInfo} for syllable '${inputText}' with font: ${selectedFont}`);
+    } catch (error) {
+      logger.error('Failed to create text paths', error);
     }
-
-    // Activate the last created layer
-    if (layers.length > 0) {
-      layers[layers.length - 1].activate();
-    }
-
-    // Call callback if exists
-    if (this.onConfirmCallback && layers.length > 0) {
-      this.onConfirmCallback(layers[layers.length - 1]);
-    }
-
-    const fontInfo = selectedFont ? ` with font: ${selectedFont}` : ' with default font';
-    const typeInfo = loadOption === 'decomposed' ? 'decomposed jamos' : 'composed syllables';
-    logger.updateStatus(`Created ${layers.length} layers as ${typeInfo} for: ${inputText}${fontInfo}`);
   }
 
   public hide(): void {
