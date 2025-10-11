@@ -72,7 +72,13 @@ class ToolService {
     if (this.currentTool === tool) return;
 
     if (this.currentTool) {
-      this.tools.get(this.currentTool)?.deactivate();
+      const currentToolInstance = this.tools.get(this.currentTool);
+      // Pass the next tool ID to deactivate if the tool supports it
+      if (currentToolInstance && (currentToolInstance as any).deactivateWithNextTool) {
+        (currentToolInstance as any).deactivateWithNextTool(tool);
+      } else {
+        currentToolInstance?.deactivate();
+      }
       this.buttons.get(this.currentTool)?.classList.remove('active');
     }
     this.currentTool = tool;

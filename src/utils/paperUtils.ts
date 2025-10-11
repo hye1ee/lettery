@@ -129,7 +129,6 @@ export const ungroupSVG = (item: paper.Item): void => {
   if (!(item instanceof paper.Group)) return;
 
   item.children.forEach(child => {
-    console.log('child', child, child.parent);
     if (child instanceof paper.Path || child instanceof paper.CompoundPath) {
       const newChild = child.clone();
       item.parent?.addChild(newChild);

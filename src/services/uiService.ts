@@ -267,6 +267,7 @@ class UIService {
   private handleItemClick(e: MouseEvent, item: paper.Item): void {
     console.log('Layer panel item clicked:', item.name, 'ID:', item.id, 'Type:', item.className);
 
+    if (item instanceof paper.CompoundPath) console.log(item.pathData);
     paper.project.deselectAll();
     selectTool.selectItem(item);
     boundingBox.show(paper.project.selectedItems);

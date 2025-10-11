@@ -2,6 +2,7 @@ import paper from 'paper'
 import type { Tool } from './index'
 import { cursor, logger, previewBox } from '../helpers';
 import { snapDeltaToAngle, isColinear } from '../utils/math';
+import { historyService } from '../services';
 
 export default class EditTool implements Tool {
   private static instance: EditTool | null = null;
@@ -22,33 +23,28 @@ export default class EditTool implements Tool {
   private lastEvent: paper.ToolEvent | null = null;
   private selectionDragged: boolean = false;
 
-  // Hit test options
-  private hitOptions = {
-    segments: true,
-    stroke: true,
-    curves: true,
-    handles: true,
-    fill: true,
-    guide: false,
-  };
+  // Hit test options (updated dynamically based on zoom)
+  private getHitOptions() {
+    return {
+      segments: true,
+      stroke: true,
+      curves: true,
+      handles: true,
+      fill: true,
+      guide: false,
+      tolerance: 3 / paper.view.zoom
+    };
+  }
 
   activate(): void {
     cursor.updateCursor(this.cursorStyle);
     this.setupKeyHandlers();
-    logger.updateStatus('Edit tool activated - Click to select and edit items');
-
-    const editItemId = localStorage.getItem('edit-item') as string | null;
-    if (editItemId) {
-      this.editItem = paper.project.getItems({ id: parseInt(editItemId) })[0] as paper.Item;
-      if (this.editItem) {
-        (this.editItem as any).selected = true;
-      }
-      localStorage.removeItem("edit-item");
-    }
+    logger.updateStatus('Edit tool activated - Click to edit points, handles, or segments');
   }
 
   deactivate(): void {
     if (this.editItem) {
+      (this.editItem as any).fullySelected = false;
       this.editItem.selected = false;
     }
     this.editItem = null;
@@ -96,6 +92,13 @@ export default class EditTool implements Tool {
     console.log('onKeyDown', event.key);
 
     switch (event.key) {
+      case "Escape":
+        // Return to select tool
+        event.preventDefault();
+        if (this.onToolSwitch) {
+          this.onToolSwitch('select');
+        }
+        break;
       case "a":
         if (this.editItem) (this.editItem as any).fullySelected = true;
         break;
@@ -106,10 +109,8 @@ export default class EditTool implements Tool {
         this.cloneSelection();
         break;
       case "Backspace":
+      case "Delete":
         this.removeSelections();
-        break;
-      case "Escape":
-        this.deselectAll();
         break;
     }
   };
@@ -119,7 +120,7 @@ export default class EditTool implements Tool {
     event.stopPropagation();
 
     // Double-click on empty space switches back to select tool
-    const hitResult = paper.project.hitTest(event.point, this.hitOptions);
+    const hitResult = paper.project.hitTest(event.point, this.getHitOptions());
     if (!hitResult && this.onToolSwitch) {
       this.onToolSwitch('select');
       logger.updateStatus('Switched to select tool - Double click on empty space');
@@ -139,13 +140,18 @@ export default class EditTool implements Tool {
     this.hitType = null;
     this.clearHoveredItem();
 
-    const hitResult = paper.project.hitTest(event.point, this.hitOptions);
+    const hitResult = paper.project.hitTest(event.point, this.getHitOptions());
     const isMultiSelect = event && (event.modifiers?.shift);
 
     if (hitResult) {
-      // ignore all other selection
-      if (hitResult.item.id !== this.editItem?.id) {
+      // Don't allow editing of system items
+      if (hitResult.item.name && hitResult.item.name.includes('system')) {
         return;
+      }
+
+      // Update editItem if clicking on a different item
+      if (this.editItem?.id !== hitResult.item.id) {
+        this.editItem = hitResult.item;
       }
 
       if (!isMultiSelect && !this.getSelectedItems().some(item => item.id === hitResult.item.id)) {
@@ -189,10 +195,11 @@ export default class EditTool implements Tool {
       this.makeDragSelection();
       previewBox.hide();
       this.isDragSelecting = false;
-      logger.updateStatus(`${this.getSelectedItems().length} items selected`);
+      logger.updateStatus(`${this.getSelectedItems().length} segments selected`);
     } else { // (2) Drag Moving/Editing
       if (this.selectionDragged) {
-        // TODO: Add undo snapshot
+        // Save to history
+        historyService.saveSnapshot('edit');
         this.selectionDragged = false;
       }
       this.resetDragPositions();
@@ -224,18 +231,27 @@ export default class EditTool implements Tool {
     }
   };
 
-  private handleFillHit(hitResult: paper.HitResult, event: paper.ToolEvent, _doubleClicked: boolean): void {
+  private handleFillHit(hitResult: paper.HitResult, event: paper.ToolEvent, doubleClicked: boolean): void {
     this.hitType = 'fill';
     const item = hitResult.item;
 
     if (item.selected) {
       if (event.modifiers.shift) {
-        this.deselectAll();
-      } else {
+        (item as any).fullySelected = false;
+      }
+      if (doubleClicked) {
+        item.selected = false;
         (item as any).fullySelected = true;
       }
-
       if (event.modifiers.option) this.cloneSelection();
+    } else {
+      if (event.modifiers.shift) {
+        (item as any).fullySelected = true;
+      } else {
+        this.deselectAll();
+        (item as any).fullySelected = true;
+        if (event.modifiers.option) this.cloneSelection();
+      }
     }
   };
 
@@ -341,20 +357,24 @@ export default class EditTool implements Tool {
   };
 
   private dragHandle(segment: any, event: paper.ToolEvent, handleType: 'in' | 'out'): void {
+    // Check if handles should move independently or symmetrically
     const isSplit = event.modifiers.option || !isColinear(segment.handleOut, segment.handleIn);
 
-    if (isSplit) {
-      if (handleType === 'out') {
+    if (handleType === 'out') {
+      if (isSplit) {
+        // Move only handleOut
         segment.handleOut = segment.handleOut.add(event.delta);
       } else {
-        segment.handleIn = segment.handleIn.add(event.delta);
-      }
-    } else {
-      // Move handles symmetrically
-      if (handleType === 'out') {
+        // Move both handles symmetrically
         segment.handleIn = segment.handleIn.subtract(event.delta);
         segment.handleOut = segment.handleOut.add(event.delta);
+      }
+    } else { // handleType === 'in'
+      if (isSplit) {
+        // Move only handleIn
+        segment.handleIn = segment.handleIn.add(event.delta);
       } else {
+        // Move both handles symmetrically
         segment.handleIn = segment.handleIn.add(event.delta);
         segment.handleOut = segment.handleOut.subtract(event.delta);
       }
@@ -384,14 +404,20 @@ export default class EditTool implements Tool {
   }
 
   makeDragSelection(): void {
-    if (!this.editItem) return;
-    this.deselectAll();
     const selectionBounds = previewBox.getNormalizedBoundingBox();
 
-    // should check segment
-    (this.editItem as any).segments.forEach((segment: any) => {
-      if (selectionBounds.intersects(segment.point)) {
-        segment.selected = true;
+    // Select segments in all paths that intersect with selection rectangle
+    const items = paper.project.getItems({
+      class: paper.Path || paper.CompoundPath
+    }).filter(item => !item.name.includes('system'));
+
+    items.forEach(item => {
+      if ((item as any).segments) {
+        (item as any).segments.forEach((segment: any) => {
+          if (selectionBounds.contains(segment.point)) {
+            segment.selected = true;
+          }
+        });
       }
     });
   }

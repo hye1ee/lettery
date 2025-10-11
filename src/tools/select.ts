@@ -23,13 +23,21 @@ export default class SelectTool implements Tool {
   }
 
   deactivate(): void {
-    paper.project.deselectAll();
+    // Default deactivate - clear selection
+    this.deactivateWithNextTool('');
+  }
+
+  deactivateWithNextTool(nextTool: string): void {
+    // Only preserve selection when switching to edit tool
+    if (nextTool !== 'edit') {
+      paper.project.deselectAll();
+    }
+    boundingBox.hide();
     this.dragStartPoint = null;
     this.dragStartPositions.clear();
     this.isDragSelecting = false;
     this.isDragMoving = false;
     cursor.resetCursor();
-    // TODO: Implement deactivate logic
   }
 
   private constructor() { }
@@ -79,17 +87,21 @@ export default class SelectTool implements Tool {
   onDoubleClick = (event: paper.ToolEvent): void => {
     event.preventDefault();
 
-    // console.log('onDoubleClick', event);
+    const hitResult = paper.project.hitTest(event.point);
 
-    // const hitResult = paper.project.hitTest(event.point);
-    // if (hitResult && this.onToolSwitch) {
-    //   localStorage.setItem('edit-item', hitResult.item.id.toString());
+    if (hitResult && hitResult.item && !hitResult.item.name.includes('system')) {
+      // Select the item if not already selected
+      if (!hitResult.item.selected) {
+        paper.project.deselectAll();
+        this.selectItem(hitResult.item);
+      }
 
-    //   paper.project.deselectAll();
-    //   this.selectItem(hitResult.item);
-    //   this.onToolSwitch('edit');
-    //   logger.updateStatus('Switched to edit tool - Double click on item to edit');
-    // }
+      // Switch to edit tool
+      if (this.onToolSwitch) {
+        this.onToolSwitch('edit');
+        logger.updateStatus('Switched to edit tool - Double click to edit');
+      }
+    }
   }
 
   onMouseDown = (event: paper.ToolEvent): void => {
