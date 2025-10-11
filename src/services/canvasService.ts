@@ -494,16 +494,20 @@ class CanvasService {
   }
 
   /**
-   * Apply hover effect (orange color) to an item
+   * Apply hover effect (brown fill color) to an item
    */
   private applyHoverEffect(item: paper.Item): void {
     if (!(item instanceof paper.Path || item instanceof paper.CompoundPath || item instanceof paper.Shape)) {
       return;
     }
 
-    // Apply orange color
-    item.strokeColor = new paper.Color(colors.orange);
-    item.strokeWidth = 1;
+    // Store original fill color if not already stored
+    if (!(item as any).originalFillColor) {
+      (item as any).originalFillColor = item.fillColor ? item.fillColor.clone() : null;
+    }
+
+    // Apply brown fill color
+    item.fillColor = new paper.Color(colors.secondary);
   }
 
   /**
@@ -514,10 +518,10 @@ class CanvasService {
       return;
     }
 
-    item.strokeColor = new paper.Color(colors.black);
-
-    if (item.fillColor !== null) {
-      item.strokeWidth = 0;
+    // Restore original fill color
+    if ((item as any).originalFillColor !== undefined) {
+      item.fillColor = (item as any).originalFillColor;
+      (item as any).originalFillColor = undefined;
     }
   }
 

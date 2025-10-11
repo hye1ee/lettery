@@ -48,5 +48,31 @@ export interface FileOperationResult {
 }
 
 
+/* Agent Tools */
+export interface AgentTool {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  isEnabled: boolean;
+  execute: () => void;
+}
 
+/* Tools */
+export interface Tool {
+  id: string;
+  shortcut: string;
+  cursorStyle: string;
 
+  activate(): void;
+  deactivate(): void;
+
+  onMouseDown(event: paper.ToolEvent): void;
+  onMouseMove(event: paper.ToolEvent): void;
+  onMouseUp(event: paper.ToolEvent): void;
+  onMouseDrag(event: paper.ToolEvent): void;
+  onDoubleClick?(event: paper.ToolEvent): void;
+  onKeyDown?(event: KeyboardEvent): void;
+  setToolSwitchCallback?(callback: (toolId: string) => void): void;
+  setRenderCallback?(callback: () => void): void;
+}

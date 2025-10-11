@@ -1,5 +1,5 @@
 import paper from 'paper'
-import type { Tool } from './index'
+import type { Tool } from '../types'
 import { cursor, logger } from '../helpers';
 
 export default class HandTool implements Tool {

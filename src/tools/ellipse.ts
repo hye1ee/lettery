@@ -1,5 +1,5 @@
 import paper from 'paper'
-import type { Tool } from './index'
+import type { Tool } from '../types'
 import { cursor, logger } from '../helpers';
 import { colors } from '../utils/styles';
 import { historyService } from '../services';

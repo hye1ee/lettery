@@ -4,6 +4,7 @@ import { tags, updateLayerSelection, updateItemSelection, clearItemSelection, se
 import { boundingBox, logger, syllableModal, jamoModal } from '../helpers';
 import type { ItemClassName, Syllable } from '../types';
 import { selectTool } from '../tools';
+import { toolService, agentService } from '.';
 
 export interface Layer {
   id: string;
@@ -98,6 +99,8 @@ class UIService {
   public renderAll = () => {
     this.renderLayers();
     this.renderPathItems();
+    this.renderAgentTools();
+    this.updateAgentStatus();
   }
 
   // Update UI selection state based on canvas selection
@@ -146,6 +149,8 @@ class UIService {
       if (!jamoLayer) throw new Error('Jamo layer not found');
       pathsListContainer.append(this.createPathItem(jamoLayer, 0));
     });
+
+    this.updateAgentStatus();
   }
 
   private createSyllableItem(syllable: Syllable): HTMLDivElement {
@@ -269,8 +274,7 @@ class UIService {
 
     if (item instanceof paper.CompoundPath) console.log(item.pathData);
     paper.project.deselectAll();
-    selectTool.selectItem(item);
-    boundingBox.show(paper.project.selectedItems);
+    toolService.selectItem(item);
   }
 
   private handleSyllableClick(syllable: Syllable): void {
@@ -283,6 +287,7 @@ class UIService {
     // Set this layer as the active layer and refresh paths section
     updateLayerSelection(syllable.id);
     this.renderPathItems();
+    this.updateAgentStatus();
 
     logger.updateStatus(`${syllable.string} selected`);
     console.log('Selection callback triggered for layer:', syllable.id);
@@ -365,8 +370,7 @@ class UIService {
       this.syllables.push(...syllables);
 
       // Update UI
-      this.renderLayers();
-      this.renderPathItems();
+      this.renderAll();
     });
   }
 
@@ -381,9 +385,75 @@ class UIService {
     jamoModal.show(() => {
 
       // Update UI
-      this.renderLayers();
       this.renderPathItems();
+      this.updateAgentStatus();
     });
+  }
+
+  /**
+   * Render agent tools dynamically
+   */
+  public renderAgentTools(): void {
+    const actionListElement = document.getElementById('agent-actions-list');
+    if (!actionListElement) return;
+
+    // Clear existing tools
+    actionListElement.innerHTML = '';
+
+    // Get registered tools
+    const tools = agentService.getToolsForRendering();
+
+    // Render each tool as a card
+    tools.forEach(tool => {
+      const toolItem = document.createElement('div');
+      toolItem.id = tool.id;
+      toolItem.className = "agent-action-card disabled";
+      toolItem.innerHTML = tags.agentToolItem(tool);
+
+      // Add click handler
+      toolItem.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        if (toolItem.classList.contains('disabled')) {
+          return;
+        }
+
+        tool.execute();
+      });
+      actionListElement.appendChild(toolItem);
+    });
+  }
+
+
+
+  /**
+   * Update the agent status label with current active layer
+   */
+  public updateAgentStatus(): void {
+    const statusElement = document.getElementById('agent-status');
+    const actionListElement = document.getElementById('agent-actions-list');
+
+    if (!actionListElement || !statusElement) return;
+
+    const activeLayer = paper.project.activeLayer;
+    const hasJamoLayer = activeLayer && activeLayer.name && !activeLayer.name.includes('system');
+
+    if (hasJamoLayer) {
+      statusElement.textContent = `Work with agent Gulo on layer '${activeLayer.name}'`;
+
+      // Enable all tool cards
+      Array.from(actionListElement.children).forEach(child => {
+        child.classList.remove('disabled');
+      });
+    } else {
+      // No jamo layer available
+      statusElement.textContent = 'Create a layer to work with Gulo';
+
+      // Disable all tool cards
+      Array.from(actionListElement.children).forEach(child => {
+        child.classList.add('disabled');
+      });
+    }
   }
 
 }

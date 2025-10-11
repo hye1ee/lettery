@@ -1,5 +1,5 @@
 import paper from 'paper'
-import type { Tool } from './index'
+import type { Tool } from '../types'
 import { boundingBox, cursor, logger, previewBox } from '../helpers';
 import { findParentLayer } from '../utils/paperUtils';
 import { historyService, uiService } from '../services';
@@ -134,6 +134,8 @@ export default class SelectTool implements Tool {
 
   selectItem(item: paper.Item): void {
     item.selected = true;
+
+    boundingBox.show(this.getSelectedItems());
 
     const parentLayer = findParentLayer(item);
     if (parentLayer) {

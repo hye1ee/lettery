@@ -1,11 +1,11 @@
 import OpenAI from 'openai';
-import { logger } from '../helpers';
+import { logger } from '.';
 
 /**
- * Service for handling OpenAI API calls
+ * Helper for OpenAI API calls - low-level wrapper
  */
-class ModelService {
-  private static instance: ModelService;
+class OpenAIClient {
+  private static instance: OpenAIClient;
   private client: OpenAI | null = null;
 
   private constructor() {
@@ -22,19 +22,18 @@ class ModelService {
     }
   }
 
-  public static getInstance(): ModelService {
-    if (!ModelService.instance) {
-      ModelService.instance = new ModelService();
+  public static getInstance(): OpenAIClient {
+    if (!OpenAIClient.instance) {
+      OpenAIClient.instance = new OpenAIClient();
     }
-    return ModelService.instance;
+    return OpenAIClient.instance;
   }
 
   /**
-   * Simple run method with custom prompt control
+   * Simple chat completion
    */
-  public async run(
-    userPrompt: string,
-    systemPrompt: string,
+  public async chat(
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     options?: {
       model?: string;
       temperature?: number;
@@ -42,7 +41,7 @@ class ModelService {
     }
   ): Promise<string> {
     if (!this.client) {
-      throw new Error('OpenAI client not initialized. Set VITE_OPENAI_API_KEY in .env file or use setApiKey()');
+      throw new Error('OpenAI client not initialized. Set VITE_OPENAI_API_KEY in .env file');
     }
 
     const {
@@ -56,10 +55,7 @@ class ModelService {
 
       const response = await this.client.chat.completions.create({
         model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+        messages,
         temperature,
         max_tokens: maxTokens,
       });
@@ -75,6 +71,32 @@ class ModelService {
       throw error;
     }
   }
+
+  /**
+   * Simple prompt completion (system + user message)
+   */
+  public async complete(
+    userPrompt: string,
+    systemPrompt: string = 'You are a helpful assistant.',
+    options?: {
+      model?: string;
+      temperature?: number;
+      maxTokens?: number;
+    }
+  ): Promise<string> {
+    return this.chat([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ], options);
+  }
+
+  /**
+   * Check if client is initialized
+   */
+  public isReady(): boolean {
+    return this.client !== null;
+  }
 }
 
-export default ModelService;
+export default OpenAIClient;
+

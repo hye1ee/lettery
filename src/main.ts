@@ -1,8 +1,9 @@
 import './style.css'
-import paper from 'paper'
-import { canvasService, historyService, toolService, uiService } from './services'
+import { agentService, canvasService, historyService, toolService, uiService } from './services'
 import { selectTool, pencilTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
 import { cursor, logger, contextMenu } from './helpers'
+import './agentTools' // Auto-import all agent tools
+import { guidedEditTool, smartPropagationTool } from './agentTools'
 
 
 let layerImportSvgBtn: HTMLButtonElement
@@ -85,6 +86,9 @@ const setupEventListeners = () => {
     uiService.addJamo();
   })
 
+  // Agent tools are now dynamically registered and rendered
+  // No need for hardcoded event listeners
+
   // File input change
   fileInput.addEventListener('change', (e) => {
     const target = e.target as HTMLInputElement
@@ -157,6 +161,15 @@ const initTools = () => {
   toolService.setRenderCallback(uiService.renderPathItems)
   toolService.initTools(tools);
   canvasService.addEventHandlers(toolService.getEventHandlers());
+
+  // Initialize agent tools
+  const agentTools = [
+    guidedEditTool,
+    smartPropagationTool
+  ]
+
+  agentService.initTools(agentTools);
+  uiService.renderAgentTools();
 }
 
 

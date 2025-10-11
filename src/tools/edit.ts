@@ -1,7 +1,7 @@
 import paper from 'paper'
-import type { Tool } from './index'
+import type { Tool } from '../types'
 import { cursor, logger, previewBox } from '../helpers';
-import { snapDeltaToAngle, isColinear } from '../utils/math';
+import { isColinear } from '../utils/math';
 import { historyService } from '../services';
 
 export default class EditTool implements Tool {
@@ -231,6 +231,11 @@ export default class EditTool implements Tool {
     }
   };
 
+  selectItem(item: paper.Item): void {
+    // tirggered from UI service
+    (item as any).fullySelected = true;
+  }
+
   private handleFillHit(hitResult: paper.HitResult, event: paper.ToolEvent, doubleClicked: boolean): void {
     this.hitType = 'fill';
     const item = hitResult.item;
@@ -304,47 +309,62 @@ export default class EditTool implements Tool {
 
   private dragSelection(event: paper.ToolEvent): void {
     const selectedItems = this.getSelectedItems();
-    const dragVector = event.point.subtract(event.downPoint);
 
     selectedItems.forEach(item => {
       if (this.hitType === 'fill' || !(item as any).segments) {
-        this.dragItem(item, dragVector, event);
+        this.dragItem(item, event);
       } else {
-        this.dragSegments(item, dragVector, event);
+        this.dragSegments(item, event);
       }
     });
   };
 
-  private dragItem(item: paper.Item, dragVector: paper.Point, event: paper.ToolEvent): void {
+  private dragItem(item: paper.Item, event: paper.ToolEvent): void {
     // Skip if item has compound path parent to avoid double movement
     if (item.parent && this.isCompoundPath(item.parent)) {
       return;
     }
 
-    // Store original position for snap calculation
-    if (!(item as any).origPos) {
-      (item as any).origPos = item.position;
-    }
-
     if (event.modifiers.shift) {
-      item.position = (item as any).origPos.add(snapDeltaToAngle(dragVector, Math.PI * 2 / 8));
+      // Shift-drag: constrain to horizontal or vertical movement
+      const absDeltaX = Math.abs(event.delta.x);
+      const absDeltaY = Math.abs(event.delta.y);
+
+      let constrainedDelta: paper.Point;
+      if (absDeltaX > absDeltaY) {
+        // Horizontal movement only
+        constrainedDelta = new paper.Point(event.delta.x, 0);
+      } else {
+        // Vertical movement only
+        constrainedDelta = new paper.Point(0, event.delta.y);
+      }
+
+      item.position = item.position.add(constrainedDelta);
     } else {
       item.position = item.position.add(event.delta);
     }
   };
 
-  private dragSegments(item: paper.Item, dragVector: paper.Point, event: paper.ToolEvent): void {
+  private dragSegments(item: paper.Item, event: paper.ToolEvent): void {
     if (!(item as any).segments) return;
 
     (item as any).segments.forEach((segment: any) => {
-      // Store original point for snap calculation
-      if (!segment.origPoint) {
-        segment.origPoint = segment.point.clone();
-      }
-
       if (segment.selected && (this.hitType === 'point' || this.hitType === 'stroke' || this.hitType === 'curve')) {
         if (event.modifiers.shift) {
-          segment.point = segment.origPoint.add(snapDeltaToAngle(dragVector, Math.PI * 2 / 8));
+          // Shift-drag: constrain to horizontal or vertical movement
+          const absDeltaX = Math.abs(event.delta.x);
+          const absDeltaY = Math.abs(event.delta.y);
+
+          let constrainedDelta: paper.Point;
+          if (absDeltaX > absDeltaY) {
+            // Horizontal movement only
+            constrainedDelta = new paper.Point(event.delta.x, 0);
+          } else {
+            // Vertical movement only
+            constrainedDelta = new paper.Point(0, event.delta.y);
+          }
+
+          segment.point = segment.point.add(constrainedDelta);
         } else {
           segment.point = segment.point.add(event.delta);
         }

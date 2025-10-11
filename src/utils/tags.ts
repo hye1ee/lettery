@@ -2,7 +2,7 @@
 import paper from 'paper';
 
 import Sortable from "sortablejs";
-import type { ItemClassName } from "../types";
+import type { AgentTool, ItemClassName } from "../types";
 import { fontLoader } from "../helpers";
 
 export const tags = {
@@ -166,6 +166,15 @@ export const tags = {
       <div class="preview-char">${letter}</div>
     </div>`,
 
+  agentToolItem: (tool: AgentTool) => `
+    <div class="agent-action-icon">
+      <img src="${tool.icon}" alt="${tool.name}" width="16" height="16" />
+    </div>
+    <div class="agent-action-content">
+      <div class="text-subtitle">${tool.name}</div>
+      <div class="text-body">${tool.description}</div>
+    </div>
+  `,
 };
 
 // Helper function to get the appropriate action button for an element

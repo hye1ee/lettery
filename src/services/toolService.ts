@@ -87,6 +87,15 @@ class ToolService {
     this.buttons.get(tool)?.classList.add('active');
   }
 
+  selectItem(item: paper.Item): void {
+    if (!this.currentTool) return;
+
+    const currentToolInstance = this.tools.get(this.currentTool);
+    if (currentToolInstance && (currentToolInstance as any).selectItem) {
+      (currentToolInstance as any).selectItem(item);
+    }
+  }
+
   /**
    * Get the current tool instance
    */

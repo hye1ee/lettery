@@ -8,6 +8,7 @@ import ContextMenu from './contextMenu';
 import SyllableModal from './syllableModal';
 import JamoModal from './jamoModal';
 import FontLoader from './fontLoader';
+import OpenAIClient from './openaiClient';
 
 // Create and export singleton instances
 export const previewBox = PreviewBox.getInstance();
@@ -19,6 +20,7 @@ export const contextMenu = ContextMenu.getInstance();
 export const syllableModal = SyllableModal.getInstance();
 export const jamoModal = JamoModal.getInstance();
 export const fontLoader = FontLoader.getInstance();
+export const openaiClient = OpenAIClient.getInstance();
 
 // Export types
 export type { ContextMenuItem } from './contextMenu';
