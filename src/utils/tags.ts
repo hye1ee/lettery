@@ -31,7 +31,7 @@ export const tags = {
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-btn modal-btn-primary" id="modal-confirm-btn">Create Layers</button>
+      <button class="modal-btn text-body" id="modal-confirm-btn">Create Layers</button>
     </div>
   `,
 
@@ -77,7 +77,7 @@ export const tags = {
          </div>
        </div>
        <div class="modal-footer">
-         <button id="jamo-modal-confirm-btn" class="modal-btn modal-btn-primary">
+         <button id="jamo-modal-confirm-btn" class="modal-btn text-body">
            Import
          </button>
        </div>
@@ -167,12 +167,97 @@ export const tags = {
     </div>`,
 
   agentToolItem: (tool: AgentTool) => `
+    <button class="agent-tool-close " id="agent-tool-close-${tool.id}" title="Cancel">
+      <img src="/x.svg" alt="Close" width="16" height="16" />
+    </button>
     <div class="agent-action-icon">
       <img src="${tool.icon}" alt="${tool.name}" width="16" height="16" />
     </div>
-    <div class="agent-action-content">
+    <div class="agent-action-content" id="agent-tool-content-${tool.id}">
       <div class="text-subtitle">${tool.name}</div>
       <div class="text-body">${tool.description}</div>
+    </div>
+    <div class="agent-workflow-container" id="agent-workflow-${tool.id}">
+      <div class="agent-workflow-display">
+        <div class="agent-workflow-step">
+          <div class="text-subtitle" id="agent-workflow-title-${tool.id}"></div>
+        </div>
+        <div class="agent-workflow-content text-body" id="agent-workflow-content-${tool.id}"></div>
+        <div class="agent-workflow-actions">
+          <button class="modal-btn text-body" id="agent-workflow-btn-${tool.id}"></button>
+        </div>
+      </div>
+    </div>
+  `,
+
+  agentWorkflowDisplay: (title: string, content: string, confirmText: string = 'Continue', isDisabled: boolean = false) => `
+    <div class="agent-workflow-display">
+      <div class="agent-workflow-step">
+        <div class="text-subtitle">${title}</div>
+      </div>
+      <div class="agent-workflow-content">
+        <div class="text-body">${content}</div>
+      </div>
+      <div class="agent-workflow-actions">
+        <button class="modal-btn text-body" id="agent-confirm-btn" ${isDisabled ? 'disabled' : ''}>${confirmText}</button>
+      </div>
+    </div>
+  `,
+
+  svgPreview: (beforePaths: string[]) => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    beforePaths.forEach(d => {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'black');
+      path.setAttribute('stroke', 'none');
+      svg.appendChild(path);
+    });
+    document.body.appendChild(svg);
+
+    // calculate the bounding box
+    const paths = svg.querySelectorAll('path');
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    paths.forEach(p => {
+      const b = p.getBBox();
+      minX = Math.min(minX, b.x);
+      minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.width);
+      maxY = Math.max(maxY, b.y + b.height);
+    });
+
+    // apply padding and set viewBox
+    const padding = 5;
+    const viewBox = `${minX - padding} ${minY - padding} ${maxX - minX + padding * 2} ${maxY - minY + padding * 2}`;
+
+    document.body.removeChild(svg);
+
+    return `
+      <svg width="100" height="100"
+           viewBox="${viewBox}"
+           xmlns="http://www.w3.org/2000/svg"
+           preserveAspectRatio="xMidYMid meet">
+        ${beforePaths
+        .map(d => `<path d="${d}" stroke="none" fill="black"/>`)
+        .join('')}
+      </svg>
+    `;
+  },
+
+  svgComparison: (afterPaths: string[], beforePaths: string[]) => `
+    <div class="svg-preview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;">
+      <div>
+        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">Before</p>
+        <div class="svg-preview-item">
+          ${tags.svgPreview(beforePaths)}
+        </div>
+      </div>
+      <div>
+        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">After</p>
+        <div class="svg-preview-item">
+          ${tags.svgPreview(afterPaths)}
+        </div>
+      </div>
     </div>
   `,
 };

@@ -55,7 +55,10 @@ export interface AgentTool {
   description: string;
   icon: string;
   isEnabled: boolean;
-  execute: () => void;
+
+  activate(): void;
+  deactivate(): void;
+  setRenderCallback(callback: () => void): void;
 }
 
 /* Tools */

@@ -1,14 +1,14 @@
 import paper from 'paper';
 import { openaiClient } from '../helpers';
 import type { AgentTool } from '../types';
-import { tags } from '../utils/tags';
 /**
  * Service for agent-related workflows and business logic
  */
 class AgentService {
   private static instance: AgentService;
-  private isRunning: boolean = false;
+  private activeToolId: string | null = null;
   private tools: Map<string, AgentTool> = new Map();
+  private renderCallback: (() => void) | null = null;
 
   private constructor() { }
 
@@ -19,23 +19,67 @@ class AgentService {
     return AgentService.instance;
   }
 
+  //--------------------------------
+  // UI related methods
+  //--------------------------------
+
+  /**
+   * Set the render callback for all agent tools
+   */
+  public setRenderCallback(callback: () => void): void {
+    this.renderCallback = () => {
+      this.activeToolId = null;
+
+      callback();
+    };
+  }
+
   /**
    * Check if agent is currently running
    */
-  public getIsRunning(): boolean {
-    return this.isRunning;
+  public getActiveToolName(): string | null {
+
+    if (!this.activeToolId) return null;
+
+    const tool = this.tools.get(this.activeToolId);
+    if (!tool) return null;
+
+    return tool.name;
+  }
+
+  public getActiveToolId(): string | null {
+    return this.activeToolId;
   }
 
   /**
-   * Register an agent tool
+   * Register agent tools and set their render callbacks
    */
   public initTools(tools: AgentTool[]): void {
-
     tools.forEach(tool => {
       this.tools.set(tool.id, tool);
+
+      // Set render callback if available
+      if (this.renderCallback) {
+        tool.setRenderCallback(this.renderCallback);
+      }
+
       console.log(`Agent tool registered: ${tool.name} (${tool.id})`);
     });
   }
+
+  public activateTool(tool: AgentTool): void {
+    this.activeToolId = tool.id;
+    tool.activate();
+  }
+
+  public deactivateTool(): void {
+    if (this.activeToolId) {
+      const tool = this.tools.get(this.activeToolId);
+      tool?.deactivate();
+      this.activeToolId = null;
+    }
+  }
+
 
   /**
    * Get all registered tools
@@ -51,12 +95,10 @@ class AgentService {
     return this.tools.get(toolId);
   }
 
-  /**
-   * Get tools for rendering in the UI
-   */
-  public getToolsForRendering(): AgentTool[] {
-    return this.getTools().filter(tool => tool.isEnabled !== false);
-  }
+
+  //--------------------------------
+  // Agent actions
+  //--------------------------------
 
   /**
    * Run agent with custom user and system prompts
@@ -74,13 +116,10 @@ class AgentService {
       throw new Error('OpenAI client not ready. Please set VITE_OPENAI_API_KEY in .env file');
     }
 
-    this.isRunning = true;
-
     try {
       const response = await openaiClient.complete(userPrompt, systemPrompt, options);
       return response;
     } finally {
-      this.isRunning = false;
     }
   }
 

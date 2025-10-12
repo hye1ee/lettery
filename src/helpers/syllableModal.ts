@@ -125,6 +125,7 @@ class SyllableModal {
         const jamoLayer = new paper.Layer();
         jamoLayer.name = jamoString;
         jamoLayer.data.id = syllable.jamoIds[jamoIndex];
+        jamoLayer.data.type = 'jamo';
         jamoLayer.data.syllableId = syllable.id;
         jamoLayer.data.syllableString = syllable.string;
 

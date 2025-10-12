@@ -394,8 +394,9 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px;
-  padding-top: 0;
+
+  box-sizing: border-box;
+  padding: 0 12px 16px 12px;
   display: flex;
   flex-direction: column;
 
@@ -426,23 +427,30 @@ body {
 
 /* Agent Action Cards */
 .agent-actions {
+  flex: 1;
+
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .agent-action-card {
+  height: fit-content;
+
+  box-sizing: border-box;
+  padding: 12px;
+  position: relative;
+
   background: #f8f9fa;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
+
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  min-height: 70px;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .agent-action-card:hover {
@@ -450,16 +458,189 @@ body {
   border-color: darkgray;
 }
 
-.agent-action-card:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
 .agent-action-card.disabled {
   background: #f5f5f5;
   border-color: #ddd;
   cursor: not-allowed;
   opacity: 0.5;
+}
+.agent-action-card.activated {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+
+  background: #f8f9fa !important;
+  border: 1px solid #e0e0e0 !important;
+}
+
+.agent-action-card.deactivated {
+  display: none;
+  transition: all 0.2s ease;
+}
+
+.agent-tool-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+
+  width: 24px;
+  height: 24px;
+  border: none;
+
+  background: transparent;
+
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  opacity: 0.8;
+}
+
+.agent-tool-close:hover {
+  opacity: 1;
+}
+
+.agent-action-card.activated .agent-tool-close {
+  display: flex;
+}
+
+.agent-action-card.activated .agent-action-content {
+  display: none;
+}
+
+.agent-action-card .agent-action-content {
+  display: block;
+}
+
+/* Agent Workflow Container */
+.agent-workflow-container {
+  width: 100%;
+  height: fit-content;
+
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.agent-action-card.activated .agent-workflow-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Agent Workflow Display */
+.agent-workflow-display {
+  width: 100%;
+  height: fit-content;
+
+  box-sizing: border-box;
+  padding: 12px 0 0 0;
+
+  border-top: 1px solid #e0e0e0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-workflow-step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-workflow-content {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 100px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.agent-workflow-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Shimmer Highlight Effect */
+.agent-workflow-content.loading {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    120deg,
+    #f2f2f2 0%,
+    #f2f2f2 40%,
+    rgba(255, 255, 255, 0.9) 50%,
+    #f2f2f2 60%,
+    #f2f2f2 100%
+  );
+  background-size: 300% 100%;
+  animation: shimmer 2.5s linear infinite;
+  min-height: 150px;
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.agent-workflow-content.loading * {
+  opacity: 0.4; /* visibility 대신 살짝 투명 처리 */
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+
+/* SVG Preview in Agent Workflow */
+.svg-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.svg-preview-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+
+  box-sizing: border-box;
+  padding: 4px;
+  min-height: 100px;
+}
+
+.svg-preview-item svg {
+  max-width: 100%;
+  max-height: 80px;
+  width: auto;
+  height: auto;
+}
+
+/* Single item layout */
+.svg-preview:has(.svg-preview-item:only-child) {
+  grid-template-columns: 1fr;
+}
+
+.svg-preview:has(.svg-preview-item:only-child) .svg-preview-item {
+  min-height: 150px;
 }
 
 .agent-action-icon {
@@ -938,6 +1119,18 @@ body {
 .modal-btn:hover {
   background: var(--color-quaternary);
   border-color: darkgray;
+}
+
+.modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #ddd;
+}
+
+.modal-btn:disabled:hover {
+  background: #f5f5f5;
+  border-color: #ddd;
 }
 
 .cancel-btn {

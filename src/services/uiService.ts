@@ -1,9 +1,8 @@
 import paper from 'paper'
 import { tags, updateLayerSelection, updateItemSelection, clearItemSelection, setSortable } from '../utils/tags'
 
-import { boundingBox, logger, syllableModal, jamoModal } from '../helpers';
+import { logger, syllableModal, jamoModal } from '../helpers';
 import type { ItemClassName, Syllable } from '../types';
-import { selectTool } from '../tools';
 import { toolService, agentService } from '.';
 
 export interface Layer {
@@ -68,6 +67,8 @@ class UIService {
 
   public init(): void {
     this.itemListContainer = document.getElementById('layer-list');
+
+    this.renderAll();
   }
 
   showTooltip(message: string, x: number, y: number): void {
@@ -100,7 +101,6 @@ class UIService {
     this.renderLayers();
     this.renderPathItems();
     this.renderAgentTools();
-    this.updateAgentStatus();
   }
 
   // Update UI selection state based on canvas selection
@@ -141,16 +141,15 @@ class UIService {
 
     // Find the currently selected/active layer
     const syllable = this.syllables.find((syllable) => syllable.id === paper.project.activeLayer?.data.syllableId);
-    if (!syllable) throw new Error('Syllable not found');
 
     // Get children of the active layer
-    syllable.jamoIds.forEach((jamoId) => {
+    syllable?.jamoIds.forEach((jamoId) => {
       const jamoLayer = paper.project.getItem({ data: { id: jamoId } }) as paper.Layer;
       if (!jamoLayer) throw new Error('Jamo layer not found');
       pathsListContainer.append(this.createPathItem(jamoLayer, 0));
     });
 
-    this.updateAgentStatus();
+    this.renderAgentStatus();
   }
 
   private createSyllableItem(syllable: Syllable): HTMLDivElement {
@@ -287,7 +286,7 @@ class UIService {
     // Set this layer as the active layer and refresh paths section
     updateLayerSelection(syllable.id);
     this.renderPathItems();
-    this.updateAgentStatus();
+    this.renderAgentStatus();
 
     logger.updateStatus(`${syllable.string} selected`);
     console.log('Selection callback triggered for layer:', syllable.id);
@@ -386,73 +385,106 @@ class UIService {
 
       // Update UI
       this.renderPathItems();
-      this.updateAgentStatus();
+      this.renderAgentStatus();
     });
   }
 
   /**
    * Render agent tools dynamically
    */
-  public renderAgentTools(): void {
+  public renderAgentTools = () => {
     const actionListElement = document.getElementById('agent-actions-list');
-    if (!actionListElement) return;
+    if (!actionListElement) throw new Error('Agent actions list element not found');
 
-    // Clear existing tools
-    actionListElement.innerHTML = '';
+    if (actionListElement.innerHTML == '') {
+      // init tools
+      const tools = agentService.getTools();
 
-    // Get registered tools
-    const tools = agentService.getToolsForRendering();
+      tools.forEach(tool => {
+        // create item element
+        const toolItem = document.createElement('div');
+        toolItem.id = tool.id;
+        toolItem.className = "agent-action-card disabled";
+        toolItem.innerHTML = tags.agentToolItem(tool);
 
-    // Render each tool as a card
-    tools.forEach(tool => {
-      const toolItem = document.createElement('div');
-      toolItem.id = tool.id;
-      toolItem.className = "agent-action-card disabled";
-      toolItem.innerHTML = tags.agentToolItem(tool);
+        // Add click handler for the card
+        toolItem.addEventListener('click', (e) => {
+          e.preventDefault();
 
-      // Add click handler
-      toolItem.addEventListener('click', (e) => {
-        e.preventDefault();
+          if (toolItem.classList.contains('disabled')) {
+            return;
+          }
+          agentService.activateTool(tool);
+          this.renderAgentTools();
+        });
 
-        if (toolItem.classList.contains('disabled')) {
-          return;
+        // Add close button handler
+        const closeBtn = toolItem.querySelector(`#agent-tool-close-${tool.id}`) as HTMLButtonElement;
+        if (closeBtn) {
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent card click
+            e.preventDefault();
+            agentService.deactivateTool();
+            this.renderAgentTools();
+          });
         }
 
-        tool.execute();
+        actionListElement.appendChild(toolItem);
       });
-      actionListElement.appendChild(toolItem);
-    });
+
+    } else {
+      // update tools 
+      const activeLayer = paper.project.activeLayer;
+      if (activeLayer && activeLayer.data.type === 'jamo') {
+        // update tools
+        const activeToolId = agentService.getActiveToolId();
+        if (activeToolId) {
+          // hide other tools 
+          Array.from(actionListElement.children).forEach(child => {
+            if (child.id !== activeToolId) {
+              child.classList.add('deactivated');
+            } else {
+              child.classList.add('activated');
+            }
+          });
+        } else {
+          // normal tool rendering
+          Array.from(actionListElement.children).forEach(child => {
+            child.classList.remove('disabled');
+            child.classList.remove('activated');
+            child.classList.remove('deactivated');
+          });
+        }
+      } else {
+        // disable all tools
+        Array.from(actionListElement.children).forEach(child => {
+          child.classList.add('disabled');
+        });
+      }
+    }
+    this.renderAgentStatus();
   }
-
-
 
   /**
    * Update the agent status label with current active layer
    */
-  public updateAgentStatus(): void {
+  public renderAgentStatus(): void {
     const statusElement = document.getElementById('agent-status');
     const actionListElement = document.getElementById('agent-actions-list');
 
     if (!actionListElement || !statusElement) return;
 
     const activeLayer = paper.project.activeLayer;
-    const hasJamoLayer = activeLayer && activeLayer.name && !activeLayer.name.includes('system');
-
-    if (hasJamoLayer) {
-      statusElement.textContent = `Work with agent Gulo on layer '${activeLayer.name}'`;
-
-      // Enable all tool cards
-      Array.from(actionListElement.children).forEach(child => {
-        child.classList.remove('disabled');
-      });
+    if (activeLayer && activeLayer.data.type === 'jamo') {
+      // update tools
+      const activeTool = agentService.getActiveToolName();
+      if (activeTool) {
+        statusElement.textContent = `${activeTool} on layer '${activeLayer.name}'`;
+      } else {
+        statusElement.textContent = `Work with agent Gulo on layer '${activeLayer.name}'`;
+      }
     } else {
-      // No jamo layer available
       statusElement.textContent = 'Create a layer to work with Gulo';
-
-      // Disable all tool cards
-      Array.from(actionListElement.children).forEach(child => {
-        child.classList.add('disabled');
-      });
     }
   }
 

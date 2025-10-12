@@ -168,8 +168,8 @@ const initTools = () => {
     smartPropagationTool
   ]
 
+  agentService.setRenderCallback(uiService.renderAgentTools);
   agentService.initTools(agentTools);
-  uiService.renderAgentTools();
 }
 
 

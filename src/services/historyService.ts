@@ -6,6 +6,7 @@ interface HistoryState {
   json: string;
   action: string;
   activeLayerId: string;
+  data: string[];
 }
 
 class HistoryService {
@@ -45,14 +46,12 @@ class HistoryService {
     const currentJSON = paper.project.exportJSON({ asString: true });
     const activeLayerId = paper.project.activeLayer?.id.toString() || '';
 
-    const state: HistoryState = {
-      json: currentJSON,
-      activeLayerId: activeLayerId,
-      action
-    };
+    const data: string[] = paper.project.activeLayer?.children.filter(
+      item => item instanceof paper.PathItem)
+      .map(item => item.pathData) || [];
 
     // Only record meaningful changes
-    this.undoStack.push(state);
+    this.undoStack.push({ json: currentJSON, activeLayerId: activeLayerId, action, data });
     this.redoStack = []; // clear redo history
 
     if (this.undoStack.length > this.maxUndos) {
@@ -125,6 +124,42 @@ class HistoryService {
     this.undoStack = [];
     this.redoStack = [];
   }
+
+  getHistoryData(id?: string): string[][] {
+    const layerId = id || paper.project.activeLayer?.id.toString() || '';
+    if (!layerId) throw new Error('Layer ID is required');
+
+    // 0) only consider state with data
+    const dataStates = this.undoStack.filter(state => state.data.length > 0);
+
+    const ranges: [number, number][] = [];
+    let start = -1;
+
+    // 1) Scan stack and collect consecutive ranges [start, end] for target layerId
+    for (let i = 0; i < dataStates.length; i++) {
+      const isMatch = dataStates[i].activeLayerId === layerId;
+
+      if (isMatch) {
+        if (start === -1) start = i; // open range
+      } else if (start !== -1) {
+        ranges.push([start, i - 1]); // close range
+        start = -1;
+      }
+    }
+
+    // ✅ fix: close last open range correctly (end = last index)
+    if (start !== -1) ranges.push([start, dataStates.length - 1]);
+    if (!ranges.length) return [];
+
+    // 2) If multiple ranges, take each range's end; if single range, take [start, end]
+    const pickIndices =
+      ranges.length >= 2 ? ranges.map(r => r[1]) : [ranges[0][0], ranges[0][1]];
+
+    // 3) Map indices → data, keep last 4, then reverse order
+    return pickIndices.map(i => dataStates[i].data).slice(-4).reverse();
+  }
+
+
 
   getHistoryInfo(): { undo: number; redo: number } {
     return { undo: this.undoStack.length, redo: this.redoStack.length };

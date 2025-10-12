@@ -1,4 +1,4 @@
-import type { Tool } from '../tools'
+import type { Tool } from "../types";
 
 class ToolService {
   private static instance: ToolService | null = null
