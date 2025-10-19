@@ -15,6 +15,7 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.67.0",
     "bezier-js": "^6.1.4",
     "clipper-lib": "^6.4.2",
     "hangul-js": "^0.2.6",

@@ -8,7 +8,7 @@ class GuidedEdit extends BaseAgentTool {
 
   public readonly id: string = 'guided-edit';
   public readonly name: string = 'Guided Edit';
-  public readonly description: string = 'Edit the selected jamo based on your description';
+  public readonly description: string = 'Edit the selected jamo based on your sketch and description';
   public readonly icon: string = '/command.svg';
   public readonly isEnabled: boolean = true;
 

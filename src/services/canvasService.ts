@@ -1,6 +1,8 @@
-
 import paper from 'paper';
 
+/**
+ * Manages Paper.js canvas, drawing operations, and user interactions
+ */
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
 import { findParentLayer, ungroupItem, ungroupSVG } from '../utils/paperUtils';

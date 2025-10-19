@@ -1,5 +1,8 @@
 import type { Tool } from "../types";
 
+/**
+ * Manages drawing tools (pen, pencil, select) and their interactions
+ */
 class ToolService {
   private static instance: ToolService | null = null
   private currentTool: string | null = null;

@@ -79,3 +79,53 @@ export interface Tool {
   setToolSwitchCallback?(callback: (toolId: string) => void): void;
   setRenderCallback?(callback: () => void): void;
 }
+
+/* Tools for AI models */
+export interface FunctionTool {
+  name: string;
+  description: string;
+  properties: FunctionToolObjectProperty;
+}
+
+export type FunctionToolPropertyType =
+  "object" |
+  "string" |
+  "number" |
+  "boolean" |
+  "array";
+
+export type FunctionToolProperty =
+  FunctionToolBaseProperty |
+  FunctionToolObjectProperty |
+  FunctionToolNumberProperty |
+  FunctionToolArrayProperty |
+  FunctionToolStringProperty;
+
+export interface FunctionToolBaseProperty {
+  type: FunctionToolPropertyType;
+  description?: string;
+}
+
+export interface FunctionToolObjectProperty extends FunctionToolBaseProperty {
+  type: "object";
+  properties: Record<string, FunctionToolProperty>;
+  required: string[];
+}
+
+export interface FunctionToolNumberProperty extends FunctionToolBaseProperty {
+  type: "number";
+  minimum?: number;
+  maximum?: number;
+}
+
+export interface FunctionToolArrayProperty extends FunctionToolBaseProperty {
+  type: "array";
+  items?: FunctionToolProperty;
+  minItems?: number;
+  maxItems?: number;
+}
+
+export interface FunctionToolStringProperty extends FunctionToolBaseProperty {
+  type: "string";
+  enum?: string[];
+}

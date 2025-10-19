@@ -2,8 +2,8 @@ import './style.css'
 import { agentService, canvasService, historyService, toolService, uiService } from './services'
 import { selectTool, pencilTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
 import { cursor, logger, contextMenu } from './helpers'
-import './agentTools' // Auto-import all agent tools
 import { guidedEditTool, smartPropagationTool } from './agentTools'
+import { ModelProvider } from './models'
 
 
 let layerImportSvgBtn: HTMLButtonElement
@@ -54,6 +54,16 @@ const initApp = () => {
   // Initialize services
   uiService.init();
   historyService.init();
+  ModelProvider.init({
+    modelType: "anthropic",
+    modelName: "claude-sonnet-4-5",
+    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+  });
+  // ModelProvider.init({
+  //   modelType: "openai",
+  //   modelName: "gpt-4o-mini",
+  //apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  // });
 
   // Initialize helpers
   logger.init(statusText, coordinates);

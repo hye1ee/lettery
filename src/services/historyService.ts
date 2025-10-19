@@ -2,6 +2,9 @@ import paper from "paper";
 import { uiService } from ".";
 import { logger } from "../helpers";
 
+/**
+ * Manages undo/redo operations and canvas state history tracking
+ */
 interface HistoryState {
   json: string;
   action: string;

@@ -5,6 +5,9 @@ import { logger, syllableModal, jamoModal } from '../helpers';
 import type { ItemClassName, Syllable } from '../types';
 import { toolService, agentService } from '.';
 
+/**
+ * Manages UI rendering, user interactions, and canvas-UI synchronization
+ */
 export interface Layer {
   id: string;
   name: string;
