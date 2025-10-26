@@ -260,6 +260,83 @@ export const tags = {
       </div>
     </div>
   `,
+
+  markdown: (markdownText: string) => {
+    if (!markdownText || typeof markdownText !== 'string') {
+      return '<div class="markdown-content"><p>No content available.</p></div>';
+    }
+
+    // Simple markdown to HTML converter
+    let html = markdownText.trim()
+      // Code blocks (handle first to avoid conflicts)
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      // Inline code
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // Headers
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      // Bold (make sure it doesn't interfere with headers)
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Italic (but not if it's already bold)
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      // Lists
+      .replace(/^\* (.+)$/gim, '<li>$1</li>')
+      // Wrap consecutive list items in ul
+      .replace(/(<li>.*<\/li>)(?:\s*<li>.*<\/li>)*/gs, (match) => `<ul>${match}</ul>`)
+      // Line breaks - convert double newlines to paragraph breaks
+      .replace(/\n\s*\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+
+    // If the content doesn't start with a tag, wrap it in a paragraph
+    if (!html.match(/^<[h1-6]/) && !html.match(/^<ul/) && !html.match(/^<pre/)) {
+      html = `<p>${html}</p>`;
+    }
+
+    // Wrap in div for proper spacing and styling
+    return `<div class="markdown-content">${html}</div>`;
+  },
+
+  planMessages: (planMessages: Array<{ jamo: string, syllable: string, plan: string, reason: string }>) => {
+    return `
+      <div class="plan-messages">
+        ${planMessages.map((plan) => `
+          <div class="plan-block">
+            <div class="plan-header">
+              <div class="plan-jamo">${plan.jamo}</div>
+              <div class="plan-syllable">${plan.syllable}</div>
+            </div>
+            <div class="plan-content">
+              <div class="plan-action">
+                <strong>Plan:</strong> ${plan.plan}
+              </div>
+              <div class="plan-reason">
+                <strong>Reason:</strong> ${plan.reason}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  executionResults: (results: Array<{ jamo: string, path: string | string[], summary: string }>) => {
+    return `
+      <div class="execution-results">
+        ${results.map((result) => {
+      return `
+            <div class="execution-result-block">
+              <div class="execution-header">
+                <div class="execution-jamo">${result.jamo}</div>
+                <div class="execution-summary">${result.summary}</div>
+              </div>
+              ${tags.svgPreview(Array.isArray(result.path) ? result.path : [result.path])}
+            </div>
+          `;
+    }).join('')}
+      </div>
+    `;
+  },
 };
 
 // Helper function to get the appropriate action button for an element

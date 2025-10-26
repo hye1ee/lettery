@@ -380,6 +380,13 @@ class UIService {
     return this.syllables.find((syllable) => syllable.id === id);
   }
 
+  public getWorkingLetters(): { workingWord: string, workingSyllable: string, workingJamo: string } {
+    const workingWord = this.syllables.map((syllable) => syllable.string).join('');
+    const workingSyllable = this.syllables.find((syllable) => syllable.id === paper.project.activeLayer?.data.syllableId)?.string || '';
+    const workingJamo = paper.project.activeLayer?.name || '';
+    return { workingWord, workingSyllable, workingJamo };
+  }
+
   /**
    * Add Jamo Modal Handler
    */

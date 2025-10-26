@@ -11,9 +11,7 @@
       <div class="header">
         <span class="text-title">한글로 Hangulo</span>
 
-        <!-- Header Actions -->
         <div class="header-actions">
-          <!-- Zoom Controls -->
           <div class="header-action-buttons">
             <button class="header-action-btn" id="zoom-out" title="Zoom Out">
               <img src="/minus.svg" alt="Zoom Out" width="16" height="16" />
@@ -61,6 +59,39 @@
             </div>
             <div class="layer-list" id="layer-list">
               <!-- Layers will be dynamically added here -->
+            </div>
+          </div>
+
+          <!-- Paths Section -->
+          <div class="layer-section paths-section">
+            <div class="layer-header">
+              <div class="section-title">
+                <span class="text-title">Jamos</span>
+              </div>
+              <div class="header-actions">
+                <button
+                  class="header-action-btn border"
+                  id="jamo-plus-btn"
+                  title="Add Jamo Layer"
+                >
+                  <img src="/plus.svg" alt="Add" width="16" height="16" />
+                </button>
+                <button
+                  class="header-action-btn border"
+                  id="layer-import-svg"
+                  title="Import SVG"
+                >
+                  <img
+                    src="/import.svg"
+                    alt="Import SVG"
+                    width="16"
+                    height="16"
+                  />
+                </button>
+              </div>
+            </div>
+            <div class="paths-list" id="paths-list" data-sortable="true">
+              <!-- Active layer children will be displayed here -->
             </div>
           </div>
         </div>
@@ -128,39 +159,6 @@
           ></div>
         </div>
         <div class="layer-panel right">
-          <!-- Paths Section -->
-          <div class="layer-section paths-section">
-            <div class="layer-header">
-              <div class="section-title">
-                <span class="text-title">Jamos</span>
-              </div>
-              <div class="header-actions">
-                <button
-                  class="header-action-btn border"
-                  id="jamo-plus-btn"
-                  title="Add Jamo Layer"
-                >
-                  <img src="/plus.svg" alt="Add" width="16" height="16" />
-                </button>
-                <button
-                  class="header-action-btn border"
-                  id="layer-import-svg"
-                  title="Import SVG"
-                >
-                  <img
-                    src="/import.svg"
-                    alt="Import SVG"
-                    width="16"
-                    height="16"
-                  />
-                </button>
-              </div>
-            </div>
-            <div class="paths-list" id="paths-list" data-sortable="true">
-              <!-- Active layer children will be displayed here -->
-            </div>
-          </div>
-
           <!-- Agent Section -->
           <div class="layer-section agent-section">
             <div class="layer-header">

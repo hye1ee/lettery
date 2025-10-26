@@ -1,6 +1,9 @@
-import { historyService } from "../services";
+import { canvasService, historyService, uiService } from "../services";
 import { BaseAgentTool } from "./baseAgentTool";
 import { tags } from "../utils/tags";
+import { generateWorkingLetters, jamoAnalysisPrompt, jamoPlanPrompt, jamoEditPrompt } from "../utils/prompt";
+import { ModelProvider } from "../models";
+import { analysisTool, planTool, executionTool } from "./functionTools";
 
 /**
  * Smart Propagation Agent Tool
@@ -26,7 +29,13 @@ class SmartPropagationTool extends BaseAgentTool {
   }
 
   protected async runWorkflow(): Promise<void> {
-    // Step 1: Show before/after changes
+    // [Step 0] Generate working letters description and model
+    const { workingWord, workingSyllable, workingJamo } = uiService.getWorkingLetters();
+    const workingLetters = generateWorkingLetters(workingWord, workingSyllable, workingJamo);
+
+    const model = ModelProvider.getModel();
+
+    // [Step 1] Show before/after changes
     this.currentStep = 1;
     const layerStates = historyService.getHistoryData();
 
@@ -43,97 +52,157 @@ class SmartPropagationTool extends BaseAgentTool {
     );
     await this.waitForConfirmation();
 
-    // Step 2: Analyzing (with API call)
+    // [Step 2] Analyzing (with API call)
     this.currentStep = 2;
     this.showLoadingState('Analyzing Changes', 'Proceed with Plan');
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate execution time
+
+    let responses = await model.generateResponses({
+      input: [
+        {
+          role: 'user',
+          content: [
+            { type: "text", data: `path data and png image of jamo '${workingJamo}' before changes` },
+            { type: "text", data: layerStates[1].join(' ') },
+            // { type: "image", data: '' }
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            { type: "text", data: `path data and png image of jamo '${workingJamo}' after changes` },
+            { type: "text", data: layerStates[0].join(' ') },
+            // { type: "image", data: '' }
+          ],
+        },
+      ],
+      instructions: jamoAnalysisPrompt(workingJamo, workingLetters),
+      tools: [analysisTool],
+    });
+
+    const summaryMessage = model.getToolMessage(responses) ?? "{}";
 
     this.updateDisplay(
       'Analyzing Changes',
       `
         <p><strong>Change Analysis Complete:</strong></p>
-        <div style="background: #f0f0f0; padding: 8px; border-radius: 4px; margin: 8px 0;">
-          <p style="margin: 4px 0;"><strong>Type:</strong> Geometric transformation</p>
-          <p style="margin: 4px 0;"><strong>Affected Areas:</strong> Top stroke</p>
-          <p style="margin: 4px 0;"><strong>Complexity:</strong> Medium</p>
-        </div>
-        <p><strong>Similar Jamos Found:</strong></p>
-        <ul style="margin: 8px 0; padding-left: 20px;">
-          <li>ㄴ (70% similarity)</li>
-          <li>ㄷ (65% similarity)</li>
-          <li>ㄹ (60% similarity)</li>
-        </ul>
+        ${tags.markdown(JSON.parse(summaryMessage)?.summary ?? "Analysis incomplete. Please try again.")}
       `,
-      'Proceed with Plan'
+      'Confirm Analysis'
     );
     await this.waitForConfirmation();
 
-    // Step 3: Propagation Plan (with API call)
+    // [Step 3] Propagation Plan (with API call)
     this.currentStep = 3;
     this.showLoadingState('Propagation Plan', 'Execute Plan');
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate execution time
+
+    responses = await model.generateResponses({
+      input: [
+        {
+          role: 'user',
+          content: [
+            { type: "text", data: `path data and png image of jamo '${workingJamo}' before changes` },
+            { type: "text", data: layerStates[1].join(' ') },
+            // { type: "image", data: '' }
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            { type: "text", data: `path data and png image of jamo '${workingJamo}' after changes` },
+            { type: "text", data: layerStates[0].join(' ') },
+            // { type: "image", data: '' }
+          ],
+        },
+      ],
+      instructions: jamoPlanPrompt(workingJamo, workingLetters, summaryMessage, 'medium'),
+      tools: [planTool],
+    });
+
+    let planMessages: Array<{ jamo: string, syllable: string, plan: string, reason: string }> =
+      model.getToolMessages(responses).map((msg) => JSON.parse(msg));
+    planMessages = planMessages.filter((item) => item.plan);
 
     this.updateDisplay(
       'Propagation Plan',
       `
         <p><strong>Proposed Actions:</strong></p>
-        <div style="display: flex; flex-direction: column; gap: 8px; margin: 12px 0;">
-          <div style="background: #e8f5e9; padding: 8px; border-radius: 4px; border-left: 3px solid #4caf50;">
-            <p style="margin: 0;"><strong>ㄴ:</strong> Apply full transformation (70% match)</p>
-          </div>
-          <div style="background: #fff3e0; padding: 8px; border-radius: 4px; border-left: 3px solid #ff9800;">
-            <p style="margin: 0;"><strong>ㄷ:</strong> Apply with adjustments (65% match)</p>
-          </div>
-          <div style="background: #fff3e0; padding: 8px; border-radius: 4px; border-left: 3px solid #ff9800;">
-            <p style="margin: 0;"><strong>ㄹ:</strong> Apply with adjustments (60% match)</p>
-          </div>
-        </div>
+        ${tags.planMessages(planMessages)}
         <p style="color: #666; font-size: 0.9em;">You can review and adjust after execution.</p>
       `,
       'Execute Plan'
     );
     await this.waitForConfirmation();
 
-    // Step 4: Executing
+    // [Step 4] Executing
     this.currentStep = 4;
-    this.updateDisplay(
-      'Executing Changes',
-      `
-        <p><strong>Progress:</strong></p>
-        <div style="margin: 12px 0;">
-          <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
-            <div style="background: #4caf50; height: 100%; width: 66%; transition: width 0.3s;"></div>
-          </div>
-          <p style="margin: 8px 0; font-size: 0.9em; color: #666;">Processing jamo 2 of 3...</p>
-        </div>
-        <div style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 8px 0; font-family: monospace; font-size: 0.85em;">
-          <p style="margin: 2px 0;">✓ ㄴ: Transformation applied</p>
-          <p style="margin: 2px 0;">⟳ ㄷ: Applying changes...</p>
-          <p style="margin: 2px 0; color: #999;">○ ㄹ: Pending</p>
-        </div>
-      `,
-      'Continue'
-    );
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate execution time
-    await this.waitForConfirmation();
+    this.showLoadingState('Executing Changes', 'Continue');
 
-    // Step 5: Complete
-    this.currentStep = 5;
+    // Create API calls for each plan message
+    const executionPromises = planMessages.map(async (plan) => {
+      const response = await model.generateResponses({
+        input: [
+          {
+            role: 'user',
+            content: [
+              { type: "text", data: `path data of reference jamo '${workingJamo}' after changes` },
+              { type: "text", data: layerStates[0].join(' ') },
+              { type: "text", data: `path data of target jamo '${plan.jamo}' before changes` },
+              { type: "text", data: canvasService.getLayerData(plan.jamo, plan.syllable).join(' ') },
+            ],
+          },
+        ],
+        instructions: jamoEditPrompt(workingJamo, workingLetters, plan.jamo, plan.plan),
+        tools: [executionTool],
+      });
+
+      return JSON.parse(model.getToolMessage(response) ?? "{}");
+    });
+
+    // Wait for all executions to complete
+    const executionResults = await Promise.all(executionPromises);
     this.updateDisplay(
       'Execution Complete',
       `
         <p><strong>Results:</strong></p>
         <div style="margin: 12px 0;">
           <div style="background: #e8f5e9; padding: 12px; border-radius: 4px; border-left: 3px solid #4caf50; margin-bottom: 8px;">
-            <p style="margin: 0;"><strong>✓ Successfully propagated to 3 jamos</strong></p>
+            <p style="margin: 0;"><strong>✓ Successfully propagated to ${executionResults.length} jamos</strong></p>
           </div>
         </div>
-        <div style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 8px 0; font-family: monospace; font-size: 0.85em;">
-          <p style="margin: 2px 0;">✓ ㄴ: Complete</p>
-          <p style="margin: 2px 0;">✓ ㄷ: Complete</p>
-          <p style="margin: 2px 0;">✓ ㄹ: Complete</p>
-        </div>
+        ${tags.executionResults(executionResults)}
         <p style="margin-top: 12px; color: #666; font-size: 0.9em;">All changes have been saved to history. You can undo if needed.</p>
+      `,
+      'Import'
+    );
+    await this.waitForConfirmation();
+
+    // [Step 5] Import 
+    this.currentStep = 5;
+
+    await new Promise((res) => {
+      setTimeout(res, 5000);
+      planMessages.forEach((plan, idx) => {
+        canvasService.importLayerData(plan.jamo, plan.syllable, executionResults[idx].path);
+      })
+    });
+
+    // import data path
+
+    this.updateDisplay(
+      'Executing Changes',
+      `
+        <p><strong>Progress:</strong></p>
+        <div style="margin: 12px 0;">
+          <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
+            <div style="background: #4caf50; height: 100%; width: 100%; transition: width 0.3s;"></div>
+          </div>
+          <p style="margin: 8px 0; font-size: 0.9em; color: #666;">Processing complete...</p>
+        </div>
+        <div style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 8px 0; font-family: monospace; font-size: 0.85em;">
+          ${executionResults.map(result =>
+        `<p style="margin: 2px 0;">✓ ${result.jamo}: Complete</p>`
+      ).join('')}
+        </div>
       `,
       'Done'
     );
@@ -145,3 +214,4 @@ class SmartPropagationTool extends BaseAgentTool {
 }
 
 export default SmartPropagationTool;
+

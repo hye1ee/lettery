@@ -1,7 +1,7 @@
 import { OpenAI } from "openai";
 import { BaseModel, type ResponseParams } from "./baseModel";
 import type { ModelConfig } from ".";
-import type { FunctionTool } from "../types";
+import type { ModelBaseTool, ModelBaseInput } from "../types";
 
 // OpenAI-specific input/output types
 export type OpenAIInputType = OpenAI.Responses.ResponseInputItem;
@@ -55,8 +55,12 @@ export class OpenAIModel extends BaseModel<OpenAI> {
     }
   }
 
-  public formatTools(tools: FunctionTool[]): OpenAIToolType[] {
+  public formatTools(tools: ModelBaseTool[]): OpenAIToolType[] {
     return [];
+  }
+
+  public formatInput(input: ModelBaseInput[]): OpenAIInputType[] {
+    return input as OpenAIInputType[];
   }
 
   /*----------------------------------------
@@ -88,6 +92,16 @@ export class OpenAIModel extends BaseModel<OpenAI> {
       }
     }
     return null;
+  }
+
+  public getToolMessages(responses: OpenAIOutputType[]): string[] {
+    const toolMessages: string[] = [];
+    for (const response of responses) {
+      if (response.type === "function_call" && response.arguments) {
+        toolMessages.push(response.arguments);
+      }
+    }
+    return toolMessages;
   }
 
   public getToolResponses(responses: OpenAIOutputType[]): OpenAIOutputType[] {

@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { BaseModel, type ResponseParams } from "./baseModel";
 import type { ModelConfig } from ".";
-import type { FunctionTool } from "../types";
+import type { ModelBaseInput, ModelBaseTool } from "../types";
 
 // OpenAI-specific input/output types
 export type AnthropicInputType = Anthropic.Messages.MessageParam;
@@ -16,7 +16,7 @@ export class AnthropicModel extends BaseModel<Anthropic> {
 
   private constructor(modelConfig: ModelConfig) {
     super(modelConfig);
-    this.model = new Anthropic({ apiKey: this.modelConfig.apiKey });
+    this.model = new Anthropic({ apiKey: this.modelConfig.apiKey, dangerouslyAllowBrowser: true });
   }
 
   public static getInstance(modelConfig: ModelConfig): AnthropicModel {
@@ -33,7 +33,7 @@ export class AnthropicModel extends BaseModel<Anthropic> {
         // With tools
         const response = await this.model.messages.create({
           model: this.modelConfig.modelName,
-          messages: input as AnthropicInputType[],
+          messages: this.formatInput(input),
           tools: this.formatTools(tools),
           system: instructions,
           max_tokens: this.maxTokens,
@@ -43,7 +43,7 @@ export class AnthropicModel extends BaseModel<Anthropic> {
         // Without tools
         const response = await this.model.messages.create({
           model: this.modelConfig.modelName,
-          messages: input as AnthropicInputType[],
+          messages: this.formatInput(input),
           system: instructions,
           max_tokens: this.maxTokens,
           // reasoning: { effort: "low" },
@@ -55,7 +55,7 @@ export class AnthropicModel extends BaseModel<Anthropic> {
     }
   }
 
-  public formatTools(tools: FunctionTool[]): AnthropicToolType[] {
+  public formatTools(tools: ModelBaseTool[]): AnthropicToolType[] {
     return tools.map(tool => {
 
       const inputSchema = tool.properties as Anthropic.Messages.Tool.InputSchema;
@@ -66,6 +66,27 @@ export class AnthropicModel extends BaseModel<Anthropic> {
         input_schema: inputSchema,
       } as AnthropicToolType;
     });
+  }
+
+  public formatInput(input: ModelBaseInput[]): AnthropicInputType[] {
+    return input.map(item => {
+
+      if (typeof item.content === "string") {
+        return item;
+      } else if (Array.isArray(item.content)) {
+        return {
+          role: item.role,
+          content: item.content.map(content => {
+            if (content.type === "text") {
+              return { type: "text", text: content.data };
+            } else if (content.type === "image") {
+              return { type: "image", source: { type: "base64", data: content.data, media_type: 'image/png' } };
+            }
+          }),
+        }
+      }
+
+    }) as AnthropicInputType[];
   }
 
   /*----------------------------------------
@@ -97,6 +118,16 @@ export class AnthropicModel extends BaseModel<Anthropic> {
       }
     }
     return null;
+  }
+
+  public getToolMessages(responses: AnthropicOutputType[]): string[] {
+    const toolMessages: string[] = [];
+    for (const response of responses) {
+      if (response.type === "tool_use") {
+        toolMessages.push(JSON.stringify(response.input));
+      }
+    }
+    return toolMessages;
   }
 
   public getToolResponses(responses: AnthropicOutputType[]): AnthropicOutputType[] {

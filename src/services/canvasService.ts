@@ -5,7 +5,7 @@ import paper from 'paper';
  */
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
-import { findParentLayer, ungroupItem, ungroupSVG } from '../utils/paperUtils';
+import { closePath, findParentLayer, ungroupItem, ungroupSVG } from '../utils/paperUtils';
 import { boundingBox, logger, previewBox, zoom } from '../helpers';
 import { uiService } from '.';
 
@@ -659,8 +659,30 @@ class CanvasService {
     return this.project.hitTest(point, options)
   }
 
+  public getLayerData = (jamo: string, syllable: string): string[] => {
+    //TODO: handle same jamo in the same syllable
+    // find layer
+    const layer = paper.project.layers.find((layer: any) => layer.name === jamo && layer.data.syllableString === syllable);
+    if (!layer) throw new Error("Layer not found");
+
+    // get layer data
+    return layer.children.filter((item: any) => item instanceof paper.PathItem)
+      .map((item: any) => item.pathData) || [];
+
+  }
+
+  public importLayerData = (jamo: string, syllable: string, pathData: string) => {
+    const layer = paper.project.layers.find((layer: any) => layer.name === jamo && layer.data.syllableString === syllable);
+    if (!layer) throw new Error("Layer not found");
+
+    const splitPaths = pathData
+      .split(/(?=M)/) // M을 기준으로 하되 M은 포함
+      .filter(path => path.trim() !== ""); // 빈 문자열 제거
+
+    // const compound = new paper.CompoundPath();
+
+    const path = new paper.Path(pathData);
+    path.parent = layer;
+    closePath(path);
+  }
 } export default CanvasService;
-
-
-
-

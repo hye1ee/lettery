@@ -81,51 +81,61 @@ export interface Tool {
 }
 
 /* Tools for AI models */
-export interface FunctionTool {
+export interface ModelBaseTool {
   name: string;
   description: string;
-  properties: FunctionToolObjectProperty;
+  properties: ModelBaseToolObjectProperty;
 }
 
-export type FunctionToolPropertyType =
+export type ModelBaseToolPropertyType =
   "object" |
   "string" |
   "number" |
   "boolean" |
   "array";
 
-export type FunctionToolProperty =
-  FunctionToolBaseProperty |
-  FunctionToolObjectProperty |
-  FunctionToolNumberProperty |
-  FunctionToolArrayProperty |
-  FunctionToolStringProperty;
+export type ModelBaseToolProperty =
+  ModelBaseToolBaseProperty |
+  ModelBaseToolObjectProperty |
+  ModelBaseToolNumberProperty |
+  ModelBaseToolArrayProperty |
+  ModelBaseToolStringProperty;
 
-export interface FunctionToolBaseProperty {
-  type: FunctionToolPropertyType;
+export interface ModelBaseToolBaseProperty {
+  type: ModelBaseToolPropertyType;
   description?: string;
 }
 
-export interface FunctionToolObjectProperty extends FunctionToolBaseProperty {
+export interface ModelBaseToolObjectProperty extends ModelBaseToolBaseProperty {
   type: "object";
-  properties: Record<string, FunctionToolProperty>;
+  properties: Record<string, ModelBaseToolProperty>;
   required: string[];
 }
 
-export interface FunctionToolNumberProperty extends FunctionToolBaseProperty {
+export interface ModelBaseToolNumberProperty extends ModelBaseToolBaseProperty {
   type: "number";
   minimum?: number;
   maximum?: number;
 }
 
-export interface FunctionToolArrayProperty extends FunctionToolBaseProperty {
+export interface ModelBaseToolArrayProperty extends ModelBaseToolBaseProperty {
   type: "array";
-  items?: FunctionToolProperty;
+  items?: ModelBaseToolProperty;
   minItems?: number;
   maxItems?: number;
 }
 
-export interface FunctionToolStringProperty extends FunctionToolBaseProperty {
+export interface ModelBaseToolStringProperty extends ModelBaseToolBaseProperty {
   type: "string";
   enum?: string[];
+}
+
+export interface ModelBaseInput {
+  role: "assistant" | "user";
+  content: string | ModelBaseInputData[];
+}
+
+export interface ModelBaseInputData {
+  type: "text" | "image";
+  data: string;
 }
