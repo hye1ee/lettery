@@ -8,118 +8,31 @@
   </head>
   <body>
     <div id="app">
-      <div class="header">
-        <span class="text-title">한글로 Hangulo</span>
-
-        <div class="header-actions">
-          <div class="header-action-buttons">
-            <button class="header-action-btn" id="zoom-out" title="Zoom Out">
-              <img src="/minus.svg" alt="Zoom Out" width="16" height="16" />
-            </button>
-            <span class="zoom-value" id="zoom-percentage">100%</span>
-            <button class="header-action-btn" id="zoom-in" title="Zoom In">
-              <img src="/plus.svg" alt="Zoom Out" width="16" height="16" />
-            </button>
-          </div>
-
-          <div class="header-action-buttons">
-            <button class="header-action-btn" id="undo" title="Undo">
-              <img src="/undo.svg" alt="Undo" width="16" height="16" />
-            </button>
-            <button class="header-action-btn" id="redo" title="Redo">
-              <img src="/redo.svg" alt="Redo" width="16" height="16" />
-            </button>
-          </div>
-
-          <button
-            class="header-action-btn"
-            id="layer-export-svg"
-            title="Export SVG"
-          >
-            <img src="/save.svg" alt="Export SVG" width="16" height="16" />
-          </button>
-        </div>
-      </div>
       <div class="body">
-        <!-- left panel-->
-        <div class="layer-panel left">
-          <!-- Letters Section -->
-          <div class="layer-section letters-section">
-            <div class="layer-header">
-              <span class="text-title">Syllables</span>
-              <div class="header-actions">
-                <button
-                  class="header-action-btn border"
-                  id="header-plus-btn"
-                  title="Add New Element"
-                >
-                  <img src="/plus.svg" alt="Add" width="16" height="16" />
-                </button>
-              </div>
-            </div>
-            <div class="layer-list" id="layer-list">
-              <!-- Layers will be dynamically added here -->
-            </div>
-          </div>
-
-          <!-- Paths Section -->
-          <div class="layer-section paths-section">
-            <div class="layer-header">
-              <div class="section-title">
-                <span class="text-title">Jamos</span>
-              </div>
-              <div class="header-actions">
-                <button
-                  class="header-action-btn border"
-                  id="jamo-plus-btn"
-                  title="Add Jamo Layer"
-                >
-                  <img src="/plus.svg" alt="Add" width="16" height="16" />
-                </button>
-                <button
-                  class="header-action-btn border"
-                  id="layer-import-svg"
-                  title="Import SVG"
-                >
-                  <img
-                    src="/import.svg"
-                    alt="Import SVG"
-                    width="16"
-                    height="16"
-                  />
-                </button>
-              </div>
-            </div>
-            <div class="paths-list" id="paths-list" data-sortable="true">
-              <!-- Active layer children will be displayed here -->
-            </div>
-          </div>
-        </div>
-
         <div class="canvas-container">
           <canvas id="vector-canvas" width="800" height="600"></canvas>
 
           <!-- Tool Panel -->
-          <div class="tool-panel">
+          <div class="tool-panel absolute left center-y card">
             <button id="hand-tool" class="tool-btn" title="Hand Tool (H)">
               <img src="/hand.svg" alt="Hand Tool" width="18" height="18" />
-              <div class="text-label">Move</div>
+              <!-- <div class="text-label">Move</div> -->
             </button>
             <button id="select-tool" class="tool-btn" title="Select Tool (V)">
               <img src="/select.svg" alt="Select Tool" width="18" height="18" />
-              <div class="text-label">Select</div>
+              <!-- <div class="text-label">Select</div> -->
             </button>
             <button id="edit-tool" class="tool-btn" title="Edit Tool (E)">
               <img src="/edit.svg" alt="Edit Tool" width="18" height="18" />
-              <div class="text-label">Edit</div>
+              <!-- <div class="text-label">Edit</div> -->
             </button>
             <button id="pencil-tool" class="tool-btn" title="Pencil Tool (P)">
               <img src="/pencil.svg" alt="Pencil Tool" width="18" height="18" />
-              <div class="text-label">Pencil</div>
+              <!-- <div class="text-label">Pencil</div> -->
             </button>
             <button id="pen-tool" class="tool-btn" title="Pen Tool (A)">
               <img src="/pen.svg" alt="Pen Tool" width="18" height="18" />
-              <div class="text-label">Pen</div>
+              <!-- <div class="text-label">Pen</div> -->
             </button>
             <button
               id="rectangle-tool"
@@ -132,7 +45,7 @@
                 width="18"
                 height="18"
               />
-              <div class="text-label">Rectangle</div>
+              <!-- <div class="text-label">Rectangle</div> -->
             </button>
             <button id="ellipse-tool" class="tool-btn" title="Ellipse Tool (L)">
               <img
@@ -141,12 +54,12 @@
                 width="18"
                 height="18"
               />
-              <div class="text-label">Ellipse</div>
+              <!-- <div class="text-label">Ellipse</div> -->
             </button>
           </div>
 
           <!-- Status Bar -->
-          <div class="status-bar">
+          <div class="status-bar absolute bottom left card">
             <span class="text-body" id="status-text">Ready</span>
             <span class="text-body" id="coordinates">X: 0, Y: 0</span>
           </div>
@@ -157,23 +70,105 @@
             class="context-menu text-body"
             style="display: none"
           ></div>
-        </div>
-        <div class="layer-panel right">
-          <!-- Agent Section -->
-          <div class="layer-section agent-section">
-            <div class="layer-header">
+
+          <!-- Left Header Title-->
+          <div class="header-section absolute left top card">
+            <span class="text-title">한글로 Hangulo</span>
+          </div>
+
+          <!-- Right Header Button -->
+          <div class="button-section absolute right top card">
+            <div class="button-section-item">
+              <button class="button" id="zoom-out" title="Zoom Out">
+                <img src="/minus.svg" alt="Zoom Out" width="16" height="16" />
+              </button>
+              <span class="zoom-value" id="zoom-percentage">100%</span>
+              <button class="button" id="zoom-in" title="Zoom In">
+                <img src="/plus.svg" alt="Zoom Out" width="16" height="16" />
+              </button>
+            </div>
+
+            <div class="button-section-item">
+              <button class="button" id="undo" title="Undo">
+                <img src="/undo.svg" alt="Undo" width="16" height="16" />
+              </button>
+              <button class="button" id="redo" title="Redo">
+                <img src="/redo.svg" alt="Redo" width="16" height="16" />
+              </button>
+            </div>
+
+            <button class="button" id="layer-export-svg" title="Export SVG">
+              <img src="/save.svg" alt="Export SVG" width="16" height="16" />
+            </button>
+          </div>
+
+          <!-- Action Section -->
+          <div class="action-section absolute right top">
+            <!-- Letters Section -->
+            <div class="action-section-item">
+              <div class="action-section-header card">
+                <span class="text-title">Syllables</span>
+                <div class="action-section-buttons">
+                  <button
+                    class="button border"
+                    id="header-plus-btn"
+                    title="Add New Element"
+                  >
+                    <img src="/plus.svg" alt="Add" width="16" height="16" />
+                  </button>
+                </div>
+              </div>
+              <div class="layer-list" id="layer-list">
+                <!-- Layers will be dynamically added here -->
+              </div>
+            </div>
+
+            <!-- Paths Section -->
+            <div class="action-section-item">
+              <div class="action-section-header card">
+                <div class="section-title">
+                  <span class="text-title">Jamos</span>
+                </div>
+                <div class="action-section-buttons">
+                  <button
+                    class="button border"
+                    id="jamo-plus-btn"
+                    title="Add Jamo Layer"
+                  >
+                    <img src="/plus.svg" alt="Add" width="16" height="16" />
+                  </button>
+                  <button
+                    class="button border"
+                    id="layer-import-svg"
+                    title="Import SVG"
+                  >
+                    <img
+                      src="/import.svg"
+                      alt="Import SVG"
+                      width="16"
+                      height="16"
+                    />
+                  </button>
+                </div>
+              </div>
+              <div class="paths-list" id="paths-list" data-sortable="true">
+                <!-- Active layer children will be displayed here -->
+              </div>
+            </div>
+          </div>
+
+          <!--Agent Section-->
+          <div class="agent-section absolute center-x bottom card">
+            <div class="action-section-header">
               <div class="section-title">
                 <span class="text-title">Gulo</span>
               </div>
-              <div class="header-actions"></div>
+              <div class="button-section"></div>
             </div>
             <div class="agent-content" id="agent-content">
-              <!-- Agent Status Label -->
               <div class="agent-status text-body" id="agent-status">
                 Create a layer to work with Gulo
               </div>
-
-              <!-- Agent Action Cards (dynamically generated) -->
               <div class="agent-actions" id="agent-actions-list"></div>
             </div>
           </div>

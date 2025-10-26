@@ -1,14 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg 
-  xmlns="http://www.w3.org/2000/svg"
-  width="24"
-  height="24"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="#000000"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M300 733.333H500C666.667 733.333 733.333 666.667 733.333 500V300C733.333 133.333 666.667 66.6667 500 66.6667H300C133.333 66.6667 66.6666 133.333 66.6666 300V500C66.6666 666.667 133.333 733.333 300 733.333Z" stroke="#292D32" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
