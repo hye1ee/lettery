@@ -37,11 +37,11 @@ export default class HandTool implements Tool {
     this.panPoint = event.point.clone();
   }
 
-  onMouseMove = (event: paper.ToolEvent): void => {
+  onMouseMove = (_event: paper.ToolEvent): void => {
     // TODO: Implement mouse move logic
   }
 
-  onMouseUp = (event: paper.ToolEvent): void => {
+  onMouseUp = (_event: paper.ToolEvent): void => {
     logger.updateStatus('end panning');
     cursor.updateCursor(this.cursorStyle);
 

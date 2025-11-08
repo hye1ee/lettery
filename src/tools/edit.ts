@@ -60,7 +60,9 @@ export default class EditTool implements Tool {
     cursor.resetCursor();
   }
 
-  private constructor() { }
+  private constructor() {
+    console.log(this.renderCallback);
+  }
 
   static getInstance(): EditTool {
     if (!EditTool.instance) {

@@ -7,7 +7,7 @@ export interface Syllable {
 
 }
 
-export type ItemClassName = 'Group' | 'Layer' | 'Path' | 'CompoundPath' | 'Shape' | 'Raster' | 'SymbolItem' | 'PointText';
+export type ItemClassName = 'Group' | 'Layer' | 'Path' | 'GuidePath' | 'CompoundPath' | 'Shape' | 'Raster' | 'SymbolItem' | 'PointText';
 
 export type ActionType = 'delete' | 'ungroup' | 'duplicate' | 'rotate' | 'scale' | 'move' | 'edit' | 'select' | 'deselect';
 

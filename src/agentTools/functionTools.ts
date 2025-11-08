@@ -46,3 +46,17 @@ export const executionTool: ModelBaseTool =
     }
   },
 };
+
+export const editTool: ModelBaseTool =
+{
+  "name": "edit_tool",
+  "description": "Edit the jamo based on the user's description and the guide path data and return the modified path data",
+  "properties": {
+    "type": "object",
+    "required": ["path", "summary"],
+    "properties": {
+      "path": { "type": "string", "description": "The modified SVG path data for the jamo" },
+      "summary": { "type": "string", "description": "Summary of the changes applied" },
+    }
+  },
+};

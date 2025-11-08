@@ -1,5 +1,52 @@
 import * as hangul from 'hangul-js';
 
+export const jamoGuideEditPrompt = (jamo: string, instruction: string | null) => `
+You are a Hangul typography vector assistant editing jamo '${jamo}' based on a blue guide sketch.
+
+[Input]
+- Current path data (black strokes to modify)
+- Guide sketch path data (blue hand-drawn overlay)
+- Preview image showing both overlaid
+
+[Task]
+Trace the blue guide's shape to create clean, smooth paths. The guide shows DESIRED OUTPUT SHAPE.
+Convert noisy hand-drawn guides into professional Bezier curves with minimum control points.
+
+[Key Principles]
+1. **Follow the Guide's Shape**
+   - Trace where the blue guide wants the path to go
+   - Focus on SHAPE intent, not exact position
+   - Make it SMOOTH - remove all noise, jitter, and irregularities
+
+2. **Simplify & Connect**
+   - Use minimal Bezier curves (minimize control points)
+   - Fill partial/discrete guide gaps to create complete strokes
+   - Connect naturally with existing strokes (smooth transitions, no abrupt jumps)
+
+3. **Preserve Structure**
+   - Keep jamo '${jamo}' recognizable
+   - Maintain essential stroke relationships
+   - Don't break topology or alter proportions drastically
+
+${instruction ? `
+[Text Instruction: "${instruction}"]
+Clarifies guide intent. If requests sharp/rough edges, respect it. Otherwise default to smooth curves.
+If conflicts with guide, prioritize guide (visual intent).
+` : ''}
+
+[Output]
+Use edit_tool to return modified SVG path data and a summary of changes.
+
+[What to Avoid]
+- Breaking continuity or creating gaps
+- Inverting/twisting strokes  
+- Overlapping unrelated strokes
+- Removing essential elements
+- Making jamo unrecognizable
+- Creating complex curves unless user explicitly requests detail
+
+`;
+
 export const jamoAnalysisPrompt = (jamo: string, workingLetters: string) => `
 You are a Hangul typography analysis assistant.
 Your goal is to analyze how a specific jamo has been modified from the original design,

@@ -128,32 +128,32 @@ export const tags = {
 
   // Element Action Buttons
   elementActionButtons: {
-    Group: (item: any) => `
+    Group: (_item: any) => `
       <button class="element-action-btn ungroup-btn" data-action="ungroup" title="Ungroup">
         <img src="/ungroup.svg" alt="Ungroup" width="12" height="12" />
       </button>
     `,
-    Path: (item: any) => `
+    Path: (_item: any) => `
       <button class="element-action-btn delete-btn" data-action="delete" title="Delete">
         <img src="/trash.svg" alt="Delete" width="12" height="12" />
       </button>
     `,
-    Shape: (item: any) => `
+    Shape: (_item: any) => `
       <button class="element-action-btn delete-btn" data-action="delete" title="Delete">
         <img src="/trash.svg" alt="Delete" width="12" height="12" />
       </button>
     `,
-    CompoundPath: (item: any) => `
+    CompoundPath: (_item: any) => `
       <button class="element-action-btn delete-btn" data-action="delete" title="Delete">
         <img src="/trash.svg" alt="Delete" width="12" height="12" />
       </button>
     `,
-    Layer: (item: any) => `
+    Layer: (_item: any) => `
       <button class="element-action-btn delete-btn" data-action="delete" title="Delete">
         <img src="/trash.svg" alt="Delete" width="12" height="12" />
       </button>
     `,
-    default: (item: any) => `
+    default: (_item: any) => `
       <button class="element-action-btn delete-btn" data-action="delete" title="Delete">
         <img src="/trash.svg" alt="Delete" width="12" height="12" />
       </button>
@@ -204,7 +204,7 @@ export const tags = {
     </div>
   `,
 
-  svgPreview: (beforePaths: string[]) => {
+  svgPreview: (beforePaths: string[], closed: boolean = true) => {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     beforePaths.forEach(d => {
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -238,7 +238,7 @@ export const tags = {
            xmlns="http://www.w3.org/2000/svg"
            preserveAspectRatio="xMidYMid meet">
         ${beforePaths
-        .map(d => `<path d="${d}" stroke="none" fill="black"/>`)
+        .map(d => `<path d="${d}" ${closed ? 'stroke="none" fill="black"' : 'stroke="black" fill="none"'}/>`)
         .join('')}
       </svg>
     `;
@@ -249,17 +249,70 @@ export const tags = {
       <div>
         <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">Before</p>
         <div class="svg-preview-item">
-          ${tags.svgPreview(beforePaths)}
+          ${tags.svgPreview(beforePaths, true)}
         </div>
       </div>
       <div>
         <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">After</p>
         <div class="svg-preview-item">
-          ${tags.svgPreview(afterPaths)}
+          ${tags.svgPreview(afterPaths, true)}
         </div>
       </div>
     </div>
   `,
+
+  svgMixedPreview: (closedPaths: string[], openedPaths: string[]) => {
+    // Create a temporary SVG to calculate bounding box
+    const allPaths = [...closedPaths, ...openedPaths];
+    if (allPaths.length === 0) {
+      return '<svg width="100" height="100"><text>No paths</text></svg>';
+    }
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    allPaths.forEach(d => {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'black');
+      path.setAttribute('stroke', 'none');
+      svg.appendChild(path);
+    });
+    document.body.appendChild(svg);
+
+    // calculate the bounding box
+    const paths = svg.querySelectorAll('path');
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    paths.forEach(p => {
+      const b = p.getBBox();
+      minX = Math.min(minX, b.x);
+      minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.width);
+      maxY = Math.max(maxY, b.y + b.height);
+    });
+
+    // apply padding and set viewBox
+    const padding = 5;
+    const viewBox = `${minX - padding} ${minY - padding} ${maxX - minX + padding * 2} ${maxY - minY + padding * 2}`;
+
+    document.body.removeChild(svg);
+
+    const closedPathsSvg = closedPaths
+      .map(d => `<path d="${d}" stroke="none" fill="black"/>`)
+      .join('');
+
+    const openedPathsSvg = openedPaths
+      .map(d => `<path d="${d}" stroke="blue" fill="none"/>`)
+      .join('');
+
+    return `
+      <svg width="100" height="100"
+           viewBox="${viewBox}"
+           xmlns="http://www.w3.org/2000/svg"
+           preserveAspectRatio="xMidYMid meet">
+        ${closedPathsSvg}
+        ${openedPathsSvg}
+      </svg>
+    `;
+  },
 
   markdown: (markdownText: string) => {
     if (!markdownText || typeof markdownText !== 'string') {
@@ -440,7 +493,7 @@ export const setSortableCompoundPath = (container: HTMLElement): Sortable => {
   return new Sortable(container, {
     group: {
       name: 'compoundPath',
-      put: (to, from, dragEl) => {
+      put: (_to, _from, dragEl) => {
         return dragEl.dataset.elementClassName === 'Path' || dragEl.dataset.elementClassName === 'Shape';
       },
     },

@@ -55,11 +55,11 @@ export default class RectangleTool implements Tool {
     logger.updateStatus('Rectangle started - Drag to set size');
   }
 
-  onMouseMove = (event: paper.ToolEvent): void => {
+  onMouseMove = (_event: paper.ToolEvent): void => {
     // Optional: Could show preview on hover
   }
 
-  onMouseUp = (event: paper.ToolEvent): void => {
+  onMouseUp = (_event: paper.ToolEvent): void => {
     if (!this.startPoint || !this.rectangle) return;
     if (Math.abs(this.rectangle.size.width) > 0.1) { // ignore if the rectangle is not dragged
 

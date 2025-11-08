@@ -80,7 +80,7 @@ export class AnthropicModel extends BaseModel<Anthropic> {
             if (content.type === "text") {
               return { type: "text", text: content.data };
             } else if (content.type === "image") {
-              return { type: "image", source: { type: "base64", data: content.data, media_type: 'image/png' } };
+              return { type: "image", source: { type: "base64", data: content.data.includes("base64") ? content.data.split(",")[1] : content.data, media_type: 'image/png' } };
             }
           }),
         }

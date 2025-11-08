@@ -15,7 +15,7 @@ export class OpenAIModel extends BaseModel<OpenAI> {
 
   private constructor(modelConfig: ModelConfig) {
     super(modelConfig);
-    this.model = new OpenAI({ apiKey: this.modelConfig.apiKey });
+    this.model = new OpenAI({ apiKey: this.modelConfig.apiKey, dangerouslyAllowBrowser: true });
   }
 
   public static getInstance(modelConfig: ModelConfig): OpenAIModel {
@@ -34,7 +34,8 @@ export class OpenAIModel extends BaseModel<OpenAI> {
         // With tools
         const response = await this.model.responses.create({
           model: this.modelConfig.modelName,
-          input: input as OpenAIInputType[],
+          input: this.formatInput(input),
+          tool_choice: "required",
           tools: this.formatTools(tools),
           instructions,
           // reasoning: { effort: "low" },
@@ -44,7 +45,7 @@ export class OpenAIModel extends BaseModel<OpenAI> {
         // Without tools
         const response = await this.model.responses.create({
           model: this.modelConfig.modelName,
-          input: input as OpenAIInputType[],
+          input: this.formatInput(input),
           instructions,
           // reasoning: { effort: "low" },
         });
@@ -56,11 +57,69 @@ export class OpenAIModel extends BaseModel<OpenAI> {
   }
 
   public formatTools(tools: ModelBaseTool[]): OpenAIToolType[] {
-    return [];
+    return tools.map(tool => {
+      return {
+        type: "function",
+        name: tool.name,
+        description: tool.description,
+        parameters: this.formatToolProperties(tool.properties, false),
+        strict: true,
+      } as OpenAI.Responses.FunctionTool;
+    });
+  }
+
+  private formatToolProperties(properties: any, optional: boolean): any {
+    if (properties.type === "object") {
+      const required = properties.required;
+      const keys = Object.keys(properties.properties);
+
+      keys.forEach(key => {
+        if (required.includes(key)) properties.properties[key] = this.formatToolProperties(properties.properties[key], false);
+        else properties.properties[key] = this.formatToolProperties(properties.properties[key], true);
+      });
+
+      return {
+        type: "object",
+        properties: properties.properties,
+        required: keys,
+        additionalProperties: false,
+      } as any;
+    } else if (properties.type === "array") {
+      properties.items = this.formatToolProperties(properties.items, false);
+      return properties;
+    }
+
+    // other types
+    if (optional && !Array.isArray(properties.type)) {
+      properties.type = [properties.type, "null"];
+    }
+    return properties;
   }
 
   public formatInput(input: ModelBaseInput[]): OpenAIInputType[] {
-    return input as OpenAIInputType[];
+    return input.map(item => {
+
+      if (typeof item.content === "string") {
+        return {
+          role: item.role,
+          content: item.content,
+          type: "message"
+        };
+      } else if (Array.isArray(item.content)) {
+        return {
+          role: item.role,
+          content: item.content.map(content => {
+            if (content.type === "text") {
+              return { type: "input_text", text: content.data };
+            } else if (content.type === "image") {
+              return { type: "input_image", detail: "auto", image_url: content.data.includes("base64") ? content.data : "data:image/png;base64," + content.data, };
+            }
+          }),
+          type: "message"
+        }
+      }
+
+    }) as OpenAIInputType[];
   }
 
   /*----------------------------------------

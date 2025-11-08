@@ -48,6 +48,7 @@ class UIService {
     'Group': 0,
     'Layer': 0,
     'Path': 0,
+    'GuidePath': 0,
     'CompoundPath': 0,
     'Shape': 0,
     'Raster': 0,
@@ -56,7 +57,7 @@ class UIService {
   };
   private itemListContainer: HTMLElement | null = null;
 
-  private selectedItemIds: string[] = [];
+  // private selectedItemIds: string[] = [];
   private syllables: Syllable[] = [];
 
   private constructor() { }
@@ -176,6 +177,9 @@ class UIService {
     if (!item.name) {
       this.itemIndex[item.className as ItemClassName]++;
       item.name = `${item.className} ${this.itemIndex[item.className as ItemClassName]}`;
+    } else if (item.name === 'guide') {
+      this.itemIndex['GuidePath']++;
+      item.name = `GuidePath ${this.itemIndex['GuidePath']}`;
     }
     // create path item div
 
@@ -271,7 +275,7 @@ class UIService {
     // }
   }
 
-  private handleItemClick(e: MouseEvent, item: paper.Item): void {
+  private handleItemClick(_e: MouseEvent, item: paper.Item): void {
     console.log('Layer panel item clicked:', item.name, 'ID:', item.id, 'Type:', item.className);
 
     if (item instanceof paper.CompoundPath) console.log(item.pathData);

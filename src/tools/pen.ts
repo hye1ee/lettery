@@ -57,7 +57,7 @@ export default class PenTool implements Tool {
     logger.updateStatus('Pen tool - click to add points, drag to adjust curves');
   }
 
-  onMouseMove = (event: paper.ToolEvent): void => {
+  onMouseMove = (_event: paper.ToolEvent): void => {
     // TODO: Implement mouse move logic
   }
 

@@ -5,9 +5,10 @@ import paper from 'paper';
  */
 import { colors } from '../utils/styles';
 import type { DrawingState } from '../types';
-import { closePath, findParentLayer, ungroupItem, ungroupSVG } from '../utils/paperUtils';
+import { closePath, findParentLayer, ungroupSVG } from '../utils/paperUtils';
 import { boundingBox, logger, previewBox, zoom } from '../helpers';
 import { uiService } from '.';
+import { grid } from '../helpers';
 
 
 class CanvasService {
@@ -79,15 +80,17 @@ class CanvasService {
 
     // Ensure there's always an active layer
     // this.ensureActiveLayer();
+    console.log(this.point);
 
   }
 
 
   createSystemLayer(): void {
-    const helperLayer = new paper.Layer();
-    helperLayer.visible = true;
-    helperLayer.name = 'system-helper';
-    this.project?.addLayer(helperLayer);
+    if (!this.project || !this.view) {
+      throw new Error('Project or view not initialized');
+    }
+
+    grid.init(this.project, this.view);
   }
 
   initHelpers(): void {
@@ -197,7 +200,7 @@ class CanvasService {
   }
 
 
-  importFont(file: File): void {
+  importFont(_file: File): void {
     const reader = new FileReader();
     reader.onload = (e) => {
       const font = e.target?.result as string;
@@ -675,9 +678,9 @@ class CanvasService {
     const layer = paper.project.layers.find((layer: any) => layer.name === jamo && layer.data.syllableString === syllable);
     if (!layer) throw new Error("Layer not found");
 
-    const splitPaths = pathData
-      .split(/(?=M)/) // M을 기준으로 하되 M은 포함
-      .filter(path => path.trim() !== ""); // 빈 문자열 제거
+    // const splitPaths = pathData
+    //   .split(/(?=M)/) // M을 기준으로 하되 M은 포함
+    //   .filter(path => path.trim() !== ""); // 빈 문자열 제거
 
     // const compound = new paper.CompoundPath();
 

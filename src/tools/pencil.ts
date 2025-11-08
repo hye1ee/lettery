@@ -1,8 +1,8 @@
 import paper from 'paper'
 import type { Tool } from '../types'
 import { cursor, logger } from '../helpers';
-import { colors } from '../utils/styles';
-import { closePath, simplifyPath } from '../utils/paperUtils';
+// import { colors } from '../utils/styles';
+import { simplifyPath } from '../utils/paperUtils';
 import { historyService } from '../services';
 
 export default class PencilTool implements Tool {
@@ -44,14 +44,14 @@ export default class PencilTool implements Tool {
     this.renderCallback?.();
 
     this.path.selected = true;
-    this.path.strokeColor = new paper.Color(colors.black);
+    this.path.strokeColor = new paper.Color("#CEE8FF");
     this.path.strokeWidth = 1;
     this.path.add(event.point);
 
     logger.updateStatus('Pencil drawing started')
   }
 
-  onMouseMove = (event: paper.ToolEvent): void => {
+  onMouseMove = (_event: paper.ToolEvent): void => {
     // TODO: Implement mouse move logic
   }
 
@@ -60,9 +60,10 @@ export default class PencilTool implements Tool {
 
     this.path.add(event.point);
     const result = simplifyPath(this.path);
-    closePath(this.path);
+    // closePath(this.path);
 
     this.path.selected = false;
+    this.path.name = "guide";
     this.path = null;
 
     historyService.saveSnapshot("pencil");

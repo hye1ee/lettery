@@ -56,11 +56,11 @@ export default class EllipseTool implements Tool {
     logger.updateStatus('Ellipse started - Drag to set size');
   }
 
-  onMouseMove = (event: paper.ToolEvent): void => {
+  onMouseMove = (_event: paper.ToolEvent): void => {
     // Optional: Could show preview on hover
   }
 
-  onMouseUp = (event: paper.ToolEvent): void => {
+  onMouseUp = (_event: paper.ToolEvent): void => {
     if (!this.startPoint || !this.ellipse) return;
     if (Math.abs(this.ellipse.size.width) > 0.1) { // ignore if the ellipse is not dragged
 
