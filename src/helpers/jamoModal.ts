@@ -147,7 +147,7 @@ class JamoModal {
             const textItems = await fontLoader.importTextToPaper(
               jamoText,
               selectedFont,
-              100,
+              300,
               targetLayer
             );
             if (index !== 0) {
@@ -173,7 +173,7 @@ class JamoModal {
           await fontLoader.importTextToPaper(
             inputText,
             selectedFont,
-            100,
+            300,
             targetLayer
           );
         }

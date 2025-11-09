@@ -12,6 +12,9 @@ class FontLoader {
   private fontPaths: Map<string, string> = new Map([
     ['Noto Sans KR', '/fonts/NotoSansKR.ttf'],
     ['Noto Serif KR', '/fonts/NotoSerifKR.ttf'],
+    ['Diphylleia', '/fonts/Diphylleia.ttf'],
+    ['Dongle', '/fonts/Dongle.ttf'],
+    ['Gowun Batang', '/fonts/GowunBatang.ttf'],
   ]);
 
   private constructor() { }
