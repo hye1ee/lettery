@@ -1,3 +1,5 @@
+import { translate } from '../i18n';
+
 class Logger {
   private static instance: Logger | null = null;
   private statusElement: HTMLSpanElement | null = null;
@@ -69,7 +71,7 @@ class Logger {
    */
   error(message: string, error?: any): void {
     console.error(`[Logger] ${message}`, error || '');
-    this.updateStatus(`Error: ${message}`)
+    this.updateStatus(translate('logger.error', { message }));
   }
 
   /**
@@ -77,7 +79,7 @@ class Logger {
    */
   warn(message: string, data?: any): void {
     console.warn(`[Logger] ${message}`, data || '');
-    this.updateStatus(`Warning: ${message}`)
+    this.updateStatus(translate('logger.warning', { message }));
   }
 }
 

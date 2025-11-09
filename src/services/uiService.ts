@@ -4,6 +4,7 @@ import { tags, updateLayerSelection, updateItemSelection, clearItemSelection, se
 import { logger, syllableModal, jamoModal } from '../helpers';
 import type { ItemClassName, Syllable } from '../types';
 import { toolService, agentService } from '.';
+import { translate, translateToolName } from '../i18n';
 
 /**
  * Manages UI rendering, user interactions, and canvas-UI synchronization
@@ -493,12 +494,18 @@ class UIService {
       // update tools
       const activeTool = agentService.getActiveToolName();
       if (activeTool) {
-        statusElement.textContent = `${activeTool} on layer '${activeLayer.name}'`;
+        const layerName = activeLayer.name || translate('agent.status.layer.untitled');
+        const toolName = translateToolName(activeTool);
+        statusElement.textContent = translate('agent.status.tool', {
+          tool: toolName,
+          layer: layerName,
+        });
       } else {
-        statusElement.textContent = `Work with agent Gulo on layer '${activeLayer.name}'`;
+        const layerName = activeLayer.name || translate('agent.status.layer.untitled');
+        statusElement.textContent = translate('agent.status.active', { layer: layerName });
       }
     } else {
-      statusElement.textContent = 'Create a layer to work with Gulo';
+      statusElement.textContent = translate('agent.status.empty');
     }
   }
 

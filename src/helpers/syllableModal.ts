@@ -1,5 +1,5 @@
 import paper from 'paper';
-import * as hangul from 'hangul-js';
+import { decomposeSyllable } from '../utils/hangul';
 import { v4 as uuidv4 } from 'uuid';
 import { tags } from '../utils/tags';
 import { logger } from '.';
@@ -109,7 +109,7 @@ class SyllableModal {
     const syllables: Syllable[] = [];
 
     letters.forEach((letter) => {
-      const disassembled = hangul.disassemble(letter);
+      const disassembled = decomposeSyllable(letter);
 
       // Create syllable object
       const syllable: Syllable = {

@@ -44,8 +44,8 @@ export default class PencilTool implements Tool {
     this.renderCallback?.();
 
     this.path.selected = true;
-    this.path.strokeColor = new paper.Color("#CEE8FF");
-    this.path.strokeWidth = 1;
+    this.path.strokeColor = new paper.Color("#6FC9F0");
+    this.path.strokeWidth = 10;
     this.path.add(event.point);
 
     logger.updateStatus('Pencil drawing started')

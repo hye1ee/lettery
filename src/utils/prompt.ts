@@ -1,4 +1,4 @@
-import * as hangul from 'hangul-js';
+import { decomposeSyllable } from './hangul';
 
 export const jamoGuideEditPrompt = (jamo: string, instruction: string | null) => `
 You are a Hangul typography vector assistant editing jamo '${jamo}' based on a blue guide sketch.
@@ -164,7 +164,7 @@ export const generateWorkingLetters = (
 ) => {
   const decomposed = [...wholeWord].map((syll) => ({
     syllable: syll,
-    jamos: hangul.disassemble(syll),
+    jamos: decomposeSyllable(syll),
   }));
 
   const otherJamosFormatted = decomposed

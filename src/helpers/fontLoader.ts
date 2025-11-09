@@ -55,7 +55,7 @@ class FontLoader {
   public async createTextPath(
     text: string,
     fontName: string,
-    fontSize: number = 100
+    fontSize: number = 200
   ): Promise<string> {
     const font = await this.loadFont(fontName);
 
@@ -81,9 +81,9 @@ class FontLoader {
   public async importTextToPaper(
     text: string,
     fontName: string,
-    fontSize: number = 100,
+    fontSize: number = 200,
     targetLayer?: paper.Layer
-  ): Promise<paper.Item> {
+  ): Promise<paper.Item[]> {
     const svg = await this.createTextPath(text, fontName, fontSize);
 
     // Create a temporary container to parse SVG
@@ -104,11 +104,8 @@ class FontLoader {
     } else {
       paper.project.activeLayer.addChild(importedItem);
     }
-    ungroupSVG(importedItem);
-    // Center the item
     importedItem.position = paper.view.center;
-
-    return importedItem;
+    return ungroupSVG(importedItem);
   }
 
   /**

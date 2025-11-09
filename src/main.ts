@@ -4,6 +4,7 @@ import { selectTool, pencilTool, penTool, handTool, editTool, rectangleTool, ell
 import { cursor, logger, contextMenu } from './helpers'
 import { guidedEditTool, smartPropagationTool } from './agentTools'
 import { ModelProvider } from './models'
+import { initI18n, translate } from './i18n'
 
 
 let layerImportSvgBtn: HTMLButtonElement
@@ -153,7 +154,7 @@ const initCanvas = () => {
   });
 
   // Initialize UI
-  logger.updateStatus('Vector editor ready. Use V for select, P for pencil, A for pen');
+  logger.updateStatus(translate('logger.ready'));
 }
 
 const initTools = () => {
@@ -183,7 +184,9 @@ const initTools = () => {
 }
 
 
+initI18n();
 initApp();
+
 
 
 

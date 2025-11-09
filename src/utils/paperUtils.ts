@@ -1,5 +1,7 @@
 import paper from 'paper'
 import { colors } from './styles';
+import { isHorizontalVowel, isComplexVowel, isVerticalVowel } from './hangul';
+
 
 export const findParentLayer = (item: paper.Item): paper.Layer | null => {
   if (item instanceof paper.Layer) {
@@ -125,14 +127,44 @@ export const rgbaToPaperColor = (rgba: { r: number, g: number, b: number, a?: nu
   return new paper.Color(rgba.r, rgba.g, rgba.b, rgba.a);
 }
 
-export const ungroupSVG = (item: paper.Item): void => {
-  if (!(item instanceof paper.Group)) return;
+export const ungroupSVG = (item: paper.Item): paper.Item[] => {
+  if (!(item instanceof paper.Group)) return [];
+
+  const newItems: paper.Item[] = [];
 
   item.children.forEach(child => {
     if (child instanceof paper.Path || child instanceof paper.CompoundPath) {
       const newChild = child.clone();
+
       item.parent?.addChild(newChild);
+      newItems.push(newChild);
     }
   });
   item.remove();
+  return newItems;
+}
+
+export const getTranslationVector = (text: string, textItems: paper.Item[]): paper.Point => {
+  // [1] get bounding box size
+  let bounds = textItems[0].bounds;
+  textItems.forEach(item => {
+    bounds = bounds.unite(item.bounds);
+  });
+  const width = bounds.width;
+  const height = bounds.height;
+  const scale = 1;
+
+  // if korean vowel
+  if (isVerticalVowel(text)) {
+    return new paper.Point(width * scale, 0);
+  }
+  else if (isHorizontalVowel(text)) {
+    return new paper.Point(0, height * scale);
+  }
+  else if (isComplexVowel(text)) {
+    return new paper.Point(width * scale / 4, height * scale / 2);
+  }
+  else { // consonant
+    return new paper.Point(0, height * scale);
+  }
 }

@@ -130,8 +130,8 @@ class Grid {
 
     this.group.removeChildren();
 
-    const minorStroke = new paper.Color(0.890, 0.965, 0.905);
-    const majorStroke = new paper.Color(0.808, 0.941, 0.835);
+    const minorStroke = new paper.Color(0.890, 0.965, 1.000);
+    const majorStroke = new paper.Color(0.725, 0.902, 1.000);
     const strokeWidth = 1 / this.view.zoom;
     const majorEvery = 5;
 

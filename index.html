@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/hangulo_logo_round.png" />
+    <link rel="icon" type="image/png" href="/hangulo_logo_icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>한글로 Hangulo</title>
   </head>
@@ -14,30 +14,56 @@
 
           <!-- Tool Panel -->
           <div class="tool-panel absolute left center-y card">
-            <button id="hand-tool" class="tool-btn" title="Hand Tool (H)">
+            <button
+              id="hand-tool"
+              class="tool-btn"
+              title="손 도구 (H)"
+              data-i18n-title="tool.hand"
+            >
               <img src="/hand.svg" alt="Hand Tool" width="18" height="18" />
               <!-- <div class="text-label">Move</div> -->
             </button>
-            <button id="select-tool" class="tool-btn" title="Select Tool (V)">
+            <button
+              id="select-tool"
+              class="tool-btn"
+              title="선택 도구 (V)"
+              data-i18n-title="tool.select"
+            >
               <img src="/select.svg" alt="Select Tool" width="18" height="18" />
               <!-- <div class="text-label">Select</div> -->
             </button>
-            <button id="edit-tool" class="tool-btn" title="Edit Tool (E)">
+            <button
+              id="edit-tool"
+              class="tool-btn"
+              title="편집 도구 (E)"
+              data-i18n-title="tool.edit"
+            >
               <img src="/edit.svg" alt="Edit Tool" width="18" height="18" />
               <!-- <div class="text-label">Edit</div> -->
             </button>
-            <button id="pencil-tool" class="tool-btn" title="Pencil Tool (P)">
+            <button
+              id="pencil-tool"
+              class="tool-btn"
+              title="연필 도구 (P)"
+              data-i18n-title="tool.pencil"
+            >
               <img src="/pencil.svg" alt="Pencil Tool" width="18" height="18" />
               <!-- <div class="text-label">Pencil</div> -->
             </button>
-            <button id="pen-tool" class="tool-btn" title="Pen Tool (A)">
+            <button
+              id="pen-tool"
+              class="tool-btn"
+              title="펜 도구 (A)"
+              data-i18n-title="tool.pen"
+            >
               <img src="/pen.svg" alt="Pen Tool" width="18" height="18" />
               <!-- <div class="text-label">Pen</div> -->
             </button>
             <button
               id="rectangle-tool"
               class="tool-btn"
-              title="Rectangle Tool (R)"
+              title="사각형 도구 (R)"
+              data-i18n-title="tool.rectangle"
             >
               <img
                 src="/rectangle.svg"
@@ -47,7 +73,12 @@
               />
               <!-- <div class="text-label">Rectangle</div> -->
             </button>
-            <button id="ellipse-tool" class="tool-btn" title="Ellipse Tool (L)">
+            <button
+              id="ellipse-tool"
+              class="tool-btn"
+              title="타원 도구 (L)"
+              data-i18n-title="tool.ellipse"
+            >
               <img
                 src="/ellipse.svg"
                 alt="Ellipse Tool"
@@ -60,7 +91,9 @@
 
           <!-- Status Bar -->
           <div class="status-bar absolute bottom left card">
-            <span class="text-body" id="status-text">Ready</span>
+            <span class="text-body" id="status-text" data-i18n="ui.status.ready"
+              >준비 완료</span
+            >
             <span class="text-body" id="coordinates">X: 0, Y: 0</span>
           </div>
 
@@ -77,32 +110,57 @@
               src="/hangulo_logo_line.png"
               alt="Hangulo Logo"
               width="auto"
-              height="68"
+              height="72"
             />
           </div>
 
           <!-- Right Header Button -->
           <div class="button-section absolute right top card">
             <div class="button-section-item">
-              <button class="button" id="zoom-out" title="Zoom Out">
+              <button
+                class="button"
+                id="zoom-out"
+                title="축소"
+                data-i18n-title="button.zoomOut"
+              >
                 <img src="/minus.svg" alt="Zoom Out" width="16" height="16" />
               </button>
-              <span class="zoom-value" id="zoom-percentage">100%</span>
-              <button class="button" id="zoom-in" title="Zoom In">
+              <!-- <span class="zoom-value" id="zoom-percentage">100%</span> -->
+              <button
+                class="button"
+                id="zoom-in"
+                title="확대"
+                data-i18n-title="button.zoomIn"
+              >
                 <img src="/plus.svg" alt="Zoom Out" width="16" height="16" />
               </button>
             </div>
 
             <div class="button-section-item">
-              <button class="button" id="undo" title="Undo">
+              <button
+                class="button"
+                id="undo"
+                title="되돌리기"
+                data-i18n-title="button.undo"
+              >
                 <img src="/undo.svg" alt="Undo" width="16" height="16" />
               </button>
-              <button class="button" id="redo" title="Redo">
+              <button
+                class="button"
+                id="redo"
+                title="다시 실행"
+                data-i18n-title="button.redo"
+              >
                 <img src="/redo.svg" alt="Redo" width="16" height="16" />
               </button>
             </div>
 
-            <button class="button" id="layer-export-svg" title="Export SVG">
+            <button
+              class="button"
+              id="layer-export-svg"
+              title="SVG 내보내기"
+              data-i18n-title="button.exportSvg"
+            >
               <img src="/save.svg" alt="Export SVG" width="16" height="16" />
             </button>
           </div>
@@ -111,13 +169,16 @@
           <div class="action-section absolute right top">
             <!-- Letters Section -->
             <div class="action-section-item">
-              <div class="action-section-header card">
-                <span class="text-title">Syllables</span>
+              <div class="action-section-header">
+                <span class="text-body" data-i18n="sidebar.syllables"
+                  >음절</span
+                >
                 <div class="action-section-buttons">
                   <button
-                    class="button border"
+                    class="button"
                     id="header-plus-btn"
-                    title="Add New Element"
+                    title="새 요소 추가"
+                    data-i18n-title="button.addElement"
                   >
                     <img src="/plus.svg" alt="Add" width="16" height="16" />
                   </button>
@@ -130,22 +191,24 @@
 
             <!-- Paths Section -->
             <div class="action-section-item">
-              <div class="action-section-header card">
+              <div class="action-section-header">
                 <div class="section-title">
-                  <span class="text-title">Jamos</span>
+                  <span class="text-body" data-i18n="sidebar.jamos">자모</span>
                 </div>
                 <div class="action-section-buttons">
                   <button
-                    class="button border"
+                    class="button"
                     id="jamo-plus-btn"
-                    title="Add Jamo Layer"
+                    title="자모 레이어 추가"
+                    data-i18n-title="button.addJamoLayer"
                   >
                     <img src="/plus.svg" alt="Add" width="16" height="16" />
                   </button>
                   <button
-                    class="button border"
+                    class="button"
                     id="layer-import-svg"
-                    title="Import SVG"
+                    title="SVG 가져오기"
+                    data-i18n-title="button.importSvg"
                   >
                     <img
                       src="/import.svg"
@@ -165,8 +228,12 @@
           <!--Agent Section-->
           <div class="agent-section absolute center-x bottom card">
             <div class="agent-content" id="agent-content">
-              <div class="agent-status text-body" id="agent-status">
-                Create a layer to work with Gulo
+              <div
+                class="agent-status text-body"
+                id="agent-status"
+                data-i18n="agent.status.empty"
+              >
+                작업할 레이어를 생성해주세요
               </div>
               <div class="agent-actions" id="agent-actions-list"></div>
             </div>

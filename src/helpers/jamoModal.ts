@@ -1,8 +1,9 @@
 import paper from 'paper';
-import * as hangul from 'hangul-js';
 import { tags } from '../utils/tags';
 import { logger, fontLoader } from '.';
 import { uiService } from '../services';
+import { getTranslationVector } from '../utils/paperUtils';
+import { decomposeSyllable, isVerticalVowel } from '../utils/hangul';
 
 /**
  * Singleton class for managing jamo modal
@@ -113,7 +114,7 @@ class JamoModal {
       // Decompose each syllable into jamos
       const syllables = text.split('').filter(char => char.trim() !== '');
       syllables.forEach(syllable => {
-        const jamos = hangul.disassemble(syllable);
+        const jamos = decomposeSyllable(syllable);
         previewItems.push(...jamos);
       });
     } else {
@@ -143,15 +144,24 @@ class JamoModal {
 
           if (targetLayer) {
             // Create text path using fontLoader
-            const textItem = await fontLoader.importTextToPaper(
+            const textItems = await fontLoader.importTextToPaper(
               jamoText,
               selectedFont,
               100,
               targetLayer
             );
+            if (index !== 0) {
+              let translationVector = getTranslationVector(jamoText, textItems);
 
-            // Position at view center with offset for multiple items
-            textItem.position = paper.view.center.clone().add(new paper.Point(index * 100, 0));
+              if (index === 2 && !isVerticalVowel(syllable.jamo[1])) {
+                translationVector = translationVector.multiply(3)
+              }
+              textItems.forEach(textItem => {
+                textItem.position = textItem.position.add(translationVector);
+              });
+            }
+
+
           }
         }
       } else {
@@ -160,14 +170,12 @@ class JamoModal {
 
         if (targetLayer) {
           // Create text path for the whole syllable
-          const textItem = await fontLoader.importTextToPaper(
+          await fontLoader.importTextToPaper(
             inputText,
             selectedFont,
             100,
             targetLayer
           );
-
-          textItem.position = paper.view.center;
         }
       }
 

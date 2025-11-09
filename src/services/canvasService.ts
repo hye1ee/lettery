@@ -511,8 +511,26 @@ class CanvasService {
       (item as any).originalFillColor = item.fillColor ? item.fillColor.clone() : null;
     }
 
-    // Apply brown fill color
-    item.fillColor = new paper.Color(colors.secondary);
+    if (!(item as any).originalStrokeColor) {
+      (item as any).originalStrokeColor = item.strokeColor ? item.strokeColor.clone() : null;
+    }
+
+    const isClosed =
+      item instanceof paper.Path && item.closed ||
+      item instanceof paper.CompoundPath && Array.from(item.children).every(child => child instanceof paper.Path ? child.closed : true) ||
+      item instanceof paper.Shape;
+
+    if (isClosed) {
+      item.fillColor = new paper.Color(colors.secondary);
+      if (item.strokeColor) {
+        item.strokeColor = item.strokeColor.clone();
+      }
+    } else {
+      item.strokeColor = new paper.Color(colors.secondary);
+      if (item.fillColor) {
+        item.fillColor = item.fillColor.clone();
+      }
+    }
   }
 
   /**
@@ -527,6 +545,11 @@ class CanvasService {
     if ((item as any).originalFillColor !== undefined) {
       item.fillColor = (item as any).originalFillColor;
       (item as any).originalFillColor = undefined;
+    }
+
+    if ((item as any).originalStrokeColor !== undefined) {
+      item.strokeColor = (item as any).originalStrokeColor;
+      (item as any).originalStrokeColor = undefined;
     }
   }
 

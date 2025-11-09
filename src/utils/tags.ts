@@ -4,36 +4,46 @@ import paper from 'paper';
 import Sortable from "sortablejs";
 import type { AgentTool, ItemClassName } from "../types";
 import { fontLoader } from "../helpers";
+import { translate, translateToolName, translateToolDescription } from "../i18n";
 
 export const tags = {
   // Modal Templates
-  syllableModal: () => `
+  syllableModal: () => {
+    const title = translate('modal.syllable.title');
+    const close = translate('modal.close');
+    const inputLabel = translate('modal.syllable.inputLabel');
+    const placeholder = translate('modal.syllable.placeholder');
+    const previewLabel = translate('modal.syllable.preview');
+    const confirm = translate('modal.syllable.confirm');
+
+    return `
     <div class="modal-header">
-      <h2 class="text-title">Add Korean Letters</h2>
-      <button class="modal-close-btn" id="modal-close-btn">
-        <img src="/x.svg" alt="Close" width="16" height="16" />
+      <h2 class="text-title">${title}</h2>
+      <button class="modal-close-btn" id="modal-close-btn" title="${close}">
+        <img src="/x.svg" alt="${close}" width="16" height="16" />
       </button>
     </div>
     <div class="modal-body">
       <div class="modal-group">
-        <label for="korean-input" class="text-body">Enter Korean words:</label>
+        <label for="korean-input" class="text-body">${inputLabel}</label>
         <input 
           type="text" 
           id="korean-input" 
           class="modal-input" 
-          placeholder="안녕하세요"
+          placeholder="${placeholder}"
           maxlength="50"
         />
       </div>
       <div class="modal-group">
-        <label class="text-body">Preview:</label>
+        <label class="text-body">${previewLabel}</label>
         <div id="letter-preview" class="letter-preview"></div>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-btn text-body" id="modal-confirm-btn">Create Layers</button>
+      <button class="modal-btn text-body" id="modal-confirm-btn">${confirm}</button>
     </div>
-  `,
+  `;
+  },
 
   jamoModal: (syllable: string) => {
     const fontList = fontLoader.getFontList();
@@ -41,44 +51,54 @@ export const tags = {
       `<option value="${font.value}">${font.name}</option>`
     ).join('');
 
+    const title = translate('modal.jamo.title');
+    const close = translate('modal.close');
+    const info = translate('modal.jamo.info', { syllable });
+    const fontLabel = translate('modal.jamo.fontLabel');
+    const loadAs = translate('modal.jamo.loadAs');
+    const decomposed = translate('modal.jamo.option.decomposed');
+    const composed = translate('modal.jamo.option.composed');
+    const previewLabel = translate('modal.jamo.preview');
+    const confirm = translate('modal.jamo.confirm');
+
     return `
       <div class="modal-header">
-         <h2 class="text-title">Import Jamo</h2>
-         <button id="jamo-modal-close-btn" class="modal-close-btn">
-           <img src="/x.svg" alt="Close" width="16" height="16" />
+         <h2 class="text-title">${title}</h2>
+         <button id="jamo-modal-close-btn" class="modal-close-btn" title="${close}">
+           <img src="/x.svg" alt="${close}" width="16" height="16" />
          </button>
        </div>
        <div class="modal-body">
          <div class="modal-info">
-           <p class="text-body">Import jamo text path for syllable '${syllable}'</p>
+           <p class="text-body">${info}</p>
          </div>
          <div class="modal-group">
-           <label class="text-body" for="jamo-font-selector">Font:</label>
+           <label class="text-body" for="jamo-font-selector">${fontLabel}</label>
            <select id="jamo-font-selector" class="font-selector text-body">
              ${fontOptions}
            </select>
          </div>
          <div class="modal-group">
-           <label class="text-body">Load as:</label>
+           <label class="text-body">${loadAs}</label>
            <div class="radio-group">
              <label class="radio-label">
                <input type="radio" name="load-option" value="decomposed" checked />
-               <span class="text-body">Decomposed Jamos</span>
+               <span class="text-body">${decomposed}</span>
              </label>
              <label class="radio-label">
                <input type="radio" name="load-option" value="composed" />
-               <span class="text-body">Composed Syllables</span>
+               <span class="text-body">${composed}</span>
              </label>
            </div>
          </div>
          <div class="modal-group">
-           <label class="text-body">Preview:</label>
+           <label class="text-body">${previewLabel}</label>
            <div id="jamo-preview" class="jamo-preview"></div>
          </div>
        </div>
        <div class="modal-footer">
          <button id="jamo-modal-confirm-btn" class="modal-btn text-body">
-           Import
+           ${confirm}
          </button>
        </div>
     `;
@@ -113,15 +133,9 @@ export const tags = {
   syllableItem: (syllable: any) => {
     // For Syllable items, use card layout
     return `
-      <div class="layer-card-content">
-        <div class="layer-preview">
-          <div class="layer-preview-placeholder">${syllable.string}</div>
-        </div>
-        <div class="layer-info">
-          <div class="layer-name">${syllable.string}</div>
-          <div class="layer-type">${'Layer'}</div>
-          <div class="layer-children-count">${syllable.id}</div>
-        </div>
+      <div class="element-img"><img src="/text.svg" /></div>
+      <div class="text-body" style="flex:1">${syllable.string}</div>
+      <div class="element-actions">
       </div>
     `;
   },
@@ -166,16 +180,21 @@ export const tags = {
       <div class="preview-char">${letter}</div>
     </div>`,
 
-  agentToolItem: (tool: AgentTool) => `
-    <button class="agent-tool-close " id="agent-tool-close-${tool.id}" title="Cancel">
-      <img src="/x.svg" alt="Close" width="16" height="16" />
+  agentToolItem: (tool: AgentTool) => {
+    const closeLabel = translate('modal.close');
+    const localizedName = translateToolName(tool.name);
+    const localizedDescription = translateToolDescription(tool.id, tool.description);
+
+    return `
+    <button class="agent-tool-close " id="agent-tool-close-${tool.id}" title="${closeLabel}">
+      <img src="/x.svg" alt="${closeLabel}" width="16" height="16" />
     </button>
     <div class="agent-action-icon">
-      <img src="${tool.icon}" alt="${tool.name}" width="16" height="16" />
+      <img src="${tool.icon}" alt="${localizedName}" width="16" height="16" />
     </div>
     <div class="agent-action-content" id="agent-tool-content-${tool.id}">
-      <div class="text-subtitle">${tool.name}</div>
-      <div class="text-body">${tool.description}</div>
+      <div class="text-subtitle">${localizedName}</div>
+      <div class="text-body">${localizedDescription}</div>
     </div>
     <div class="agent-workflow-container" id="agent-workflow-${tool.id}">
       <div class="agent-workflow-display">
@@ -188,9 +207,10 @@ export const tags = {
         </div>
       </div>
     </div>
-  `,
+  `;
+  },
 
-  agentWorkflowDisplay: (title: string, content: string, confirmText: string = 'Continue', isDisabled: boolean = false) => `
+  agentWorkflowDisplay: (title: string, content: string, confirmText: string = translate('modal.continue'), isDisabled: boolean = false) => `
     <div class="agent-workflow-display">
       <div class="agent-workflow-step">
         <div class="text-subtitle">${title}</div>
@@ -247,13 +267,13 @@ export const tags = {
   svgComparison: (afterPaths: string[], beforePaths: string[]) => `
     <div class="svg-preview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;">
       <div>
-        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">Before</p>
+        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">${translate('tags.before')}</p>
         <div class="svg-preview-item">
           ${tags.svgPreview(beforePaths, true)}
         </div>
       </div>
       <div>
-        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">After</p>
+        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">${translate('tags.after')}</p>
         <div class="svg-preview-item">
           ${tags.svgPreview(afterPaths, true)}
         </div>
@@ -265,7 +285,7 @@ export const tags = {
     // Create a temporary SVG to calculate bounding box
     const allPaths = [...closedPaths, ...openedPaths];
     if (allPaths.length === 0) {
-      return '<svg width="100" height="100"><text>No paths</text></svg>';
+      return `<svg width="100" height="100"><text>${translate('tags.noPaths')}</text></svg>`;
     }
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
