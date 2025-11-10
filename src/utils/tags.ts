@@ -320,7 +320,7 @@ export const tags = {
       .join('');
 
     const openedPathsSvg = openedPaths
-      .map(d => `<path d="${d}" stroke="blue" fill="none"/>`)
+      .map(d => `<path d="${d}" fill="#6FC9F0" stroke="none" stroke-width="4"/>`)
       .join('');
 
     return `

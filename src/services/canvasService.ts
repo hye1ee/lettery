@@ -102,30 +102,6 @@ class CanvasService {
     helperLayer.addChild(previewBox.getPreviewBox());
   }
 
-  createBackgroundLayer(): void {
-    const backgroundLayer = new paper.Layer();
-    backgroundLayer.visible = false;
-    backgroundLayer.name = 'system-backgrond';
-    this.project?.addLayer(backgroundLayer);
-
-    const background = new paper.Path.Rectangle(this.view!.bounds)
-    background.fillColor = new paper.Color(colors.white)
-
-    // Create dots
-    const dotSize = 2;
-    const spacing = 20;
-
-    for (let x = spacing; x < this.view!.bounds.width; x += spacing) {
-      for (let y = spacing; y < this.view!.bounds.height; y += spacing) {
-        const dot = new paper.Path.Circle(new paper.Point(x, y), dotSize)
-        dot.fillColor = new paper.Color(colors.lightGray)
-        backgroundLayer.addChild(dot);
-      }
-    }
-    backgroundLayer.locked = true;
-    backgroundLayer.sendToBack();
-  }
-
   initEventHandlers(): void {
     this.onMouseMoveCallbacks.push((event: paper.ToolEvent) => {
       this.point = { x: event.point.x, y: event.point.y };
@@ -274,11 +250,6 @@ class CanvasService {
     a.click()
 
     URL.revokeObjectURL(url)
-  }
-
-  clearCanvas(): void {
-    this.project?.clear();
-    this.createBackgroundLayer();
   }
 
   zoomAtPoint(event: MouseEvent, zoomIn: boolean): void {

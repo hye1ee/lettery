@@ -1,6 +1,6 @@
 import './style.css'
 import { agentService, canvasService, historyService, toolService, uiService } from './services'
-import { selectTool, pencilTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
+import { selectTool, pencilTool, markerTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
 import { cursor, logger, contextMenu } from './helpers'
 import { guidedEditTool, smartPropagationTool } from './agentTools'
 import { ModelProvider } from './models'
@@ -162,6 +162,7 @@ const initTools = () => {
   const tools = [
     selectTool,
     pencilTool,
+    markerTool,
     penTool,
     handTool,
     editTool,

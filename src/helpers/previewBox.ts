@@ -60,7 +60,6 @@ class PreviewBox {
 
   public show(startPoint: paper.Point): void {
     if (!this.boundingBox || !this.previewBox) throw new Error("Bounding box or preview box not initialized");
-
     // Initialize bounding box with start point
     this.boundingBox.x = startPoint.x;
     this.boundingBox.y = startPoint.y;

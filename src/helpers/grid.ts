@@ -144,6 +144,7 @@ class Grid {
       line.strokeColor = (index % majorEvery === 0) ? majorStroke : minorStroke;
       line.strokeWidth = strokeWidth;
       line.parent = this.group;
+      line.name = `system-grid-line-x-${x}`;
       index += 1;
     }
 
@@ -156,6 +157,7 @@ class Grid {
       line.strokeColor = (index % majorEvery === 0) ? majorStroke : minorStroke;
       line.strokeWidth = strokeWidth;
       line.parent = this.group;
+      line.name = `system-grid-line-y-${y}`;
       index += 1;
     }
 

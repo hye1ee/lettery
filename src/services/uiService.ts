@@ -49,7 +49,8 @@ class UIService {
     'Group': 0,
     'Layer': 0,
     'Path': 0,
-    'GuidePath': 0,
+    'StrokeSketch': 0,
+    'ShapeSketch': 0,
     'CompoundPath': 0,
     'Shape': 0,
     'Raster': 0,
@@ -178,9 +179,12 @@ class UIService {
     if (!item.name) {
       this.itemIndex[item.className as ItemClassName]++;
       item.name = `${item.className} ${this.itemIndex[item.className as ItemClassName]}`;
-    } else if (item.name === 'guide') {
-      this.itemIndex['GuidePath']++;
-      item.name = `GuidePath ${this.itemIndex['GuidePath']}`;
+    } else if (item.name === 'strokesketch') {
+      this.itemIndex['StrokeSketch']++;
+      item.name = `StrokeSketch ${this.itemIndex['StrokeSketch']}`;
+    } else if (item.name === 'shapesketch') {
+      this.itemIndex['ShapeSketch']++;
+      item.name = `ShapeSketch ${this.itemIndex['ShapeSketch']}`;
     }
     // create path item div
 

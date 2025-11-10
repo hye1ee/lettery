@@ -163,6 +163,7 @@ export default class SelectTool implements Tool {
   }
 
   makeDragSelection(): void {
+    console.log('makeDragSelection');
     paper.project.deselectAll();
     const selectionBounds = previewBox.getNormalizedBoundingBox();
 
@@ -179,6 +180,7 @@ export default class SelectTool implements Tool {
   onMouseUp = (_event: paper.ToolEvent): void => {
     if (this.isDragSelecting) { // (1) Drag Selection
       this.makeDragSelection();
+      console.log('makeDragSelection done');
       previewBox.hide();
       this.isDragSelecting = false;
 
