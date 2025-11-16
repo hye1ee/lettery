@@ -2,7 +2,7 @@ import paper from 'paper'
 import type { Tool } from '../types'
 import { boundingBox, cursor, logger, previewBox } from '../helpers';
 import { findParentLayer } from '../utils/paperUtils';
-import { historyService, uiService } from '../services';
+import { canvasService, historyService, uiService } from '../services';
 
 export default class SelectTool implements Tool {
   private static instance: SelectTool | null = null;
@@ -89,7 +89,7 @@ export default class SelectTool implements Tool {
 
     const hitResult = paper.project.hitTest(event.point);
 
-    if (hitResult && hitResult.item && !hitResult.item.name.includes('system')) {
+    if (hitResult && hitResult.item.name && !hitResult.item.name.includes('system')) {
       // Select the item if not already selected
       if (!hitResult.item.selected) {
         paper.project.deselectAll();
@@ -133,6 +133,9 @@ export default class SelectTool implements Tool {
   }
 
   selectItem(item: paper.Item): void {
+    // Clear hover effects before selecting
+    canvasService.clearHoverEffects();
+
     item.selected = true;
 
     boundingBox.show(this.getSelectedItems());
@@ -159,7 +162,7 @@ export default class SelectTool implements Tool {
   }
 
   getSelectedItems(): paper.Item[] {
-    return paper.project.selectedItems.filter((item) => !item.name.includes("system"));
+    return paper.project.selectedItems.filter((item) => (item.name) && !item.name.includes("system"));
   }
 
   makeDragSelection(): void {
@@ -169,7 +172,7 @@ export default class SelectTool implements Tool {
 
     paper.project.getItems({
       class: paper.Path || paper.CompoundPath || paper.Shape
-    }).filter(item => selectionBounds.intersects(item.bounds) && !item.name.includes('system'))
+    }).filter(item => selectionBounds.intersects(item.bounds) && (item.name) && !item.name.includes('system'))
       .forEach(item => item.selected = true)
   }
 

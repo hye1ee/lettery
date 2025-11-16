@@ -10,8 +10,8 @@ export const colors = {
   yellow: '#ffff00',
   primary: // brown
     '#4e2a20',
-  secondary: // light brown
-    '#8e6f60',
+  secondary: // blue
+    '#22A6FF',
   tertiary: // dark brown
     '#c99a8d',
   quaternary: // very dark brown

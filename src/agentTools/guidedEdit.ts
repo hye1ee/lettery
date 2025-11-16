@@ -42,11 +42,11 @@ class GuidedEdit extends BaseAgentTool {
     if (!activeLayer) throw new Error('No active layer found');
 
     const pathData: string[] = activeLayer.children.filter(
-      item => !item.name.includes('ShapeSketch'))
+      item => (item.name) && !item.name.includes('ShapeSketch'))
       .map(item => (item as paper.PathItem).pathData) || [];
 
     const guideData: string[] = activeLayer.children.filter(
-      item => item.name.includes('ShapeSketch'))
+      item => (item.name) && item.name.includes('ShapeSketch'))
       .map(item => (item as paper.PathItem).pathData) || [];
 
     if (guideData.length === 0) {

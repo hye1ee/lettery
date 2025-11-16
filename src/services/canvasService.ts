@@ -450,16 +450,22 @@ class CanvasService {
 
     const newHoveredItem = hitResult ? hitResult.item : null;
 
+    // Skip hover effect for selected items
+    const shouldHover = newHoveredItem && !newHoveredItem.selected;
+
+    // Determine the actual item to hover (null if it's selected)
+    const targetHoveredItem = shouldHover ? newHoveredItem : null;
+
     // If hovering over a different item, update hover state
-    if (newHoveredItem !== this.hoveredItem) {
+    if (targetHoveredItem !== this.hoveredItem) {
       // Restore previous hovered item
       if (this.hoveredItem) {
         this.restoreHoverEffect(this.hoveredItem);
         console.log("restore hover effect", this.hoveredItem);
       }
 
-      // Set new hovered item
-      this.hoveredItem = newHoveredItem;
+      // Set new hovered item (only if not selected)
+      this.hoveredItem = targetHoveredItem;
 
       // Apply hover effect to new item
       if (this.hoveredItem) {
@@ -470,20 +476,20 @@ class CanvasService {
   }
 
   /**
-   * Apply hover effect (brown fill color) to an item
+   * Apply hover effect (stroke color) to an item
    */
   private applyHoverEffect(item: paper.Item): void {
     if (!(item instanceof paper.Path || item instanceof paper.CompoundPath || item instanceof paper.Shape)) {
       return;
     }
 
-    // Store original fill color if not already stored
-    if (!(item as any).originalFillColor) {
-      (item as any).originalFillColor = item.fillColor ? item.fillColor.clone() : null;
-    }
-
+    // Store original stroke color and width if not already stored
     if (!(item as any).originalStrokeColor) {
       (item as any).originalStrokeColor = item.strokeColor ? item.strokeColor.clone() : null;
+    }
+
+    if (!(item as any).originalStrokeWidth) {
+      (item as any).originalStrokeWidth = item.strokeWidth;
     }
 
     const isClosed =
@@ -491,16 +497,12 @@ class CanvasService {
       item instanceof paper.CompoundPath && Array.from(item.children).every(child => child instanceof paper.Path ? child.closed : true) ||
       item instanceof paper.Shape;
 
-    if (isClosed) {
-      item.fillColor = new paper.Color(colors.secondary);
-      if (item.strokeColor) {
-        item.strokeColor = item.strokeColor.clone();
-      }
-    } else {
-      item.strokeColor = new paper.Color(colors.secondary);
-      if (item.fillColor) {
-        item.fillColor = item.fillColor.clone();
-      }
+    // For both closed and open items, change stroke color
+    item.strokeColor = new paper.Color(colors.secondary);
+
+    // For closed items without stroke, add a visible stroke width
+    if (isClosed && (item.strokeWidth === 0 || !item.strokeWidth)) {
+      item.strokeWidth = 2;
     }
   }
 
@@ -512,15 +514,16 @@ class CanvasService {
       return;
     }
 
-    // Restore original fill color
-    if ((item as any).originalFillColor !== undefined) {
-      item.fillColor = (item as any).originalFillColor;
-      (item as any).originalFillColor = undefined;
-    }
-
+    // Restore original stroke color
     if ((item as any).originalStrokeColor !== undefined) {
       item.strokeColor = (item as any).originalStrokeColor;
       (item as any).originalStrokeColor = undefined;
+    }
+
+    // Restore original stroke width
+    if ((item as any).originalStrokeWidth !== undefined) {
+      item.strokeWidth = (item as any).originalStrokeWidth;
+      (item as any).originalStrokeWidth = undefined;
     }
   }
 

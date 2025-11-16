@@ -431,7 +431,7 @@ export default class EditTool implements Tool {
     // Select segments in all paths that intersect with selection rectangle
     const items = paper.project.getItems({
       class: paper.Path || paper.CompoundPath
-    }).filter(item => !item.name.includes('system'));
+    }).filter(item => (item.name) && !item.name.includes('system'));
 
     items.forEach(item => {
       if ((item as any).segments) {

@@ -33,6 +33,15 @@
               <!-- <div class="text-label">Select</div> -->
             </button>
             <button
+              id="pen-tool"
+              class="tool-btn"
+              title="펜 도구 (A)"
+              data-i18n-title="tool.pen"
+            >
+              <img src="/pen.svg" alt="Pen Tool" width="18" height="18" />
+              <!-- <div class="text-label">Pen</div> -->
+            </button>
+            <button
               id="edit-tool"
               class="tool-btn"
               title="편집 도구 (E)"
@@ -59,15 +68,7 @@
               <img src="/marker.svg" alt="Marker Tool" width="18" height="18" />
               <!-- <div class="text-label">Marker</div> -->
             </button>
-            <button
-              id="pen-tool"
-              class="tool-btn"
-              title="펜 도구 (A)"
-              data-i18n-title="tool.pen"
-            >
-              <img src="/pen.svg" alt="Pen Tool" width="18" height="18" />
-              <!-- <div class="text-label">Pen</div> -->
-            </button>
+
             <button
               id="rectangle-tool"
               class="tool-btn"
@@ -116,10 +117,13 @@
           <!-- Left Header Title-->
           <div class="header-section absolute left top">
             <img
-              src="/hangulo_logo_line.png"
+              id="logo-image"
+              class="logo-image"
+              src="/hangulo_text_kr.png"
               alt="Hangulo Logo"
               width="auto"
-              height="72"
+              height="65"
+              data-i18n-logo
             />
           </div>
 

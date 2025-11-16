@@ -133,6 +133,13 @@ const applyTranslationsInternal = (language: Language): void => {
       }
     });
   });
+
+  // Update logo image based on language
+  const logoElement = document.querySelector<HTMLImageElement>('[data-i18n-logo]');
+  if (logoElement) {
+    const logoSrc = language === 'en' ? '/hangulo_text_en.png' : '/hangulo_text_kr.png';
+    logoElement.src = logoSrc;
+  }
 };
 
 const applyTranslations = (): void => {

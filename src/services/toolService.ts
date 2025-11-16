@@ -82,12 +82,22 @@ class ToolService {
       } else {
         currentToolInstance?.deactivate();
       }
-      this.buttons.get(this.currentTool)?.classList.remove('active');
+      // Change SVG back to non-fill version
+      const currentButton = this.buttons.get(this.currentTool);
+      const currentImg = currentButton?.querySelector('img');
+      if (currentImg && currentImg.src) {
+        currentImg.src = currentImg.src.replace('-fill.svg', '.svg');
+      }
     }
     this.currentTool = tool;
 
     this.tools.get(tool)?.activate();
-    this.buttons.get(tool)?.classList.add('active');
+    // Change SVG to fill version
+    const activeButton = this.buttons.get(tool);
+    const activeImg = activeButton?.querySelector('img');
+    if (activeImg && activeImg.src) {
+      activeImg.src = activeImg.src.replace('.svg', '-fill.svg');
+    }
   }
 
   selectItem(item: paper.Item): void {
