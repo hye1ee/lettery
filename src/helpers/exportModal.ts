@@ -74,7 +74,11 @@ class ExportModal {
     const closeBtn = document.getElementById('export-modal-close-btn');
     const downloadSvgBtn = document.getElementById('export-download-svg-btn');
     const downloadImageBtn = document.getElementById('export-download-image-btn');
-    const qrCodeBtn = document.getElementById('export-qr-code-btn') as HTMLButtonElement;
+    // const qrCodeBtn = document.getElementById('export-qr-code-btn') as HTMLButtonElement;
+    const exportInfo = document.getElementById('export-info');
+    if (exportInfo) {
+      exportInfo.innerText = translate('export.qr.placeholder');
+    }
 
     // Close modal function
     const closeModal = () => {
@@ -114,26 +118,23 @@ class ExportModal {
     });
 
     // QR Code
-    qrCodeBtn?.addEventListener('click', async () => {
-      // Disable button during processing
-      if (qrCodeBtn.disabled) return;
-
-      if (exporter.isExportDevMode()) {
-        // Show dev message
-        this.showDevMessage();
-      } else if (!exporter.isFirebaseConfigured()) {
-        // Firebase not configured
-        this.showFirebaseNotConfigured();
-      } else {
-        // Disable button and generate QR code with Firebase
-        qrCodeBtn.disabled = true;
-        try {
-          await this.generateQRCode();
-        } finally {
-          qrCodeBtn.disabled = false;
+    if (exporter.isExportDevMode()) {
+      // Show dev message
+      this.showDevMessage();
+    } else if (!exporter.isFirebaseConfigured()) {
+      // Firebase not configured
+      this.showFirebaseNotConfigured();
+    } else {
+      try {
+        this.generateQRCode();
+      } catch (error) {
+        if (exportInfo) {
+          exportInfo.innerText = translate('export.qr.error');
         }
       }
-    });
+    }
+
+
 
     // Handle Escape key
     const handleEscape = (e: KeyboardEvent) => {
@@ -146,39 +147,49 @@ class ExportModal {
   }
 
   private showDevMessage(): void {
-    const qrContainer = document.getElementById('export-qr-container');
-    if (!qrContainer) return;
+    const exportInfo = document.getElementById('export-info');
+    if (exportInfo) {
+      exportInfo.innerText = translate('export.qr.dev');
+    }
 
-    qrContainer.innerHTML = `
-      <div class="export-dev-message">
-        <p class="text-body">${translate('export.qr.dev')}</p>
-      </div>
-    `;
+    // const qrContainer = document.getElementById('export-qr-container');
+    // if (!qrContainer) return;
+
+    // qrContainer.innerHTML = `
+    //   <div class="export-dev-message">
+    //     <p class="text-body">${translate('export.qr.dev')}</p>
+    //   </div>
+    // `;
   }
 
   private showFirebaseNotConfigured(): void {
-    const qrContainer = document.getElementById('export-qr-container');
-    if (!qrContainer) return;
+    const exportInfo = document.getElementById('export-info');
+    if (exportInfo) {
+      exportInfo.innerText = translate('export.qr.notConfigured');
+    }
+    // const qrContainer = document.getElementById('export-qr-container');
+    // if (!qrContainer) return;
 
-    qrContainer.innerHTML = `
-      <div class="export-dev-message">
-        <p class="text-body">${translate('export.qr.notConfigured')}</p>
-      </div>
-    `;
+    // qrContainer.innerHTML = `
+    //   <div class="export-dev-message">
+    //     <p class="text-body">${translate('export.qr.notConfigured')}</p>
+    //   </div>
+    // `;
   }
 
   private async generateQRCode(): Promise<void> {
     const qrContainer = document.getElementById('export-qr-container');
-    if (!qrContainer) return;
+    const exportInfo = document.getElementById('export-info');
+    if (!qrContainer || !exportInfo) return;
 
     try {
       // Show initializing state
       qrContainer.innerHTML = `
         <div class="export-qr-loading">
           <div class="export-qr-spinner"></div>
-          <p class="text-body">${translate('export.qr.initializing')}</p>
         </div>
       `;
+      exportInfo.innerText = translate('export.qr.initializing');
 
       // Small delay to show initialization message
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -187,12 +198,12 @@ class ExportModal {
       qrContainer.innerHTML = `
         <div class="export-qr-loading">
           <div class="export-qr-spinner"></div>
-          <p class="text-body">${translate('export.qr.uploading')}</p>
         </div>
       `;
+      exportInfo.innerText = translate('export.qr.uploading');
 
       // Upload to Firebase and get download URL
-      const { downloadPageURL, directURL } = await exporter.uploadToFirebase();
+      const { downloadPageURL } = await exporter.uploadToFirebase();
 
       // Generate QR code with download page URL
       const qrCodeDataUrl = await QRCode.toDataURL(downloadPageURL, {
@@ -207,28 +218,19 @@ class ExportModal {
       // Display QR code and download link
       qrContainer.innerHTML = `
         <div class="export-qr-success">
-          <p class="text-body" style="margin-bottom: 12px;">${translate('export.qr.success')}</p>
           <img src="${qrCodeDataUrl}" alt="QR Code" class="export-qr-image" />
-          <div class="export-qr-links">
-            <a href="${downloadPageURL}" target="_blank" class="export-qr-link text-body">
-              ${translate('export.qr.viewDownloadPage')}
-            </a>
-            <a href="${directURL}" target="_blank" class="export-qr-link text-body">
-              ${translate('export.qr.viewLink')}
-            </a>
-          </div>
-          <p class="text-body export-qr-instruction">${translate('export.qr.instruction')}</p>
         </div>
       `;
-
+      exportInfo.innerText = translate('export.qr.instruction');
       logger.updateStatus(translate('export.qr.complete'));
     } catch (error) {
       console.error('Failed to generate QR code:', error);
-      qrContainer.innerHTML = `
-        <div class="export-dev-message">
-          <p class="text-body">${translate('export.qr.error')}</p>
-        </div>
-      `;
+      // qrContainer.innerHTML = `
+      //   <div class="export-dev-message">
+      //     <p class="text-body">${translate('export.qr.error')}</p>
+      //   </div>
+      // `;
+      exportInfo.innerText = translate('export.qr.error');
       logger.updateStatus(translate('export.qr.error'));
     }
   }

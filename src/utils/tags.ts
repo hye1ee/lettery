@@ -107,7 +107,7 @@ export const tags = {
     const close = translate('modal.close');
     const downloadSvg = translate('modal.export.downloadSvg');
     const downloadImage = translate('modal.export.downloadImage');
-    const qrCode = translate('modal.export.qrCode');
+    // const qrCode = translate('modal.export.qrCode');
 
     return `
       <div class="modal-header">
@@ -117,11 +117,15 @@ export const tags = {
         </button>
       </div>
       <div class="modal-body export-modal-body">
+          <div class="modal-info">
+           <div id="export-info" class="text-body">hello</div>
+         </div>
         <div class="export-section">
           <div class="export-preview-section">
             <div id="export-preview-container" class="export-preview-container">
               <img id="export-preview-image" class="export-preview-image" alt="Preview" />
             </div>
+            <div id="export-qr-container" class="export-qr-container"></div>
           </div>
         </div>
         
@@ -136,13 +140,8 @@ export const tags = {
               <img src="/save.svg" alt="Image" width="20" height="20" />
               <span>${downloadImage}</span>
             </button>
-            <button id="export-qr-code-btn" class="export-action-btn text-body">
-              <img src="/flash.svg" alt="QR" width="20" height="20" />
-              <span>${qrCode}</span>
-            </button>
           </div>
-          <div id="export-qr-container" class="export-qr-container">
-        </div>
+
       </div>
     `;
   },
