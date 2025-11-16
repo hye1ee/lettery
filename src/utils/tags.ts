@@ -102,6 +102,51 @@ export const tags = {
     `;
   },
 
+  exportModal: () => {
+    const title = translate('modal.export.title');
+    const close = translate('modal.close');
+    const downloadSvg = translate('modal.export.downloadSvg');
+    const downloadImage = translate('modal.export.downloadImage');
+    const qrCode = translate('modal.export.qrCode');
+
+    return `
+      <div class="modal-header">
+        <h2 class="text-title">${title}</h2>
+        <button id="export-modal-close-btn" class="modal-close-btn" title="${close}">
+          <img src="/x.svg" alt="${close}" width="16" height="16" />
+        </button>
+      </div>
+      <div class="modal-body export-modal-body">
+        <div class="export-section">
+          <div class="export-preview-section">
+            <div id="export-preview-container" class="export-preview-container">
+              <img id="export-preview-image" class="export-preview-image" alt="Preview" />
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      <div class="modal-footer">
+          <div class="export-actions-section">
+            <button id="export-download-svg-btn" class="export-action-btn text-body">
+              <img src="/save.svg" alt="SVG" width="20" height="20" />
+              <span>${downloadSvg}</span>
+            </button>
+            <button id="export-download-image-btn" class="export-action-btn text-body">
+              <img src="/save.svg" alt="Image" width="20" height="20" />
+              <span>${downloadImage}</span>
+            </button>
+            <button id="export-qr-code-btn" class="export-action-btn text-body">
+              <img src="/flash.svg" alt="QR" width="20" height="20" />
+              <span>${qrCode}</span>
+            </button>
+          </div>
+          <div id="export-qr-container" class="export-qr-container">
+        </div>
+      </div>
+    `;
+  },
+
 
 
   // Element Item Templates

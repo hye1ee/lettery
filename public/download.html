@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hangulo - Download</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        width: 100%;
+        height: 100%;
+      }
+
+      body {
+        width: 100%;
+        height: 100%;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #2b2a2a;
+        /* min-height: 100vh; */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        box-sizing: border-box;
+        padding: 25px;
+        /* overflow: hidden; */
+      }
+
+      .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 30px;
+        max-width: 500px;
+        width: 100%;
+        height: fit-content;
+        max-height: 100%;
+        text-align: center;
+      }
+
+      .logo {
+        height: 70px;
+        width: auto;
+        margin-bottom: 20px;
+      }
+
+      .subtitle {
+        color: #666;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.6;
+        margin-bottom: 10px;
+        max-width: 400px;
+      }
+
+      .loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .success,
+      .error {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .success.active,
+      .error.active {
+        display: flex;
+      }
+
+      .preview-image {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+      }
+
+      .download-btn {
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
+
+      .download-btn img {
+        width: auto;
+        height: 40px;
+        display: block;
+      }
+
+      .download-btn:hover {
+        transform: translateY(-3px);
+        opacity: 0.9;
+      }
+
+      .download-btn:active {
+        transform: translateY(-1px);
+      }
+
+      .error-icon {
+        font-size: 60px;
+        color: #e74c3c;
+      }
+
+      .error-message {
+        color: #666;
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .back-link {
+        margin-top: 20px;
+        color: #999;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .back-link:hover {
+        color: #ccc;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img id="logo" src="/hangulo_text_kr.png" alt="Hangulo" class="logo" />
+      <div class="subtitle" id="subtitle" style="white-space: pre-wrap">
+        한 글자에서 한글 자로, 디자인 에이전트와 함께 만드는 한글레터링
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>이미지를 불러오는 중...</p>
+      </div>
+
+      <!-- Success State -->
+      <div class="success" id="success">
+        <img
+          id="preview"
+          class="preview-image"
+          alt="Preview"
+          style="display: none"
+        />
+        <a
+          id="downloadBtn"
+          class="download-btn"
+          download="hangulo-lettering.png"
+        >
+          <img id="downloadBtnImage" src="/label-download.png" alt="다운로드" />
+        </a>
+      </div>
+
+      <!-- Error State -->
+      <div class="error" id="error">
+        <div class="error-icon">⚠️</div>
+        <p class="error-message" id="errorMessage">
+          이 링크는 만료되었거나 존재하지 않습니다.<br />
+          링크를 다시 확인해주세요.
+        </p>
+        <a href="/" class="back-link">홈으로 돌아가기</a>
+      </div>
+    </div>
+
+    <script type="module" src="/src/download.ts"></script>
+  </body>
+</html>

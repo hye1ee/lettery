@@ -1187,7 +1187,7 @@ body {
 
 .modal-content {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid lightgray;
   width: 90%;
   max-width: 500px;
@@ -1224,8 +1224,8 @@ body {
 
 .modal-close-btn img {
   filter: brightness(0) invert(0);
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
 .modal-body {
@@ -1484,6 +1484,193 @@ body {
 .modal-btn:disabled:hover {
   background: var(--color-gray-light);
   border-color: #ddd;
+}
+
+/* Export Modal Specific Styles */
+.export-modal-content {
+  min-width: 600px;
+  max-width: 700px;
+}
+
+.export-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.export-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.export-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-preview-container {
+  width: 100%;
+  min-height: 300px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+  position: relative;
+  overflow: hidden;
+}
+
+.export-preview-container.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top-color: var(--color-black-light);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.export-preview-image {
+  max-width: 100%;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.export-actions-section {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+.export-action-btn {
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border: 1px solid lightgray;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 15px;
+}
+
+.export-action-btn:hover {
+  background: var(--color-blue-pale);
+  border-color: darkgray;
+}
+
+.export-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-gray-light);
+}
+
+.export-action-btn img {
+  filter: brightness(0) invert(0);
+  opacity: 0.7;
+}
+
+.export-qr-container {
+  min-height: 200px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+  padding: 20px;
+}
+
+.export-dev-message,
+.export-qr-placeholder,
+.export-qr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  color: #666;
+  padding: 20px;
+}
+
+.export-qr-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top-color: var(--color-black-light);
+  border-radius: 50%;
+  animation: export-spinner-spin 1s linear infinite;
+}
+
+@keyframes export-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.export-qr-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.export-qr-image {
+  width: 300px;
+  height: 300px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+}
+
+.export-qr-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.export-qr-link {
+  color: var(--color-black-light);
+  text-decoration: none;
+  padding: 8px 16px;
+  border: 1px solid lightgray;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.export-qr-link:hover {
+  background: var(--color-blue-pale);
+  border-color: darkgray;
+}
+
+.export-qr-instruction {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.export-qr-container:empty {
+  display: none;
 }
 
 .cancel-btn {

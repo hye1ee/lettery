@@ -1,7 +1,7 @@
 import './style.css'
 import { agentService, canvasService, historyService, toolService, uiService } from './services'
 import { selectTool, pencilTool, markerTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
-import { cursor, logger, contextMenu } from './helpers'
+import { cursor, logger, contextMenu, exportModal, firebaseService } from './helpers'
 import { guidedEditTool, smartPropagationTool, placeholderAgent } from './agentTools'
 import { ModelProvider } from './models'
 import { initI18n, translate } from './i18n'
@@ -71,7 +71,27 @@ const initApp = () => {
   cursor.init(canvas);
   contextMenu.init();
 
+  // Initialize Firebase early (non-blocking)
+  initializeFirebase();
+
   console.log('App initialization complete')
+}
+
+// Initialize Firebase in background
+const initializeFirebase = async () => {
+  // Only initialize if not in dev mode
+  if (import.meta.env.VITE_EXPORT_DEV === 'true') {
+    console.log('Firebase initialization skipped (dev mode)');
+    return;
+  }
+
+  try {
+    firebaseService.ensureInitialized();
+    console.log('Firebase pre-initialized successfully');
+  } catch (error) {
+    console.warn('Firebase pre-initialization failed:', error);
+    // Don't throw - app should still work, just QR feature won't be available
+  }
 }
 
 // Set up all event listeners
@@ -82,7 +102,7 @@ const setupEventListeners = () => {
   })
 
   layerExportSvgBtn.addEventListener('click', () => {
-    canvasService.exportSVG();
+    exportModal.show();
   })
 
   // Header plus button (syllables)
