@@ -1,21 +1,10 @@
 {
   "rewrites": [
-    {
-      "source": "/download",
-      "destination": "/download.html"
-    },
-    {
-      "source": "/download/(.*)",
-      "destination": "/download.html"
-    },
-    {
-      "source": "/en/download",
-      "destination": "/download.html"
-    },
-    {
-      "source": "/en/download/(.*)",
-      "destination": "/download.html"
-    }
+    { "source": "/download", "destination": "/download.html" },
+    { "source": "/download/(.*)", "destination": "/download.html" },
+
+    { "source": "/en/download", "destination": "/download.html" },
+    { "source": "/en/download/(.*)", "destination": "/download.html" }
   ],
   "cleanUrls": true,
   "buildCommand": "npm run build",
