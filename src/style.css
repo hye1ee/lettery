@@ -90,7 +90,7 @@ body {
   top: 24px;
 }
 .absolute.bottom {
-  bottom: 24px;
+  bottom: 26px;
 }
 .absolute.center-x {
   left: 50%;
@@ -353,6 +353,7 @@ body {
 
   display: flex;
   flex-direction: row;
+  overflow: visible; /* Allow agents to move outside */
 }
 
 .action-section {
@@ -369,14 +370,14 @@ body {
 
 .action-section-header {
   width: 227px;
-  height: 32px;
+  height: 36px;
 
   box-sizing: border-box;
   padding: 8px;
   padding-left: 12px;
 
-  /* background-color: rgba(255, 255, 255, 0.5); */
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.5);
+  /* background-color: var(--color-gray-light); */
   border-left: 3px solid var(--color-black-light);
 
   display: flex;
@@ -405,10 +406,11 @@ body {
   height: fit-content;
 
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 
   justify-content: flex-start;
   gap: 12px;
+  overflow: visible; /* Allow agents to move outside */
 }
 
 .agent-placeholder {
@@ -418,6 +420,14 @@ body {
   font-style: italic;
 }
 
+/* Agent Status Container (positioned at left bottom) */
+.agent-status-container {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 10000;
+}
+
 /* Agent Status Label */
 .agent-status {
   background: var(--color-gray-light);
@@ -425,11 +435,12 @@ body {
   /* border-radius: 6px; */
   padding: 8px 12px;
 
-  text-align: center;
+  text-align: left;
   color: var(--color-black);
   border-left: 3px solid var(--color-black-light);
 
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Agent Action Cards */
@@ -437,53 +448,137 @@ body {
   flex: 1;
 
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 12px;
+  align-items: flex-end;
+  overflow: visible; /* Allow agents to move outside */
 }
 
 .agent-action-card {
   height: fit-content;
-
   box-sizing: border-box;
-  padding: 12px;
   position: relative;
-
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-
-  cursor: pointer;
-  transition: all 0.2s ease;
+  /* No transition for walking - instant position updates */
+  will-change: transform;
 }
 
-.agent-action-card:hover {
-  background: #e9ecef;
-  border-color: darkgray;
-}
-
-.agent-action-card.disabled {
-  background: var(--color-gray-light);
-  border-color: #ddd;
-  cursor: not-allowed;
-  /* opacity: 0.5; */
-}
+/* When activated, reset position and center at bottom */
 .agent-action-card.activated {
-  flex: 1;
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 24px !important;
+  transform: translateX(-50%) !important;
+  z-index: 10001;
+}
+
+/* Hide deactivated agents */
+.agent-action-card.deactivated {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Character Button (collapsed state) */
+.agent-character-button {
+  width: 80px;
+  height: auto;
+  cursor: pointer;
+  /* No transition for position - only for hover effects */
+  display: block;
+  position: relative;
+  will-change: transform;
+}
+
+.agent-character-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.3s ease;
+  will-change: transform;
+}
+
+/* Label image (appears on hover) */
+.agent-label-image {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  width: 100px;
+  height: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+/* Legacy support for generic img selector */
+/* .agent-character-button img {
+  width: 100%;
+  height: auto;
+  display: block;
+} */
+
+/* Hover animation: scale up and shake */
+.agent-character-button:hover {
+  transform: translateY(-8px) scale(1.1);
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+.agent-character-button:hover .agent-label-image {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateY(-8px) scale(1.1) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) scale(1.1) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(-8px) scale(1.1) rotate(3deg);
+  }
+}
+
+.agent-action-card.disabled .agent-character-button {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.agent-action-card.disabled .agent-character-button:hover {
+  transform: none;
+  animation: none;
+}
+
+/* Show only panel when activated, hide character button */
+.agent-action-card.activated .agent-character-button {
+  display: none !important;
+}
+
+/* Show only character button when not activated */
+.agent-action-card:not(.activated) .agent-panel {
+  display: none !important;
+}
+
+/* Agent Panel (expanded state) */
+.agent-panel {
+  padding: 16px;
+  background: white;
+  border: 1px solid lightgray;
+  border-radius: 8px;
+  min-width: 300px;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  transition: all 0.2s ease;
-
-  background: #f8f9fa !important;
-  border: 1px solid #e0e0e0 !important;
+  gap: 12px;
 }
 
-.agent-action-card.deactivated {
-  display: none;
-  transition: all 0.2s ease;
+.agent-panel-header {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: flex-start;
 }
 
 .agent-tool-close {
@@ -512,16 +607,14 @@ body {
   opacity: 1;
 }
 
-.agent-action-card.activated .agent-tool-close {
+.agent-panel .agent-tool-close {
   display: flex;
 }
 
-.agent-action-card.activated .agent-action-content {
-  display: none;
-}
-
-.agent-action-card .agent-action-content {
-  display: block;
+.agent-panel .agent-action-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* Agent Workflow Container */
@@ -964,14 +1057,47 @@ body {
 /*===========================================*/
 
 .button-section {
-  width: 230px;
-  height: 40px;
-  padding: 0 6px;
+  width: 240px;
+  height: 42px;
+
+  padding: 10px;
+  padding-right: 12px;
 
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
+}
+
+.control-section {
+  width: fit-content;
+  height: fit-content;
+
+  padding: 6px;
+  /* padding-right: 12px; */
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100px;
+  gap: 8px;
+}
+
+.export-button-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.export-button-image {
+  height: 34px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.export-button-image:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
 }
 
 .header-section {
@@ -1017,7 +1143,7 @@ body {
   gap: 8px;
   color: black;
 
-  padding-right: 12px;
+  /* padding-right: 12px; */
 }
 .button.disabled {
   opacity: 0.2;
@@ -1413,21 +1539,24 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   /* gap: 12px; */
-  padding: 12px;
-  padding-top: 0;
-  padding-right: 0px;
+  /* padding: 12px; */
+  margin-top: 12px;
+  /* padding: 4px;
+  padding-top: 0px; */
+  /* padding-right: 0px; */
 }
 
 /* Element items styling (now the main items) */
 .element-item {
   display: flex;
+  height: 32px;
   align-items: center;
   box-sizing: border-box;
   padding: 6px 20px;
   padding-right: 15px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border-left: 3px solid transparent;
+  border-right: 10px solid transparent;
 
   margin: 2px;
 }
@@ -1452,12 +1581,12 @@ body {
 .element-item.selected {
   /* background: var(--color-orange-pale); */
   /* box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25); */
-  background: rgba(0, 0, 0, 0.03);
+  background: rgba(0, 0, 0, 0.02);
 }
 
-.element-item.active {
+.element-item.selected {
   background: rgba(0, 0, 0, 0.02);
-  border-left-color: var(--color-blue);
+  border-right-color: var(--color-blue);
 }
 
 .element-visibility {
@@ -1527,29 +1656,7 @@ body {
 }
 
 /* Active indicator styles */
-.element-active-indicator,
-.layer-active-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 8px;
-}
-
-.active-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.active-dot.active {
-  background-color: var(--color-black-light); /* Brown color */
-}
-
-.active-dot.inactive {
-  background-color: transparent;
-  border: 1px solid #ddd;
-}
+/* Active indicator removed - using border instead */
 
 /* Sortable styles */
 .sortable-list {
@@ -1586,34 +1693,34 @@ body {
 
 /* Layer Card Styles */
 .layer-card {
-  background: rgb(248, 249, 250, 0.5);
+  /* background: rgb(248, 249, 250, 0.5); */
   /* border: 1px solid #e0e0e0;
   border-radius: 8px; */
-  padding: 8px;
+  height: 32px;
+  padding: 6px 15px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  height: fit-content;
-  min-height: 38px;
 
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 0px;
 
-  margin-top: 12px;
-  margin-right: 4px;
-  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
-  border-right: 30px solid transparent;
-}
+  margin: 2px;
 
-.layer-card:hover {
-  background: rgb(248, 249, 250, 0.8);
+  /* box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25); */
+  border-right: 10px solid transparent;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
 }
 
 .layer-card.active {
-  background: rgb(248, 249, 250, 0.8);
-  border-right: 30px solid var(--color-orange);
+  /* background: rgb(248, 249, 250, 0.8); */
+  background: rgba(0, 0, 0, 0.02);
+  border-right: 10px solid var(--color-orange);
 }
 
 .layer-card-content {

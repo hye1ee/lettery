@@ -16,6 +16,8 @@ class GuidedEdit extends BaseAgentTool {
   public readonly name: string = 'Guided Edit';
   public readonly description: string = 'Edit the selected jamo based on your text description';
   public readonly icon: string = '/command.svg';
+  public readonly characterImage: string = '/hangulo_agent2.png';
+  public readonly labelImage: string = '/label2.png';
   public readonly isEnabled: boolean = true;
 
   private constructor() {

@@ -1,7 +1,7 @@
 import paper from 'paper'
 import { tags, updateLayerSelection, updateItemSelection, clearItemSelection, setSortable } from '../utils/tags'
 
-import { logger, syllableModal, jamoModal } from '../helpers';
+import { logger, syllableModal, jamoModal, agentAnimation } from '../helpers';
 import type { ItemClassName, Syllable } from '../types';
 import { toolService, agentService } from '.';
 import { translate, translateToolName } from '../i18n';
@@ -426,16 +426,19 @@ class UIService {
         toolItem.className = "agent-action-card disabled";
         toolItem.innerHTML = tags.agentToolItem(tool);
 
-        // Add click handler for the card
-        toolItem.addEventListener('click', (e) => {
-          e.preventDefault();
+        // Add click handler for the character button
+        const characterBtn = toolItem.querySelector(`#agent-character-${tool.id}`) as HTMLElement;
+        if (characterBtn) {
+          characterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
 
-          if (toolItem.classList.contains('disabled')) {
-            return;
-          }
-          agentService.activateTool(tool);
-          this.renderAgentTools();
-        });
+            if (toolItem.classList.contains('disabled')) {
+              return;
+            }
+            agentService.activateTool(tool);
+            this.renderAgentTools();
+          });
+        }
 
         // Add close button handler
         const closeBtn = toolItem.querySelector(`#agent-tool-close-${tool.id}`) as HTMLButtonElement;
@@ -449,6 +452,9 @@ class UIService {
         }
 
         actionListElement.appendChild(toolItem);
+
+        // Register agent for walking animation
+        agentAnimation.registerAgent(tool.id);
       });
 
     } else {
@@ -466,6 +472,8 @@ class UIService {
               child.classList.add('activated');
             }
           });
+          // Pause animations when modal is open
+          agentAnimation.pauseAnimations();
         } else {
           // normal tool rendering
           Array.from(actionListElement.children).forEach(child => {
@@ -473,12 +481,16 @@ class UIService {
             child.classList.remove('activated');
             child.classList.remove('deactivated');
           });
+          // Resume animations when modal is closed
+          agentAnimation.resumeAnimations();
         }
       } else {
         // disable all tools
         Array.from(actionListElement.children).forEach(child => {
           child.classList.add('disabled');
         });
+        // Resume animations
+        agentAnimation.resumeAnimations();
       }
     }
     this.renderAgentStatus();

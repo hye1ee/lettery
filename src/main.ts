@@ -2,7 +2,7 @@ import './style.css'
 import { agentService, canvasService, historyService, toolService, uiService } from './services'
 import { selectTool, pencilTool, markerTool, penTool, handTool, editTool, rectangleTool, ellipseTool } from './tools'
 import { cursor, logger, contextMenu } from './helpers'
-import { guidedEditTool, smartPropagationTool } from './agentTools'
+import { guidedEditTool, smartPropagationTool, placeholderAgent } from './agentTools'
 import { ModelProvider } from './models'
 import { initI18n, translate } from './i18n'
 
@@ -176,8 +176,9 @@ const initTools = () => {
 
   // Initialize agent tools
   const agentTools = [
+    smartPropagationTool,
     guidedEditTool,
-    smartPropagationTool
+    placeholderAgent
   ]
 
   agentService.setRenderCallback(uiService.renderAgentTools);

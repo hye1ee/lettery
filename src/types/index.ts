@@ -54,6 +54,8 @@ export interface AgentTool {
   name: string;
   description: string;
   icon: string;
+  characterImage: string; // Character image for the button
+  labelImage: string; // Label image shown on hover
   isEnabled: boolean;
 
   activate(): void;

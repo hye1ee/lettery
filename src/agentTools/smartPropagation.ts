@@ -15,6 +15,8 @@ class SmartPropagationTool extends BaseAgentTool {
   public readonly name: string = 'Smart Propagation';
   public readonly description: string = 'Automatically apply your edits across related jamos';
   public readonly icon: string = '/propagate.svg';
+  public readonly characterImage: string = '/hangulo_agent1.png';
+  public readonly labelImage: string = '/label1.png';
   public readonly isEnabled: boolean = true;
 
   private constructor() {

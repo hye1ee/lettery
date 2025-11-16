@@ -99,12 +99,26 @@
             </button>
           </div>
 
-          <!-- Status Bar -->
-          <div class="status-bar absolute bottom left card">
+          <!-- Status Bar (Hidden) -->
+          <div
+            class="status-bar absolute bottom left card"
+            style="display: none"
+          >
             <span class="text-body" id="status-text" data-i18n="ui.status.ready"
               >준비 완료</span
             >
             <span class="text-body" id="coordinates">X: 0, Y: 0</span>
+          </div>
+
+          <!-- Agent Status (moved to left bottom) -->
+          <div class="agent-status-container absolute bottom left">
+            <div
+              class="agent-status text-body"
+              id="agent-status"
+              data-i18n="agent.status.empty"
+            >
+              작업할 레이어를 생성해주세요
+            </div>
           </div>
 
           <!-- Context Menu -->
@@ -127,8 +141,22 @@
             />
           </div>
 
-          <!-- Right Header Button -->
-          <div class="button-section absolute right top card">
+          <!-- Right Header Export Button -->
+          <div class="export-button-container absolute right top">
+            <img
+              id="layer-export-svg"
+              class="export-button-image"
+              src="/label-export.png"
+              alt="Export SVG"
+              title="SVG 내보내기"
+              data-i18n-title="button.exportSvg"
+              data-i18n-export
+              style="cursor: pointer"
+            />
+          </div>
+
+          <!-- Right Bottom Controls -->
+          <div class="control-section absolute right bottom card">
             <div class="button-section-item">
               <button
                 class="button"
@@ -167,15 +195,6 @@
                 <img src="/redo.svg" alt="Redo" width="16" height="16" />
               </button>
             </div>
-
-            <button
-              class="button"
-              id="layer-export-svg"
-              title="SVG 내보내기"
-              data-i18n-title="button.exportSvg"
-            >
-              <img src="/save.svg" alt="Export SVG" width="16" height="16" />
-            </button>
           </div>
 
           <!-- Action Section -->
@@ -239,15 +258,8 @@
           </div>
 
           <!--Agent Section-->
-          <div class="agent-section absolute center-x bottom card">
+          <div class="agent-section absolute center-x bottom">
             <div class="agent-content" id="agent-content">
-              <div
-                class="agent-status text-body"
-                id="agent-status"
-                data-i18n="agent.status.empty"
-              >
-                작업할 레이어를 생성해주세요
-              </div>
               <div class="agent-actions" id="agent-actions-list"></div>
             </div>
           </div>

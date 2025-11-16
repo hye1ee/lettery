@@ -1,6 +1,4 @@
 // HTML Template Tags - Centralized HTML string management
-import paper from 'paper';
-
 import Sortable from "sortablejs";
 import type { AgentTool, ItemClassName } from "../types";
 import { fontLoader } from "../helpers";
@@ -108,15 +106,11 @@ export const tags = {
 
   // Element Item Templates
   elementItem: (item: any) => {
-    // For Layer items, show active indicator instead of delete button
+    // For Layer items, no extra indicator needed - border will show active state
     if (item.className === 'Layer') {
-      const isActive = item.id === paper.project.activeLayer?.id;
       return `
       <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
       <div class="text-body" style="flex:1">${item.name}</div>
-      <div class="element-active-indicator">
-        <div class="active-dot ${isActive ? 'active' : 'inactive'}"></div>
-      </div>
       `;
     }
 
@@ -186,24 +180,35 @@ export const tags = {
     const localizedDescription = translateToolDescription(tool.id, tool.description);
 
     return `
-    <button class="agent-tool-close " id="agent-tool-close-${tool.id}" title="${closeLabel}">
-      <img src="/x.svg" alt="${closeLabel}" width="16" height="16" />
-    </button>
-    <div class="agent-action-icon">
-      <img src="${tool.icon}" alt="${localizedName}" width="16" height="16" />
+    <!-- Character Button (shown when collapsed) -->
+    <div class="agent-character-button" id="agent-character-${tool.id}">
+      <img class="agent-character-image" src="${tool.characterImage}" alt="${localizedName}" />
+      <img class="agent-label-image" src="${tool.labelImage}" alt="${localizedName} Label" />
     </div>
-    <div class="agent-action-content" id="agent-tool-content-${tool.id}">
-      <div class="text-subtitle">${localizedName}</div>
-      <div class="text-body">${localizedDescription}</div>
-    </div>
-    <div class="agent-workflow-container" id="agent-workflow-${tool.id}">
-      <div class="agent-workflow-display">
-        <div class="agent-workflow-step">
-          <div class="text-subtitle" id="agent-workflow-title-${tool.id}"></div>
+    
+    <!-- Expanded Panel (shown when activated) -->
+    <div class="agent-panel" id="agent-panel-${tool.id}">
+      <button class="agent-tool-close" id="agent-tool-close-${tool.id}" title="${closeLabel}">
+        <img src="/x.svg" alt="${closeLabel}" width="16" height="16" />
+      </button>
+      <div class="agent-panel-header">
+        <div class="agent-action-icon">
+          <img src="${tool.icon}" alt="${localizedName}" width="16" height="16" />
         </div>
-        <div class="agent-workflow-content text-body" id="agent-workflow-content-${tool.id}"></div>
-        <div class="agent-workflow-actions">
-          <button class="modal-btn text-body" id="agent-workflow-btn-${tool.id}"></button>
+        <div class="agent-action-content" id="agent-tool-content-${tool.id}">
+          <div class="text-subtitle">${localizedName}</div>
+          <div class="text-body">${localizedDescription}</div>
+        </div>
+      </div>
+      <div class="agent-workflow-container" id="agent-workflow-${tool.id}">
+        <div class="agent-workflow-display">
+          <div class="agent-workflow-step">
+            <div class="text-subtitle" id="agent-workflow-title-${tool.id}"></div>
+          </div>
+          <div class="agent-workflow-content text-body" id="agent-workflow-content-${tool.id}"></div>
+          <div class="agent-workflow-actions">
+            <button class="modal-btn text-body" id="agent-workflow-btn-${tool.id}"></button>
+          </div>
         </div>
       </div>
     </div>
@@ -426,6 +431,8 @@ export function getElementActionButton(item: any): string {
 
 export const updateLayerSelection = (layerId: string) => {
   console.log('Updating layer selection', layerId);
+
+  // Update layer cards in syllables section
   const layerItems = document.querySelectorAll('.layer-card');
   layerItems.forEach((element) => {
     element.classList.remove('active');
@@ -435,7 +442,19 @@ export const updateLayerSelection = (layerId: string) => {
   if (element) {
     element.classList.add('active');
   }
-  console.log('Layer selection updated', element);
+
+  // Update layer items in paths section (element-item)
+  const pathLayerItems = document.querySelectorAll('.element-item[data-item-class="Layer"]');
+  pathLayerItems.forEach((pathItem) => {
+    pathItem.classList.remove('active');
+  });
+
+  const pathElement = document.querySelector(`.element-item[data-item-class="Layer"][data-item-id="${layerId}"]`);
+  if (pathElement) {
+    pathElement.classList.add('active');
+  }
+
+  console.log('Layer selection updated', element, pathElement);
 }
 
 export const updateItemSelection = (itemId: string) => {

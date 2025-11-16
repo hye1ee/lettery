@@ -9,6 +9,8 @@ export abstract class BaseAgentTool implements AgentTool {
   abstract readonly name: string;
   abstract readonly description: string;
   abstract readonly icon: string;
+  abstract readonly characterImage: string;
+  abstract readonly labelImage: string;
   abstract readonly isEnabled: boolean;
 
   protected renderCallback: (() => void) | null = null;

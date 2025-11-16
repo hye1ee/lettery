@@ -41,6 +41,7 @@ const translations: Record<string, TranslationEntry> = {
   'agent.status.layer.untitled': { ko: '이름 없음', en: 'Untitled' },
   'agent.tool.guidedEdit': { ko: '가이드 편집', en: 'Guided Edit' },
   'agent.tool.smartPropagation': { ko: '스마트 전파', en: 'Smart Propagation' },
+  'agent.tool.placeholderAgent': { ko: '준비 중', en: 'Coming Soon' },
   'agent.tool.guidedEdit.description': {
     ko: '가이드 스케치와 설명을 기반으로 선택한 자모를 수정합니다',
     en: 'Edit the selected jamo based on your sketch and description',
@@ -48,6 +49,10 @@ const translations: Record<string, TranslationEntry> = {
   'agent.tool.smartPropagation.description': {
     ko: '수정한 자모를 관련 자모에 자동으로 전파합니다',
     en: 'Automatically apply your edits across related jamos',
+  },
+  'agent.tool.placeholderAgent.description': {
+    ko: '이 기능은 곧 제공될 예정입니다!',
+    en: 'This feature is coming soon!',
   },
   'tags.before': { ko: '이전', en: 'Before' },
   'tags.after': { ko: '이후', en: 'After' },
@@ -91,11 +96,13 @@ const attributeConfigs: AttrConfig[] = [
 const toolNameKeyMap: Record<string, string> = {
   'Guided Edit': 'agent.tool.guidedEdit',
   'Smart Propagation': 'agent.tool.smartPropagation',
+  'Coming Soon': 'agent.tool.placeholderAgent',
 };
 
 const toolDescriptionKeyMap: Record<string, string> = {
   'guided-edit': 'agent.tool.guidedEdit.description',
   'smart-propagation': 'agent.tool.smartPropagation.description',
+  'placeholder-agent': 'agent.tool.placeholderAgent.description',
 };
 
 let currentLanguage: Language = 'ko';
@@ -139,6 +146,13 @@ const applyTranslationsInternal = (language: Language): void => {
   if (logoElement) {
     const logoSrc = language === 'en' ? '/hangulo_text_en.png' : '/hangulo_text_kr.png';
     logoElement.src = logoSrc;
+  }
+
+  // Update export button image based on language
+  const exportElement = document.querySelector<HTMLImageElement>('[data-i18n-export]');
+  if (exportElement) {
+    const exportSrc = language === 'en' ? '/label-export-en.png' : '/label-export.png';
+    exportElement.src = exportSrc;
   }
 };
 

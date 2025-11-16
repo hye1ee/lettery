@@ -24,6 +24,9 @@ export const jamoModal = JamoModal.getInstance();
 export const fontLoader = FontLoader.getInstance();
 export const openaiClient = OpenAIClient.getInstance();
 
+// Export agent animation
+export { agentAnimation } from './agentAnimation';
+
 // Export types
 export type { ContextMenuItem } from './contextMenu';
 
