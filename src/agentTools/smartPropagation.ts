@@ -37,26 +37,47 @@ class SmartPropagationTool extends BaseAgentTool {
 
     const model = ModelProvider.getModel();
 
+    // Initialize all steps at once
+    this.initializeSteps([
+      {
+        title: '스타일 변화 확인하기',
+        description: '다른 자모에 퍼트릴 스타일 변화 범위를 지정하세요',
+        buttonText: '다음 단계'
+      },
+      {
+        title: '퍼트릴 범위 지정하기',
+        description: '어떤 자모에 스타일을 퍼트릴까요?',
+        buttonText: '다음 단계'
+      },
+      {
+        title: '퍼트리기 계획하기',
+        description: '에이전트의 계획을 확인해주세요',
+        buttonText: '다음 단계'
+      },
+      {
+        title: '퍼트리기 적용하기',
+        description: '새로운 자모를 적용하고 있습니다',
+        buttonText: '완료'
+      }
+    ]);
+
     // [Step 1] Show before/after changes
     this.currentStep = 1;
+    this.activateStep(1);
     const layerStates = historyService.getHistoryData();
 
-    this.updateDisplay(
-      'Review Your Changes',
+    this.updateStepContent(
+      1,
       `
-        <p style="margin-bottom: 12px;">You've made changes to this jamo. Review the before and after:</p>
         ${tags.svgComparison(layerStates[0], layerStates[1])}
-        <p style="margin-top: 16px; padding: 12px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 4px; font-size: 0.9em;">
-          <strong>Do you want to propagate these changes to similar jamos in your font?</strong>
-        </p>
-      `,
-      'Yes, Proceed'
+      `
     );
     await this.waitForConfirmation();
 
     // [Step 2] Analyzing (with API call)
     this.currentStep = 2;
-    this.showLoadingState('Analyzing Changes', 'Proceed with Plan');
+    this.activateStep(2);
+    this.showStepLoading(2);
 
     let responses = await model.generateResponses({
       input: [
@@ -83,19 +104,19 @@ class SmartPropagationTool extends BaseAgentTool {
 
     const summaryMessage = model.getToolMessage(responses) ?? "{}";
 
-    this.updateDisplay(
-      'Analyzing Changes',
+    this.updateStepContent(
+      2,
       `
-        <p><strong>Change Analysis Complete:</strong></p>
-        ${tags.markdown(JSON.parse(summaryMessage)?.summary ?? "Analysis incomplete. Please try again.")}
+        ${tags.markdown(JSON.parse(summaryMessage)?.summary ?? "분석을 완료하지 못했습니다. 다시 시도해주세요.")}
       `,
-      'Confirm Analysis'
+      '다음 단계'
     );
     await this.waitForConfirmation();
 
     // [Step 3] Propagation Plan (with API call)
     this.currentStep = 3;
-    this.showLoadingState('Propagation Plan', 'Execute Plan');
+    this.activateStep(3);
+    this.showStepLoading(3);
 
     responses = await model.generateResponses({
       input: [
@@ -124,20 +145,19 @@ class SmartPropagationTool extends BaseAgentTool {
       model.getToolMessages(responses).map((msg) => JSON.parse(msg));
     planMessages = planMessages.filter((item) => item.plan);
 
-    this.updateDisplay(
-      'Propagation Plan',
+    this.updateStepContent(
+      3,
       `
-        <p><strong>Proposed Actions:</strong></p>
         ${tags.planMessages(planMessages)}
-        <p style="color: #666; font-size: 0.9em;">You can review and adjust after execution.</p>
       `,
-      'Execute Plan'
+      '다음 단계'
     );
     await this.waitForConfirmation();
 
     // [Step 4] Executing
     this.currentStep = 4;
-    this.showLoadingState('Executing Changes', 'Continue');
+    this.activateStep(4);
+    this.showStepLoading(4);
 
     // Create API calls for each plan message
     const executionPromises = planMessages.map(async (plan) => {
@@ -162,51 +182,30 @@ class SmartPropagationTool extends BaseAgentTool {
 
     // Wait for all executions to complete
     const executionResults = await Promise.all(executionPromises);
-    this.updateDisplay(
-      'Execution Complete',
-      `
-        <p><strong>Results:</strong></p>
-        <div style="margin: 12px 0;">
-          <div style="background: #e8f5e9; padding: 12px; border-radius: 4px; border-left: 3px solid #4caf50; margin-bottom: 8px;">
-            <p style="margin: 0;"><strong>✓ Successfully propagated to ${executionResults.length} jamos</strong></p>
-          </div>
-        </div>
-        ${tags.executionResults(executionResults)}
-        <p style="margin-top: 12px; color: #666; font-size: 0.9em;">All changes have been saved to history. You can undo if needed.</p>
-      `,
-      'Import'
-    );
-    await this.waitForConfirmation();
 
-    // [Step 5] Import 
-    this.currentStep = 5;
-
+    // Import the results immediately
     await new Promise((res) => {
-      setTimeout(res, 5000);
+      setTimeout(res, 500);
       planMessages.forEach((plan, idx) => {
         canvasService.importLayerData(plan.jamo, plan.syllable, executionResults[idx].path);
       })
+      res(undefined);
     });
 
-    // import data path
-
-    this.updateDisplay(
-      'Executing Changes',
+    this.updateStepContent(
+      4,
       `
-        <p><strong>Progress:</strong></p>
         <div style="margin: 12px 0;">
-          <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden;">
-            <div style="background: #4caf50; height: 100%; width: 100%; transition: width 0.3s;"></div>
+          <div style="background: #e8f5e9; padding: 12px; border-radius: 4px; border-left: 3px solid #4caf50; margin-bottom: 8px;">
+            <p style="margin: 0;"><strong>✓ ${executionResults.length}개의 자모에 성공적으로 적용되었습니다</strong></p>
           </div>
-          <p style="margin: 8px 0; font-size: 0.9em; color: #666;">Processing complete...</p>
         </div>
-        <div style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin: 8px 0; font-family: monospace; font-size: 0.85em;">
-          ${executionResults.map(result =>
-        `<p style="margin: 2px 0;">✓ ${result.jamo}: Complete</p>`
-      ).join('')}
+        ${tags.executionResults(executionResults)}
+        <div style="margin-top: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+          <p style="margin: 0; font-size: 0.85em; color: #666;">모든 변경사항이 캔버스에 적용되었습니다.</p>
         </div>
       `,
-      'Done'
+      '완료'
     );
     await this.waitForConfirmation();
 

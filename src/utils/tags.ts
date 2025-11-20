@@ -2,7 +2,7 @@
 import Sortable from "sortablejs";
 import type { AgentTool, ItemClassName } from "../types";
 import { fontLoader } from "../helpers";
-import { translate, translateToolName, translateToolDescription } from "../i18n";
+import { translate, translateToolName } from "../i18n";
 
 export const tags = {
   // Modal Templates
@@ -221,7 +221,7 @@ export const tags = {
   agentToolItem: (tool: AgentTool) => {
     const closeLabel = translate('modal.close');
     const localizedName = translateToolName(tool.name);
-    const localizedDescription = translateToolDescription(tool.id, tool.description);
+    // const localizedDescription = translateToolDescription(tool.id, tool.description);
 
     return `
     <!-- Character Button (shown when collapsed) -->
@@ -233,27 +233,13 @@ export const tags = {
     <!-- Expanded Panel (shown when activated) -->
     <div class="agent-panel" id="agent-panel-${tool.id}">
       <button class="agent-tool-close" id="agent-tool-close-${tool.id}" title="${closeLabel}">
-        <img src="/x.svg" alt="${closeLabel}" width="16" height="16" />
+        <img src="/x.svg" alt="${closeLabel}" width="20" height="20" />
       </button>
-      <div class="agent-panel-header">
-        <div class="agent-action-icon">
-          <img src="${tool.icon}" alt="${localizedName}" width="16" height="16" />
-        </div>
-        <div class="agent-action-content" id="agent-tool-content-${tool.id}">
-          <div class="text-subtitle">${localizedName}</div>
-          <div class="text-body">${localizedDescription}</div>
-        </div>
-      </div>
       <div class="agent-workflow-container" id="agent-workflow-${tool.id}">
-        <div class="agent-workflow-display">
-          <div class="agent-workflow-step">
-            <div class="text-subtitle" id="agent-workflow-title-${tool.id}"></div>
+          <div class="agent-workflow-content text-body" id="agent-workflow-content-${tool.id}">
+            <!-- Steps will be added here dynamically -->
           </div>
-          <div class="agent-workflow-content text-body" id="agent-workflow-content-${tool.id}"></div>
-          <div class="agent-workflow-actions">
-            <button class="modal-btn text-body" id="agent-workflow-btn-${tool.id}"></button>
-          </div>
-        </div>
+
       </div>
     </div>
   `;
@@ -268,7 +254,7 @@ export const tags = {
         <div class="text-body">${content}</div>
       </div>
       <div class="agent-workflow-actions">
-        <button class="modal-btn text-body" id="agent-confirm-btn" ${isDisabled ? 'disabled' : ''}>${confirmText}</button>
+        <button class="modal-btn text-label" id="agent-confirm-btn" ${isDisabled ? 'disabled' : ''}>${confirmText}</button>
       </div>
     </div>
   `,

@@ -10,7 +10,7 @@ export const analysisTool: ModelBaseTool =
     "properties": {
       "geometric_analysis": { "type": "string", "description": "The geometric analysis of the jamo based on the reference jamo and the target jamo's path data" },
       "semantic_analysis": { "type": "string", "description": "The semantic analysis of the jamo based on the reference jamo and the target jamo's path data" },
-      "summary": { "type": "string", "description": "The summary of the analysis based on the geometric and semantic analysis" },
+      "summary": { "type": "string", "description": "The summary is based on the geometric and semantic analysis and must be provided as a single Korean sentence within 10 words." },
     }
   },
 };
