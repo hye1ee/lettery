@@ -13,8 +13,17 @@ export default class SelectTool implements Tool {
 
   private isDragSelecting: boolean = false;
   private isDragMoving: boolean = false;
+  private isScaling: boolean = false;
+  private isRotating: boolean = false;
   private dragStartPoint: paper.Point | null = null;
   private dragStartPositions: Map<number, paper.Point> = new Map();
+  private scaleHandleIndex: number | null = null;
+  private scaleOrigin: paper.Point | null = null;
+  private initialBounds: paper.Rectangle | null = null;
+  private initialItemBounds: Map<number, paper.Rectangle> = new Map();
+  private rotationCenter: paper.Point | null = null;
+  private initialRotations: Map<number, number> = new Map();
+  private startAngle: number = 0;
   private onToolSwitch: ((toolId: string) => void) | null = null;
 
   activate(): void {
@@ -35,8 +44,17 @@ export default class SelectTool implements Tool {
     boundingBox.hide();
     this.dragStartPoint = null;
     this.dragStartPositions.clear();
+    this.initialItemBounds.clear();
+    this.initialRotations.clear();
     this.isDragSelecting = false;
     this.isDragMoving = false;
+    this.isScaling = false;
+    this.isRotating = false;
+    this.scaleHandleIndex = null;
+    this.scaleOrigin = null;
+    this.initialBounds = null;
+    this.rotationCenter = null;
+    this.startAngle = 0;
     cursor.resetCursor();
   }
 
@@ -110,7 +128,24 @@ export default class SelectTool implements Tool {
     const hitResult = paper.project.hitTest(event.point);
     const isMultiSelect = event && (event.modifiers?.control || event.modifiers?.meta);
 
-    if (hitResult) { // (1) Select Item
+    // Check if we hit a rotation handle
+    if (hitResult && hitResult.item.name && hitResult.item.name === 'system-rotation-handle') {
+      this.startRotation(event.point);
+      logger.updateStatus('Rotating...');
+      return;
+    }
+
+    // Check if we hit a scale handle
+    if (hitResult && hitResult.item.name && hitResult.item.name.includes('system-scale-handle')) {
+      // Extract handle index from name (e.g., 'system-scale-handle-0' -> 0)
+      const handleIndex = parseInt(hitResult.item.name.split('-').pop() || '0');
+      this.startScaling(event.point, handleIndex);
+      logger.updateStatus('Scaling...');
+      return;
+    }
+
+    if (hitResult && hitResult.item.name && !hitResult.item.name.includes('system')) {
+      // (1) Select Item
       if (!isMultiSelect && !this.getSelectedItems().some(item => item.id === hitResult.item.id)) {
         paper.project.deselectAll();
         uiService.renderPathItems();
@@ -119,14 +154,13 @@ export default class SelectTool implements Tool {
       this.selectItem(hitResult.item);
       this.grabPoint(event.point);
       logger.updateStatus('Item selected');
-    } else {
+    } else if (!hitResult || (hitResult.item.name && hitResult.item.name.includes('system'))) {
       // (2) Drag Selection
       paper.project.deselectAll();
       uiService.renderPathItems();
 
       this.isDragSelecting = true;
       previewBox.show(event.point);
-      // this.grabPoint(event.point);
 
       logger.updateStatus('Drag selection started')
     }
@@ -161,6 +195,70 @@ export default class SelectTool implements Tool {
     }
   }
 
+  startScaling(startPoint: paper.Point, handleIndex: number): void {
+
+    console.log("startScaling", startPoint, handleIndex);
+    const selectedItems = this.getSelectedItems();
+    if (selectedItems.length === 0) return;
+
+    this.isScaling = true;
+    this.scaleHandleIndex = handleIndex;
+    this.dragStartPoint = startPoint;
+
+    // Calculate combined bounds of all selected items
+    let combinedBounds = selectedItems[0].bounds;
+    selectedItems.forEach(item => {
+      combinedBounds = combinedBounds.unite(item.bounds);
+    });
+    this.initialBounds = combinedBounds;
+
+    // Store initial bounds of each item
+    selectedItems.forEach(item => {
+      this.initialItemBounds.set(item.id, item.bounds.clone());
+    });
+
+    // Determine the origin point (opposite corner/edge from the handle)
+    // Handle indices go counter-clockwise from bottom-left:
+    // 0: bottom-left, 1: left, 2: top-left, 3: top, 4: top-right, 5: right, 6: bottom-right, 7: bottom
+    const oppositePoints = [
+      combinedBounds.topRight,     // 0: bottom-left -> top-right
+      combinedBounds.rightCenter,  // 1: left -> right
+      combinedBounds.bottomRight,  // 2: top-left -> bottom-right
+      combinedBounds.bottomCenter, // 3: top -> bottom
+      combinedBounds.bottomLeft,   // 4: top-right -> bottom-left
+      combinedBounds.leftCenter,   // 5: right -> left
+      combinedBounds.topLeft,      // 6: bottom-right -> top-left
+      combinedBounds.topCenter     // 7: bottom -> top
+    ];
+
+    this.scaleOrigin = oppositePoints[handleIndex];
+  }
+
+  startRotation(startPoint: paper.Point): void {
+    console.log("startRotation", startPoint);
+    const selectedItems = this.getSelectedItems();
+    if (selectedItems.length === 0) return;
+
+    this.isRotating = true;
+    this.dragStartPoint = startPoint;
+
+    // Calculate combined bounds center as rotation center
+    let combinedBounds = selectedItems[0].bounds;
+    selectedItems.forEach(item => {
+      combinedBounds = combinedBounds.unite(item.bounds);
+    });
+    this.rotationCenter = combinedBounds.center;
+
+    // Store initial rotation of each item
+    selectedItems.forEach(item => {
+      this.initialRotations.set(item.id, item.rotation || 0);
+    });
+
+    // Calculate initial angle from center to start point
+    const vector = startPoint.subtract(this.rotationCenter);
+    this.startAngle = Math.atan2(vector.y, vector.x);
+  }
+
   getSelectedItems(): paper.Item[] {
     return paper.project.selectedItems.filter((item) => (item.name) && !item.name.includes("system"));
   }
@@ -176,12 +274,43 @@ export default class SelectTool implements Tool {
       .forEach(item => item.selected = true)
   }
 
-  onMouseMove = (_event: paper.ToolEvent): void => {
-    // TODO: Implement mouse move logic
+  onMouseMove = (event: paper.ToolEvent): void => {
+    const hitResult = paper.project.hitTest(event.point);
+
+    // Check if hovering over rotation handle
+    if (hitResult && hitResult.item.name && hitResult.item.name === 'system-rotation-handle') {
+      cursor.updateCursor('grab');
+      return;
+    }
+
+    // Check if hovering over a scale handle
+    if (hitResult && hitResult.item.name && hitResult.item.name.includes('system-scale-handle')) {
+      const handleIndex = parseInt(hitResult.item.name.split('-').pop() || '0');
+
+      // Set cursor based on handle position
+      // Counter-clockwise from bottom-left: 0: BL, 1: L, 2: TL, 3: T, 4: TR, 5: R, 6: BR, 7: B
+      const cursorMap = [
+        'nesw-resize', // 0: bottom-left corner (↗↙)
+        'ew-resize',   // 1: left edge (↔)
+        'nwse-resize', // 2: top-left corner (↖↘)
+        'ns-resize',   // 3: top edge (↕)
+        'nesw-resize', // 4: top-right corner (↗↙)
+        'ew-resize',   // 5: right edge (↔)
+        'nwse-resize', // 6: bottom-right corner (↖↘)
+        'ns-resize'    // 7: bottom edge (↕)
+      ];
+
+      cursor.updateCursor(cursorMap[handleIndex] || 'default');
+    } else if (hitResult && hitResult.item.name && !hitResult.item.name.includes('system')) {
+      cursor.updateCursor('move');
+    } else {
+      cursor.updateCursor(this.cursorStyle);
+    }
   }
 
   onMouseUp = (_event: paper.ToolEvent): void => {
-    if (this.isDragSelecting) { // (1) Drag Selection
+    if (this.isDragSelecting) {
+      // (1) Drag Selection
       this.makeDragSelection();
       console.log('makeDragSelection done');
       previewBox.hide();
@@ -189,7 +318,32 @@ export default class SelectTool implements Tool {
 
       logger.updateStatus(`${this.getSelectedItems().length} items selected`);
       uiService.renderPathItems();
-    } else { // (2) Drag Moving
+    } else if (this.isRotating) {
+      // (2) Rotating
+      this.dragStartPoint = null;
+      this.rotationCenter = null;
+      this.startAngle = 0;
+      this.initialRotations.clear();
+      this.initialItemBounds.clear();
+
+      historyService.saveSnapshot("rotate");
+      this.isRotating = false;
+
+      logger.updateStatus('Rotation complete');
+    } else if (this.isScaling) {
+      // (3) Scaling
+      this.dragStartPoint = null;
+      this.scaleHandleIndex = null;
+      this.scaleOrigin = null;
+      this.initialBounds = null;
+      this.initialItemBounds.clear();
+
+      historyService.saveSnapshot("scale");
+      this.isScaling = false;
+
+      logger.updateStatus('Scaling complete');
+    } else {
+      // (4) Drag Moving
       this.dragStartPoint = null;
       this.dragStartPositions.clear();
 
@@ -202,10 +356,141 @@ export default class SelectTool implements Tool {
   }
 
   onMouseDrag = (event: paper.ToolEvent): void => {
-    if (this.isDragSelecting) { // (1) Drag Selection
+    if (this.isDragSelecting) {
+      // (1) Drag Selection
       previewBox.update(event.point);
-    } else if (this.dragStartPoint && this.dragStartPositions.size > 0) {
-      // (2) Drag Moving
+    } else if (this.isRotating && this.rotationCenter && this.dragStartPoint) {
+      // (2) Rotating
+      boundingBox.hide();
+
+      const selectedItems = this.getSelectedItems();
+      if (selectedItems.length === 0) return;
+
+      const currentPoint = event.point;
+      const center = this.rotationCenter;
+
+      // Calculate current angle from center to mouse
+      const currentVector = currentPoint.subtract(center);
+      const currentAngle = Math.atan2(currentVector.y, currentVector.x);
+
+      // Calculate rotation delta in degrees
+      let angleDelta = (currentAngle - this.startAngle) * (180 / Math.PI);
+
+      // Shift-drag: snap to 15-degree increments
+      if (event.modifiers?.shift) {
+        angleDelta = Math.round(angleDelta / 15) * 15;
+      }
+
+      // Apply rotation to each item around the common center
+      selectedItems.forEach((item) => {
+        const initialRotation = this.initialRotations.get(item.id) || 0;
+
+        // Get initial position relative to rotation center
+        const initialBounds = this.initialItemBounds.get(item.id);
+        if (!initialBounds) {
+          this.initialItemBounds.set(item.id, item.bounds.clone());
+        }
+
+        // Reset to initial state
+        item.rotation = initialRotation;
+
+        // Rotate around the common center
+        item.rotate(angleDelta, center);
+      });
+
+      paper.project.view.update();
+
+      // Update status
+      const displayAngle = Math.round(angleDelta) % 360;
+      logger.updateStatus(`Rotating: ${displayAngle}°${event.modifiers?.shift ? ' (snapped)' : ''}`);
+    } else if (this.isScaling && this.scaleOrigin && this.initialBounds && this.dragStartPoint) {
+      // (3) Scaling
+      boundingBox.hide();
+
+      const selectedItems = this.getSelectedItems();
+      if (selectedItems.length === 0) return;
+
+      // Calculate scale factors based on handle position
+      let scaleX = 1;
+      let scaleY = 1;
+
+      const currentPoint = event.point;
+      const origin = this.scaleOrigin;
+
+      // Calculate initial and current distances from origin
+      const initialDist = this.dragStartPoint!.subtract(origin);
+      const currentDist = currentPoint.subtract(origin);
+
+      // Determine if this is a corner handle (even indices) or edge handle (odd indices)
+      // Corners: 0, 2, 4, 6 | Edges: 1, 3, 5, 7
+      const isCornerHandle = this.scaleHandleIndex! % 2 === 0;
+
+      if (isCornerHandle) {
+        // Corner handles: 0=bottom-left, 2=top-left, 4=top-right, 6=bottom-right
+        // Scale both dimensions
+        if (event.modifiers?.shift) {
+          // Shift-drag: uniform scaling
+          const scale = currentDist.length / initialDist.length;
+          scaleX = scale;
+          scaleY = scale;
+        } else {
+          // Non-uniform scaling
+          scaleX = Math.abs(initialDist.x) > 0.001 ? currentDist.x / initialDist.x : 1;
+          scaleY = Math.abs(initialDist.y) > 0.001 ? currentDist.y / initialDist.y : 1;
+        }
+      } else {
+        // Edge handles: scale only in one dimension
+        // Handles: 1=left, 3=top, 5=right, 7=bottom
+        const handleIndex = this.scaleHandleIndex!;
+        if (handleIndex === 1 || handleIndex === 5) {
+          // Left or right edge: dragging horizontally changes width (X scale)
+          scaleX = Math.abs(initialDist.x) > 0.001 ? currentDist.x / initialDist.x : 1;
+        } else {
+          // Top or bottom edge: dragging vertically changes height (Y scale)
+          scaleY = Math.abs(initialDist.y) > 0.001 ? currentDist.y / initialDist.y : 1;
+        }
+      }
+
+      // Prevent negative scaling (flipping)
+      scaleX = Math.abs(scaleX) < 0.01 ? 0.01 : scaleX;
+      scaleY = Math.abs(scaleY) < 0.01 ? 0.01 : scaleY;
+
+      // Apply scaling to each item
+      selectedItems.forEach((item) => {
+        const initialBounds = this.initialItemBounds.get(item.id);
+        if (!initialBounds) return;
+
+        // Calculate the item's position relative to the origin
+        const relativeCenter = initialBounds.center.subtract(origin);
+
+        // Scale the relative position
+        const newRelativeCenter = new paper.Point(
+          relativeCenter.x * scaleX,
+          relativeCenter.y * scaleY
+        );
+
+        // Calculate new center position
+        const newCenter = origin.add(newRelativeCenter);
+
+        // Calculate new size
+        const newSize = new paper.Size(
+          initialBounds.width * Math.abs(scaleX),
+          initialBounds.height * Math.abs(scaleY)
+        );
+
+        // Apply the transformation
+        item.bounds = new paper.Rectangle(
+          newCenter.subtract(new paper.Point(newSize.width / 2, newSize.height / 2)),
+          newSize
+        );
+      });
+
+      paper.project.view.update();
+
+      // Update status
+      logger.updateStatus(`Scaling: ${(scaleX * 100).toFixed(0)}% × ${(scaleY * 100).toFixed(0)}%`);
+    } else if (this.dragStartPoint && this.dragStartPositions.size > 0 && !this.isScaling && !this.isRotating) {
+      // (4) Drag Moving
       boundingBox.hide();
       let delta = event.point.subtract(this.dragStartPoint);
 

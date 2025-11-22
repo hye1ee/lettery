@@ -53,8 +53,8 @@ class BoundingBox {
         size = 6;
       }
 
-      if (index === 7) {
-        var offset = new paper.Point(0, 10 / paper.view.zoom);
+      if (index === 3) {
+        var offset = new paper.Point(0, - 10 / paper.view.zoom);
         this.rotationHandle = new paper.Path.Circle({
           name: 'system-rotation-handle',
           center: segment.point.add(offset),
@@ -62,6 +62,7 @@ class BoundingBox {
           strokeColor: colors.secondary,
           fillColor: 'white',
           strokeWidth: 0.5 / paper.view.zoom,
+          locked: false, // Make handle interactive for rotation
           parent: paper.project.layers.find(layer => layer.name === 'system-helper')
         });
         this.boxGroup?.addChild(this.rotationHandle);
@@ -73,6 +74,7 @@ class BoundingBox {
           center: segment.point,
           size: [size / paper.view.zoom, size / paper.view.zoom],
           fillColor: colors.secondary,
+          locked: false, // Make handles interactive for scaling
           parent: paper.project.layers.find(layer => layer.name === 'system-helper')
         });
       this.boxGroup?.addChild(this.scaleHandles[index]);
