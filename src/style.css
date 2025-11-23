@@ -785,16 +785,93 @@ body {
   margin-top: 4px;
 }
 
+/* History navigation buttons */
+.history-nav-btn {
+  padding: 8px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.history-nav-btn:not(:disabled):hover {
+  transform: scale(1.15);
+}
+
+.history-nav-btn:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+.history-nav-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.history-nav-btn img {
+  display: block;
+}
+
+/* Propagation Range Slider */
+.propagation-element {
+  user-select: none;
+  cursor: default;
+}
+
+#propagation-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: #ddd;
+  border-radius: 4px;
+  outline: none;
+}
+
+#propagation-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #5eb8e5;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#propagation-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #4a9dc9;
+}
+
+#propagation-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #5eb8e5;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+#propagation-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: #4a9dc9;
+}
+
+#recommended-marker {
+  z-index: 10;
+}
+
 /* SVG Preview in Agent Workflow */
 .svg-preview {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin: 12px 0;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 12px;
 }
 
 .svg-preview-item {

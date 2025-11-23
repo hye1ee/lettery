@@ -300,7 +300,7 @@ export const tags = {
   },
 
   svgComparison: (afterPaths: string[], beforePaths: string[]) => `
-    <div class="svg-preview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;">
+    <div class="svg-preview" >
       <div>
         <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">${translate('tags.before')}</p>
         <div class="svg-preview-item">

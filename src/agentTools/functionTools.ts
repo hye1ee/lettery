@@ -1,18 +1,30 @@
 import type { ModelBaseTool } from "../types";
 
-export const analysisTool: ModelBaseTool =
-{
-  "name": "analysis_tool",
-  "description": "Analyze the geometric and semantic transformation of the jamo based on the reference jamo and the target jamo's path data",
+export const propagationAnalysisTool: ModelBaseTool = {
+  "name": "propagation_analysis_tool",
+  "description": "Analyze geometric and semantic transformation of the target jamo and recommend a propagation range across structurally similar jamo.",
   "properties": {
     "type": "object",
-    "required": ["geometric_analysis", "semantic_analysis", "summary"],
+    "required": ["geometric_analysis", "semantic_analysis", "reasoning", "recommendedIndex"],
     "properties": {
-      "geometric_analysis": { "type": "string", "description": "The geometric analysis of the jamo based on the reference jamo and the target jamo's path data" },
-      "semantic_analysis": { "type": "string", "description": "The semantic analysis of the jamo based on the reference jamo and the target jamo's path data" },
-      "summary": { "type": "string", "description": "The summary is based on the geometric and semantic analysis and must be provided as a single Korean sentence within 10 words." },
+      "geometric_analysis": {
+        "type": "string",
+        "description": "A precise geometric analysis comparing the reference jamo and the transformed jamo. Describe structural, proportional, and stroke-level changes."
+      },
+      "semantic_analysis": {
+        "type": "string",
+        "description": "An interpretation of the expressive or emotional intent behind the geometric transformation."
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Explain, in polite and friendly Korean honorific language, why this propagation index is appropriate. The explanation should be concise."
+      },
+      "recommendedIndex": {
+        "type": "number",
+        "description": "Inclusive index boundary for propagation. For example, if recommendedIndex = 3, the transformation MUST propagate to elements[0], elements[1], elements[2], and elements[3] (four elements in total)."
+      }
     }
-  },
+  }
 };
 
 

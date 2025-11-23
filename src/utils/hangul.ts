@@ -49,6 +49,15 @@ export const decomposeSyllable = (syllable: string): string[] => {
   return result;
 };
 
+export const decomposeWord = (word: string): string[] => {
+  const result: string[] = [];
+  for (const ch of word.split('')) {
+    result.push(...decomposeSyllable(ch));
+  }
+  return result;
+};
+
+
 export const formFeatures = {
   "right-top-corner": {
     "description": "A structure with a right-top angular corner.",
@@ -475,4 +484,23 @@ export const calculateDistance = (target: string, elements: string[]) => {
   scored.sort((a, b) => b.score - a.score);
 
   return scored.map(s => s.char);
+};
+
+export const calculateDistanceWithScore = (target: string, elements: string[]) => {
+  const scored = elements.map(ch => {
+    const targetInfo = isConsonant(target) ? hangulConsonants[target] : hangulVowels[target];
+    const candidateInfo = isConsonant(ch) ? hangulConsonants[ch] : hangulVowels[ch];
+
+    return {
+      char: ch,
+      description: candidateInfo.description,
+      score: computeSimilarityScore(target, ch),
+      sameFormGroup: targetInfo.form_group === candidateInfo.form_group,
+      sameFeatures: targetInfo.form_features.filter(f => candidateInfo.form_features.includes(f as string))
+    }
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored;
 };
