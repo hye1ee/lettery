@@ -32,7 +32,7 @@ Vowels are constructed from combinations of three basic components:
 The dot (·) can be creatively reinterpreted as another form — such as a heart, star, or small symbol — without losing structural meaning.
 `;
 
-export const jamoEditExample: ModelBaseInput = {
+export const outlineEditExample: ModelBaseInput = {
   role: 'user',
   content: [
     { type: "text", data: `Example jamo path data: M709.3,245.9v-31.2h176.7v90.9h-138.3v47.4h-37.8v-78.6h138v-28.5zM709.9,367.7v-32.4h180.3v32.4z` },
@@ -41,33 +41,72 @@ export const jamoEditExample: ModelBaseInput = {
   ],
 };
 
-export const jamoGuideEditPrompt = (jamo: string, instruction: string | null) => `
+export const strokeEditExample: ModelBaseInput = {
+  role: 'user',
+  content: [
+    { type: "text", data: "Example jamo path data: M348.5 58V331.5H304.5V102H51V58H348.5Z" },
+    { type: "text", data: "Guide path data: M51 100.469C51.4815 99.1187 58.1467 89.5634 76.6056 74.0041C81.9297 69.5163 90.5684 66.6219 105.013 61.6353C113.12 58.8366 123.179 56.6422 137.774 54.9556C152.369 53.2691 171.292 52.4506 183.465 52.4524C200.512 52.455 208.626 55.3106 220.312 60.7546C228.99 64.7974 242.731 72.5045 252.52 77.5112C267.456 85.1497 274.785 87.77 283.457 88.7337C290.365 89.5016 302.471 89.645 311.317 89.0329C333.197 87.5188 340.194 77.6945 345.574 71.2263C348.909 67.2167 349.156 58.0317 347.609 51.4002C346.404 46.2329 336.351 43.1636 327.627 41.3391C320.231 39.7924 316.196 43.5628 305.642 52.1083C297.473 58.7231 294.926 69.7129 293.387 82.552C292.27 91.8661 292.434 107.046 292.827 116.901C294.338 130.873 297.539 139.967 302.092 149.843C304.598 154.868 307.499 159.917 311.157 165.203" },
+    { type: "text", data: "Example output: M310.018 34.4122C320.377 32.3701 332.839 32.0675 344.436 36.7609C357.005 41.848 366.78 52.1611 370.818 67.2325C375.212 83.6297 370.066 98.2291 360.609 108.708C351.758 118.516 339.453 124.594 327.643 127.736C310.833 132.209 293.691 131.23 277.568 127.995C271.958 151.381 271.822 183.455 284.215 226.359C290.965 249.727 303.638 264.618 315.502 273.692C321.503 278.282 327.274 281.361 331.899 283.238C337.006 285.311 339.413 285.408 338.825 285.408V325.408C332.098 325.408 324.221 323.291 316.854 320.3C309.004 317.113 300.107 312.277 291.201 305.465C273.251 291.736 255.15 269.877 245.785 237.459C231.706 188.721 231.606 148.309 239.425 116.664C234.506 114.842 229.661 112.953 224.926 111.064C208.571 104.539 193.984 98.2457 179.659 93.3165C165.408 88.4126 153.625 85.6915 143.912 85.6915C124.393 85.6915 110.344 87.7251 101.017 90.005C90.9273 92.4711 87.8937 94.838 88.7568 94.1232L63.2432 63.3165C69.3506 58.2584 79.4008 54.1107 91.5195 51.1485C104.401 48 121.686 45.6915 143.912 45.6915C160.29 45.6915 177.064 50.1219 192.674 55.4933C208.21 60.8393 224.792 67.9443 239.748 73.9112C244.656 75.8692 249.456 77.7337 254.153 79.462C269.172 53.4802 290.45 38.2696 310.018 34.4122ZM329.429 73.839C327.449 73.0378 323.509 72.522 317.754 73.6564C313.337 74.527 304.229 79.5751 295.453 90.3253C303.684 91.1785 310.938 90.789 317.357 89.0812C324.088 87.2903 328.695 84.3679 330.914 81.9093C331.915 80.7999 332.217 80.0373 332.314 79.6778C332.388 79.4081 332.512 78.8192 332.182 77.5851C331.703 75.798 331.132 75.055 330.894 74.7862C330.649 74.5107 330.256 74.1738 329.429 73.839Z " },
+  ],
+};
+
+export const jamoGuideEditPrompt = (jamo: string, isStrokeSketch: boolean) => `
 You are a Hangul typography vector assistant editing jamo '${jamo}' based on a blue guide sketch.
 
 [Input]
-- Current path data (black strokes - the base to modify)
-- Guide sketch path data (blue hand-drawn overlay - desired outline intent)
-- Preview image showing both overlaid
+- Current path data (black)
+- Guide sketch path data (${isStrokeSketch ? "orange stroke-skeleton" : "blue outline"})
+- Preview image with overlay
+- Example:
+${isStrokeSketch
+    ?
+    `  • Skeleton edit example (orange): Adjust only the indicated skeleton segments (e.g., one joint or one axis direction), then regenerate the outline from the modified skeleton while preserving all other structure.`
+    :
+    `  • Outline edit example (blue): Modify only the outline segments touched by the guide, refine curves cleanly, and keep untouched regions exactly as they are.`
+  }
+
+${isStrokeSketch
+    ?
+    `[Mode: ORANGE-STROKE-SKELETON EDIT]
+
+You are editing the **stroke skeleton** of the jamo based on an orange guide sketch.
+
+[Understanding the Orange Stroke Guide]
+The orange line represents the **intended stroke skeleton** (centerline).
+- The sketch may show **only part of the intended skeleton** (e.g., only the horizontal stroke, only a joint, or only a curvature change).
+- Therefore, you must interpret user intent and apply changes **only to the relevant skeleton regions**, not the entire character.
+- Treat the guide like auto-rigging: adjusting the skeleton should proportionally update the outline.
+
+[Task: Skeleton-Based Editing]
+1. Extract the skeleton from the current outline.
+2. Compare with the guide to identify which segments or joints require modification.
+3. Apply localized skeleton deformation:
+   - Move or rotate joints
+   - Adjust segment curvature or angle
+   - Preserve stroke thickness
+4. Regenerate the overall outline based on the updated skeleton.
+5. Maintain structural clarity and smoothness with no distortions.
+`
+    :
+    `[Mode: BLUE-OUTLINE EDIT]
+
+You are editing the **outer outline** of the jamo based on a blue sketch.
 
 [Understanding the Blue Guide]
-The blue line represents the DESIRED OUTLINE of the current vector.
-- It's a SKETCH expressing design intent, not exact geometry to copy
-- Adapt and modify the sketch as needed to create smooth, professional results
-- The sketch may be rough, incomplete, or imprecise - your job is to interpret and refine it
+The blue line represents the desired outline.
+- The sketch may cover **only a portion of the outline** (e.g., only the cap, only one curve, or only one stroke edge).
+- Therefore, apply changes **only to the overlapping part**, preserving all unaffected regions.
+- Convert rough sketch segments into refined Bézier curves while keeping global structure intact.
 
-[Task]
-Create clean, well-structured vector paths that merge smoothly with the current vector:
-1. **Interpret the guide's intent**: If the blue line only covers a stroke cap, edge, or specific region, 
-   modify ONLY that part while keeping the rest intact
-2. **Merge smoothly**: Ensure modified sections blend seamlessly into existing paths with natural transitions
-3. **Refine the sketch**: Convert rough guide lines into professional Bezier curves with proper radius and structure
-
-[Best Practice Workflow]
+[Task: Outline-Based Editing]
 1. **Start with the current path**: Copy the existing vector path data as your base
 2. **Identify overlap regions**: Determine which parts of the current path overlap with the guide sketch
 3. **Modify overlapping parts**: Replace or adjust only the overlapping segments to match the guide's intent
 4. **Preserve non-overlapping parts**: Keep all other parts of the current path unchanged
 5. **Blend transitions**: Ensure smooth connections between modified and preserved segments
+`
+  }
+
 
 [Tips for Smooth Curves]
 - **Use minimum points**: Omit unnecessary details and use the minimum number of control points needed
@@ -100,18 +139,11 @@ Create clean, well-structured vector paths that merge smoothly with the current 
    - Maintain essential stroke relationships and proportions
    - Don't break topology or create unintended overlaps
 
-${instruction ? `
-[Text Instruction: "${instruction}"]
-Use this to clarify the guide's intent (e.g., sharp edges, specific style).
-If conflicts with visual guide, prioritize the guide's visual intent.
-` : ''}
-
 [Output Requirements]
-Use edit_tool to return modified SVG path data that:
+Use edit_tool to return updated SVG path data that:
 - Has smooth, continuous curves with no bumps
-- Uses clean solid lines with appropriate radius
-- Merges seamlessly with unmodified parts
-- Maintains professional vector quality
+- Connects naturally with untouched regions
+- Maintains clean, professional vector quality
 
 [What to Avoid]
 - Copying rough sketch geometry directly without refinement
@@ -215,42 +247,59 @@ Please use the given tool.
 
 `;
 
-export const jamoPlanPrompt = (jamo: string, workingLetters: string, analysis: string, level: string) => `
-You are a Hangul typography planning assistant.
-Your role is to extend the design intent observed in one modified jamo to other jamos of the same word,
-while maintaining stylistic harmony and structural consistency.
+export const jamoPlanPrompt = (
+  jamo: string,
+  workingLetters: string,
+  analysis: string,
+  targetDescription: string
+) => `
+You are a Hangul typography propagation & planning assistant.
+Your task is to extend the stylistic transformation applied to the target jamo ('${jamo}')
+to a single selected jamo, while maintaining Hangul structure and overall typographic harmony.
 
 ${workingLetters}
 
 [Input]
-- User's previous '${jamo}' design file (reference)
-- User's current '${jamo}' design file (after modification)
-- Modification analysis : ${analysis}
-- Transformation level: ${level} (high / medium / low)
+1. User's previous '${jamo}' design file (reference)
+2. User's current '${jamo}' design file (after modification)
+3. Transformation analysis of '${jamo}':
+${analysis}
+
+4. Target jamo metadata (the jamo that must inherit the transformation):
+${targetDescription}
 
 [Task]
-1. For each jamo in the word, **evaluate whether a geometric transformation is needed** based on stylistic consistency with the modified '${jamo}'.
-2. **Only if a transformation is necessary**, describe:
-   - What geometric change should occur (e.g., stroke angle, curvature, weight).
-   - Why this change is needed, referencing the Stage 1 analysis.
-3. **Do NOT call any tool** for jamos that do not require transformation.
-4. If multiple jamos need changes, call the 'plan_tool' **separately for each one**.
-5. The overall typography must maintain visual rhythm and proportional harmony.
+Using the metadata above, you MUST:
+
+1. Read and understand the geometric & semantic analysis of '${jamo}'.
+2. Evaluate how the transformation applied to '${jamo}' should extend to the target jamo based on:
+   - its structural description (“description”)
+   - its shared structural features (“sameFeatures”)
+   - whether it belongs to the same form group (“sameFormGroup”)
+   - its relative similarity score (“score”)
+3. Propose a specific geometric transformation plan for the target jamo:
+   - modifications to curvature, stroke angle, weight, axis shift, aperture, tick shape, corner tension, etc.
+4. Justify *why* this transformation is appropriate by referencing:
+   - the analysis of '${jamo}',
+   - the target jamo's features,
+   - its description,
+   - and its structural relation to '${jamo}'.
+5. You MUST call 'plan_tool' exactly once for this target jamo.
+6. Do NOT output natural language outside the tool call.
 
 [Behavior Guidelines]
-- Maintain design unity while allowing expressive variation.
-- Avoid over-deformation that harms legibility.
-- Be explicit about geometric features.
-- Use relational reasoning: explain how each planned change harmonizes with the modified '${jamo}'.
-- Use the below hangul structure knowledge to plan the geometric change.
+- Always use “sameFeatures” and “description” when reasoning.
+- Higher similarity → stronger propagation.
+- Lower similarity → lighter or partial propagation.
+- Maintain Hangul legibility and proportional harmony.
+- Use precise geometric terminology (axis shift, curvature tension, aperture size, terminal angle, stroke ratio, etc.).
+- Respect Hangul’s structural foundation using the knowledge below:
 ${hangulStructureKnowledge}
 
 [Output Format]
-Return **only an array of tool calls**.
-Each object must represent one 'plan_tool' call for a jamo that requires transformation.
-
-If no jamos require transformation, do not call tool.
+Return a **single 'plan_tool' call** for the target jamo.
 `;
+
 
 export const jamoEditPrompt = (jamo: string, workingLetters: string, target: string, plan: string) => `
 You are a Hangul typography vector editing assistant.

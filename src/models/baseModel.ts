@@ -13,19 +13,27 @@ export interface ResponseParams {
   input: ModelBaseInput[]; // Will be typed differently for each model
   instructions: string;
   tools?: ModelBaseTool[]; // Will be typed differently for each model
+  modelName?: string; // Optional model name override
 }
 
 export abstract class BaseModel<Model> {
   protected abstract model: Model;  // 각 subclass가 구체 타입으로 정의
   protected modelConfig: ModelConfig;
+  protected defaultModelName: string;
 
 
   constructor(modelConfig: ModelConfig) {
     this.modelConfig = modelConfig;
+    this.defaultModelName = modelConfig.modelName;
   }
 
   // Abstract methods that each model must implement
   public abstract generateResponses(params: ResponseParams): Promise<ModelOutputType[]>;
+
+  // Helper method to get model name (use override or default)
+  protected getModelName(modelName?: string): string {
+    return modelName || this.defaultModelName;
+  }
 
   // Response conversion methods
   public abstract getTextMessage(responses: ModelOutputType[]): string | null;

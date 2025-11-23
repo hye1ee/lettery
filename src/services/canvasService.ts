@@ -675,14 +675,26 @@ class CanvasService {
     const layer = paper.project.layers.find((layer: any) => layer.name === jamo && layer.data.syllableString === syllable);
     if (!layer) throw new Error("Layer not found");
 
-    // const splitPaths = pathData
-    //   .split(/(?=M)/) // M을 기준으로 하되 M은 포함
-    //   .filter(path => path.trim() !== ""); // 빈 문자열 제거
+    // clear layer first
+    layer.children.filter((item: any) => item instanceof paper.PathItem).forEach((item: any) => {
+      item.remove();
+    });
 
-    // const compound = new paper.CompoundPath();
+    // Split path data by "M" command to handle multiple closed paths
+    const splitPaths = pathData
+      .split(/(?=M)/) // Split before "M" but keep "M" in the result
+      .filter(path => path.trim() !== "") // Remove empty strings
+      .map(path => path.trim()); // Clean up whitespace
 
-    const path = new paper.Path(pathData);
-    path.parent = layer;
-    closePath(path);
+    // Create separate path objects for each segment
+    splitPaths.forEach((pathSegment) => {
+      const path = new paper.Path(pathSegment);
+      path.parent = layer;
+      closePath(path);
+    });
+    const compoundPath = new paper.CompoundPath(splitPaths);
+    compoundPath.parent = layer;
+
+    console.log(`[CanvasService] Imported ${splitPaths.length} path(s) to layer ${jamo}`);
   }
 } export default CanvasService;

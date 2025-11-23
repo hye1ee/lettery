@@ -26,14 +26,16 @@ export class OpenAIModel extends BaseModel<OpenAI> {
   }
 
   public async generateResponses(params: ResponseParams): Promise<OpenAIOutputType[]> {
-    const { input, instructions, tools } = params;
+    const { input, instructions, tools, modelName } = params;
+    const selectedModel = this.getModelName(modelName);
+
     try {
-      console.log("[OpenAIModel] Getting responses");
+      console.log(`[OpenAIModel] Getting responses with model: ${selectedModel}`);
 
       if (tools) {
         // With tools
         const response = await this.model.responses.create({
-          model: this.modelConfig.modelName,
+          model: selectedModel,
           input: this.formatInput(input),
           tool_choice: "required",
           tools: this.formatTools(tools),
@@ -44,7 +46,7 @@ export class OpenAIModel extends BaseModel<OpenAI> {
       } else {
         // Without tools
         const response = await this.model.responses.create({
-          model: this.modelConfig.modelName,
+          model: selectedModel,
           input: this.formatInput(input),
           instructions,
           // reasoning: { effort: "low" },

@@ -154,14 +154,14 @@ export const tags = {
     if (item.className === 'Layer') {
       return `
       <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
-      <div class="text-body" style="flex:1">${item.name}</div>
+      <div class="text-body">${item.name}</div>
       `;
     }
 
     // For other items, use the original layout with delete button
     return `
       <div class="element-img"><img src="/${item.className.toLowerCase()}.svg" /></div>
-      <div class="text-body" style="flex:1">${item.name}</div>
+      <div class="text-body">${item.name}</div>
       <div class="element-actions">
         ${getElementActionButton(item)}
       </div>
@@ -172,7 +172,7 @@ export const tags = {
     // For Syllable items, use card layout
     return `
       <div class="element-img"><img src="/text.svg" /></div>
-      <div class="text-body" style="flex:1">${syllable.string}</div>
+      <div class="text-body">${syllable.string}</div>
       <div class="element-actions">
       </div>
     `;
@@ -302,13 +302,13 @@ export const tags = {
   svgComparison: (afterPaths: string[], beforePaths: string[]) => `
     <div class="svg-preview" >
       <div>
-        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">${translate('tags.before')}</p>
+        <p class="svg-preview-label">${translate('tags.before')}</p>
         <div class="svg-preview-item">
           ${tags.svgPreview(beforePaths, true)}
         </div>
       </div>
       <div>
-        <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 8px; font-weight: 600;">${translate('tags.after')}</p>
+        <p class="svg-preview-label">${translate('tags.after')}</p>
         <div class="svg-preview-item">
           ${tags.svgPreview(afterPaths, true)}
         </div>
@@ -316,7 +316,7 @@ export const tags = {
     </div>
   `,
 
-  svgMixedPreview: (closedPaths: string[], openedPaths: string[]) => {
+  svgMixedPreview: (closedPaths: string[], openedPaths: string[], color: "blue" | "orange") => {
     // Create a temporary SVG to calculate bounding box
     const allPaths = [...closedPaths, ...openedPaths];
     if (allPaths.length === 0) {
@@ -355,7 +355,7 @@ export const tags = {
       .join('');
 
     const openedPathsSvg = openedPaths
-      .map(d => `<path d="${d}" fill="#6FC9F0" stroke="none" stroke-width="4"/>`)
+      .map(d => color === "blue" ? `<path d="${d}" fill="#6FC9F0" stroke="none" stroke-width="15"/>` : `<path d="${d}" stroke="#FFA500" fill="none" stroke-width="15"/>`)
       .join('');
 
     return `
@@ -405,21 +405,23 @@ export const tags = {
     return `<div class="markdown-content">${html}</div>`;
   },
 
-  planMessages: (planMessages: Array<{ jamo: string, syllable: string, plan: string, reason: string }>) => {
+  planMessages: (planMessages: Array<{ jamo: string, syllable: string, plan_summary: string, plan: string, reason: string }>) => {
     return `
       <div class="plan-messages">
         ${planMessages.map((plan) => `
           <div class="plan-block">
-            <div class="plan-header">
-              <div class="plan-jamo">${plan.jamo}</div>
-              <div class="plan-syllable">${plan.syllable}</div>
+            <div class="plan-jamo-display">
+              <div class="plan-jamo-char">${plan.jamo}</div>
+              <div class="plan-syllable-label">${plan.syllable}</div>
             </div>
-            <div class="plan-content">
-              <div class="plan-action">
-                <strong>Plan:</strong> ${plan.plan}
+            <div class="plan-details">
+              <div class="plan-detail-item">
+                <div class="plan-detail-label">Plan</div>
+                <div class="plan-detail-text">${plan.plan_summary}</div>
               </div>
-              <div class="plan-reason">
-                <strong>Reason:</strong> ${plan.reason}
+              <div class="plan-detail-item">
+                <div class="plan-detail-label">Why?</div>
+                <div class="plan-detail-text">${plan.reason}</div>
               </div>
             </div>
           </div>
@@ -428,20 +430,48 @@ export const tags = {
     `;
   },
 
-  executionResults: (results: Array<{ jamo: string, path: string | string[], summary: string }>) => {
+  executionResults: (results: Array<{ jamo: string, path: string | string[], summary: string, syllable?: string }>) => {
     return `
-      <div class="execution-results">
-        ${results.map((result) => {
+      <div class="execution-results-wrapper">
+        <div class="execution-selection-description"></div>
+        <div class="execution-results">
+          ${results.map((result, index) => {
       return `
-            <div class="execution-result-block">
-              <div class="execution-header">
-                <div class="execution-jamo">${result.jamo}</div>
-                <div class="execution-summary">${result.summary}</div>
+              <div class="execution-result-item" data-result-index="${index}">
+                <div class="execution-preview-container ${result.path ? 'selected has-cursor' : 'loading'}" data-index="${index}">
+                  ${result.path ? `
+                    <div class="execution-jamo-label">${result.jamo}</div>
+                    ${tags.svgPreview(Array.isArray(result.path) ? result.path : [result.path])}
+                    <button class="execution-refresh-btn" data-jamo="${result.jamo}" data-syllable="${result.syllable || ''}" data-index="${index}" title="다시 생성하기">
+                      <img src="/refresh.svg" alt="Refresh" width="16" height="16" />
+                    </button>
+                  ` : ''}
+                </div>
               </div>
-              ${tags.svgPreview(Array.isArray(result.path) ? result.path : [result.path])}
-            </div>
-          `;
+            `;
     }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  guidedEditResults: (results: Array<{ path: string | string[] }>) => {
+    return `
+      <div class="execution-results-wrapper">
+        <div class="execution-selection-description"></div>
+        <div class="execution-results">
+          ${results.map((result, index) => {
+      return `
+              <div class="execution-result-item" data-result-index="${index}">
+                <div class="execution-preview-container ${result.path ? 'has-cursor' : 'loading'}" data-index="${index}">
+                  ${result.path ? `
+                    ${tags.svgPreview(Array.isArray(result.path) ? result.path : [result.path])}
+                  ` : ''}
+                </div>
+              </div>
+            `;
+    }).join('')}
+        </div>
       </div>
     `;
   },

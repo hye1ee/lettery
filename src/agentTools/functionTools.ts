@@ -28,21 +28,38 @@ export const propagationAnalysisTool: ModelBaseTool = {
 };
 
 
-export const planTool: ModelBaseTool =
-{
+export const planTool: ModelBaseTool = {
   "name": "plan_tool",
   "description": "Plan the geometric transformation of the jamo based on the analysis",
   "properties": {
     "type": "object",
-    "required": ["jamo", "syllable", "plan", "reason"],
+    "required": ["jamo", "syllable", "plan", "plan_summary", "reason"],
     "properties": {
-      "jamo": { "type": "string", "description": "The jamo to transform" },
-      "syllable": { "type": "string", "description": "The parent syllable of the jamo" },
-      "plan": { "type": "string", "description": "The transformation plan for the jamo" },
-      "reason": { "type": "string", "description": "The reason for the transformation plan" },
+      "jamo": {
+        "type": "string",
+        "description": "The jamo to transform."
+      },
+      "syllable": {
+        "type": "string",
+        "description": "The parent syllable of the jamo."
+      },
+      "plan": {
+        "type": "string",
+        "description": "A detailed geometric transformation plan for the jamo, including concrete numeric values (e.g., coordinates, offsets, angles, lengths). Do NOT include any semantic or emotional interpretation; focus only on how to modify the vector paths."
+      },
+      "plan_summary": {
+        "type": "string",
+        "description": "Write a short transformation summary in Korean, containing no more than 15 words, describing the core geometric change concisely."
+      },
+      "reason": {
+        "type": "string",
+        "description": "Write the justification in Korean, containing no more than 10 words, and concisely explain why this transformation is appropriate."
+      }
     }
-  },
+  }
 };
+
+
 
 export const executionTool: ModelBaseTool =
 {
@@ -54,21 +71,22 @@ export const executionTool: ModelBaseTool =
     "properties": {
       "jamo": { "type": "string", "description": "The jamo that was transformed" },
       "path": { "type": "string", "description": "The modified SVG path data for the jamo" },
-      "summary": { "type": "string", "description": "Summary of the changes applied" },
+      "summary": { "type": "string", "description": "Very short summary of the changes applied within 10 words" },
     }
   },
 };
 
-export const editTool: ModelBaseTool =
-{
+export const editTool: ModelBaseTool = {
   "name": "edit_tool",
-  "description": "Edit the jamo based on the user's description and the guide path data and return the modified path data",
+  "description": "Edit the jamo based on the guide sketch and return the updated SVG path data.",
   "properties": {
     "type": "object",
-    "required": ["path", "summary"],
+    "required": ["path"],
     "properties": {
-      "path": { "type": "string", "description": "The modified SVG path data for the jamo" },
-      "summary": { "type": "string", "description": "Summary of the changes applied" },
+      "path": {
+        "type": "string",
+        "description": "The final updated SVG path reflecting the guide sketch with clean, professional vector geometry."
+      }
     }
-  },
+  }
 };

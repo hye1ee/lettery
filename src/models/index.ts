@@ -9,27 +9,42 @@ export interface ModelConfig {
 }
 
 export class ModelProvider {
-  private static modelConfig: ModelConfig | null = null;
+  private static openaiModel: OpenAIModel | null = null;
+  private static anthropicModel: AnthropicModel | null = null;
+  private static defaultModelType: "openai" | "anthropic" = "openai";
 
-  public static init(config: ModelConfig): void {
+  public static initOpenAI(config: ModelConfig): void {
     if (!config) throw new Error("ModelConfig must be provided");
-    ModelProvider.modelConfig = config;
+    if (config.modelType !== "openai") throw new Error("Invalid model type for OpenAI");
+    ModelProvider.openaiModel = OpenAIModel.getInstance(config);
   }
 
-  public static getModel(): BaseModel<any> {
-    if (!ModelProvider.modelConfig) {
-      throw new Error("ModelProvider not initialized. Call init() first.");
-    }
+  public static initAnthropic(config: ModelConfig): void {
+    if (!config) throw new Error("ModelConfig must be provided");
+    if (config.modelType !== "anthropic") throw new Error("Invalid model type for Anthropic");
+    ModelProvider.anthropicModel = AnthropicModel.getInstance(config);
+  }
 
-    const config = ModelProvider.modelConfig;
+  public static setDefaultModelType(modelType: "openai" | "anthropic"): void {
+    ModelProvider.defaultModelType = modelType;
+  }
 
-    switch (config.modelType) {
+  public static getModel(modelType?: "openai" | "anthropic"): BaseModel<any> {
+    const type = modelType || ModelProvider.defaultModelType;
+
+    switch (type) {
       case "openai":
-        return OpenAIModel.getInstance(config);
+        if (!ModelProvider.openaiModel) {
+          throw new Error("OpenAI model not initialized. Call initOpenAI() first.");
+        }
+        return ModelProvider.openaiModel;
       case "anthropic":
-        return AnthropicModel.getInstance(config);
+        if (!ModelProvider.anthropicModel) {
+          throw new Error("Anthropic model not initialized. Call initAnthropic() first.");
+        }
+        return ModelProvider.anthropicModel;
       default:
-        throw new Error(`Unsupported model type: ${config.modelType}`);
+        throw new Error(`Unsupported model type: ${type}`);
     }
   }
 }

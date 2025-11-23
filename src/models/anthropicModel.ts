@@ -27,12 +27,16 @@ export class AnthropicModel extends BaseModel<Anthropic> {
   }
 
   public async generateResponses(params: ResponseParams): Promise<AnthropicOutputType[]> {
-    const { input, instructions, tools } = params;
+    const { input, instructions, tools, modelName } = params;
+    const selectedModel = this.getModelName(modelName);
+
     try {
+      console.log(`[AnthropicModel] Getting responses with model: ${selectedModel}`);
+
       if (tools) {
         // With tools
         const response = await this.model.messages.create({
-          model: this.modelConfig.modelName,
+          model: selectedModel,
           messages: this.formatInput(input),
           tools: this.formatTools(tools),
           system: instructions,
@@ -42,7 +46,7 @@ export class AnthropicModel extends BaseModel<Anthropic> {
       } else {
         // Without tools
         const response = await this.model.messages.create({
-          model: this.modelConfig.modelName,
+          model: selectedModel,
           messages: this.formatInput(input),
           system: instructions,
           max_tokens: this.maxTokens,

@@ -25,6 +25,15 @@ class SmartPropagationTool extends BaseAgentTool {
   private selectedPropagationRange: number = 0; // Selected propagation range index
   private distanceElements: Array<{ element: string; score: number }> = []; // Similarity-scored elements
 
+  // Execution context for re-execution
+  private executionContext: {
+    planMessages: Array<{ jamo: string; syllable: string; plan: string; reason: string }>;
+    layerStates: string[][];
+    workingJamo: string;
+    workingLetters: string;
+    executionResults: Array<{ jamo: string; path: string | string[]; summary: string; syllable: string }>;
+  } | null = null;
+
   private constructor() {
     super();
   }
@@ -99,7 +108,6 @@ class SmartPropagationTool extends BaseAgentTool {
       score: item.score
     }));
 
-    console.log(this.distanceElements);
     let responses = await model.generateResponses({
       input: [
         {
@@ -141,36 +149,40 @@ class SmartPropagationTool extends BaseAgentTool {
 
     // Get selected propagation targets based on slider value
     const selectedTargets = this.distanceElements
-      .slice(0, this.selectedPropagationRange + 1)
-      .map(e => e.element)
-      .join(', ');
+      .slice(0, this.selectedPropagationRange + 1);
 
-    responses = await model.generateResponses({
-      input: [
-        {
-          role: 'user',
-          content: [
-            { type: "text", data: `path data and png image of jamo '${workingJamo}' before changes` },
-            { type: "text", data: layerStates[this.selectedHistoryIndex].join(' ') },
-            // { type: "image", data: '' }
-          ],
-        },
-        {
-          role: 'user',
-          content: [
-            { type: "text", data: `path data and png image of jamo '${workingJamo}' after changes` },
-            { type: "text", data: layerStates[0].join(' ') },
-            // { type: "image", data: '' }
-          ],
-        },
-      ],
-      instructions: jamoPlanPrompt(workingJamo, workingLetters, summaryMessage, selectedTargets),
-      tools: [planTool],
-    });
+    const selectedAnalysis = {
+      geometric_analysis: parsedMessage?.geometric_analysis,
+      semantic_analysis: parsedMessage?.semantic_analysis,
+    }
 
-    let planMessages: Array<{ jamo: string, syllable: string, plan: string, reason: string }> =
-      model.getToolMessages(responses).map((msg) => JSON.parse(msg));
-    planMessages = planMessages.filter((item) => item.plan);
+    let planMessages: Array<{ jamo: string, syllable: string, plan: string, plan_summary: string, reason: string }> = [];
+    for (const target of selectedTargets) {
+      responses = await model.generateResponses({
+        input: [
+          {
+            role: 'user',
+            content: [
+              { type: "text", data: `path data and png image of jamo '${workingJamo}' before changes` },
+              { type: "text", data: layerStates[this.selectedHistoryIndex].join(' ') },
+              // { type: "image", data: '' }
+            ],
+          },
+          {
+            role: 'user',
+            content: [
+              { type: "text", data: `path data and png image of jamo '${workingJamo}' after changes` },
+              { type: "text", data: layerStates[0].join(' ') },
+              // { type: "image", data: '' }
+            ],
+          },
+        ],
+        instructions: jamoPlanPrompt(workingJamo, workingLetters, JSON.stringify(selectedAnalysis), JSON.stringify(target)),
+        tools: [planTool],
+      });
+      const messages = model.getToolMessages(responses);
+      if (messages[0]) planMessages.push(JSON.parse(messages[0]));
+    }
 
     this.updateStepContent(
       3,
@@ -186,9 +198,12 @@ class SmartPropagationTool extends BaseAgentTool {
     this.activateStep(4);
     this.showStepLoading(4);
 
+    // use anthropic model for execution
+    const anthropicModel = ModelProvider.getModel("anthropic");
+
     // Create API calls for each plan message
     const executionPromises = planMessages.map(async (plan) => {
-      const response = await model.generateResponses({
+      const response = await anthropicModel.generateResponses({
         input: [
           {
             role: 'user',
@@ -204,37 +219,43 @@ class SmartPropagationTool extends BaseAgentTool {
         tools: [executionTool],
       });
 
-      return JSON.parse(model.getToolMessage(response) ?? "{}");
+      return JSON.parse(anthropicModel.getToolMessage(response) ?? "{}");
     });
 
     // Wait for all executions to complete
     const executionResults = await Promise.all(executionPromises);
 
-    // Import the results immediately
-    await new Promise((res) => {
-      setTimeout(res, 500);
-      planMessages.forEach((plan, idx) => {
-        canvasService.importLayerData(plan.jamo, plan.syllable, executionResults[idx].path);
-      })
-      res(undefined);
-    });
+    // Add syllable info to execution results
+    const enrichedResults = executionResults.map((result, idx) => ({
+      ...result,
+      syllable: planMessages[idx].syllable,
+    }));
 
+    // Store execution context for refresh functionality
+    this.executionContext = {
+      planMessages,
+      layerStates,
+      workingJamo,
+      workingLetters,
+      executionResults: enrichedResults,
+    };
+
+    // Don't import automatically - wait for user confirmation
     this.updateStepContent(
       4,
       `
-        <div style="margin: 12px 0;">
-          <div style="background: #e8f5e9; padding: 12px; border-radius: 4px; border-left: 3px solid #4caf50; margin-bottom: 8px;">
-            <p style="margin: 0;"><strong>✓ ${executionResults.length}개의 자모에 성공적으로 적용되었습니다</strong></p>
-          </div>
-        </div>
-        ${tags.executionResults(executionResults)}
-        <div style="margin-top: 12px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-          <p style="margin: 0; font-size: 0.85em; color: #666;">모든 변경사항이 캔버스에 적용되었습니다.</p>
-        </div>
+        ${tags.executionResults(enrichedResults)}
       `,
-      '완료'
+      '선택 항목 적용'
     );
+
+    // Set up refresh button listeners
+    this.setupRefreshListeners();
+
     await this.waitForConfirmation();
+
+    // Import only selected results after confirmation
+    await this.importSelectedResults();
 
     // Workflow complete
     this.deactivate();
@@ -250,13 +271,12 @@ class SmartPropagationTool extends BaseAgentTool {
     this.updateStepContent(
       1,
       `
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+        <div class="history-comparison-container">
+          <div class="history-nav-container">
             <button 
               id="history-prev-btn" 
               class="history-nav-btn" 
               ${!canGoPrev ? 'disabled' : ''}
-              style="cursor: ${canGoPrev ? 'pointer' : 'not-allowed'}; opacity: ${canGoPrev ? '1' : '0.4'};"
             >
               <img src="/undo.svg" alt="Previous" width="20" height="20" />
             </button>
@@ -265,7 +285,6 @@ class SmartPropagationTool extends BaseAgentTool {
               id="history-next-btn" 
               class="history-nav-btn"
               ${!canGoNext ? 'disabled' : ''}
-              style="cursor: ${canGoNext ? 'pointer' : 'not-allowed'}; opacity: ${canGoNext ? '1' : '0.4'};"
             >
               <img src="/redo.svg" alt="Next" width="20" height="20" />
             </button>
@@ -312,26 +331,15 @@ class SmartPropagationTool extends BaseAgentTool {
     this.updateStepContent(
       2,
       `
-        ${tags.markdown(reasoning ? reasoning + " 아래는 제가 제안하는 전파 순서와 범위예요. 필요하면 슬라이더로 조정하세요." : "분석을 완료하지 못했습니다. 다시 시도해주세요.")}
+        ${tags.markdown(reasoning ?? "분석을 완료하지 못했습니다. 다시 시도해주세요.")}
         
-        <div style="margin-top: 8px; padding: 8px;">          
+        <div class="propagation-analysis-container">
           <!-- Elements display -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 4px;">
+          <div class="propagation-elements-grid">
             ${this.distanceElements.map((item, idx) => `
               <div 
                 id="element-${idx}" 
-                class="propagation-element"
-                style="
-                  flex: 1;
-                  text-align: center;
-                  padding: 8px 4px;
-                  border-radius: 4px;
-                  background: ${idx <= recommendedIndex ? '#e3f5ff' : '#f5f5f5'};
-                  border: 2px solid ${idx === recommendedIndex ? '#5eb8e5' : 'transparent'};
-                  transition: all 0.3s ease;
-                  font-weight: ${idx === recommendedIndex ? '700' : '400'};
-                  font-size: 16px;
-                "
+                class="propagation-element ${idx <= recommendedIndex ? 'active' : ''} ${idx === recommendedIndex ? 'recommended' : ''}"
               >
                 ${item.element}
               </div>
@@ -339,40 +347,20 @@ class SmartPropagationTool extends BaseAgentTool {
           </div>
 
           <!-- Slider with recommended position marker -->
-          <div style="position: relative; width: 100%; margin: 8px 0;">
+          <div class="propagation-slider-container">
             <input 
               type="range" 
               id="propagation-slider" 
+              class="propagation-slider"
               min="0" 
               max="${maxIndex}"
               value="${recommendedIndex}"
-              style="width: 100%; cursor: pointer; margin-top: 4px;"
+              style="width: ${((maxIndex - 0.5) / maxIndex) * 100}%;"
             />
-            ${maxIndex > 0 ? `
-              <div 
-                id="recommended-marker"
-                style="
-                  position: absolute;
-                  top: -24px;
-                  left: ${(recommendedIndex / maxIndex) * 100}%;
-                  transform: translateX(-50%);
-                  background: #5eb8e5;
-                  color: white;
-                  padding: 2px 8px;
-                  border-radius: 12px;
-                  font-size: 0.75em;
-                  font-weight: 600;
-                  white-space: nowrap;
-                  pointer-events: none;
-                "
-              >
-                추천범위
-              </div>
-            ` : ''}
           </div>
 
           <!-- Labels -->
-          <div style="display: flex; justify-content: space-between; margin-top: 2px; font-size: 0.85em; color: #666;">
+          <div class="propagation-labels">
             <span>추천도 높음</span>
             <span>추천도 낮음</span>
           </div>
@@ -396,8 +384,8 @@ class SmartPropagationTool extends BaseAgentTool {
           this.distanceElements.forEach((_, idx) => {
             const elemDiv = document.getElementById(`element-${idx}`);
             if (elemDiv) {
-              elemDiv.style.background = idx <= value ? '#e3f5ff' : '#f5f5f5';
-              elemDiv.style.border = idx === value ? '2px solid #5eb8e5' : '2px solid transparent';
+              elemDiv.style.background = idx <= value ? '#e6f7ff' : '#f5f5f5';
+              elemDiv.style.borderRight = idx === value ? '2px solid #a5e0ff' : '2px solid transparent';
               elemDiv.style.fontWeight = idx === value ? '700' : '400';
             }
           });
@@ -410,6 +398,182 @@ class SmartPropagationTool extends BaseAgentTool {
         });
       }
     }, 50);
+  }
+
+  private setupRefreshListeners(): void {
+    setTimeout(() => {
+      // Refresh button listeners
+      const refreshButtons = document.querySelectorAll('.execution-refresh-btn');
+      refreshButtons.forEach((button) => {
+        button.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const target = e.currentTarget as HTMLButtonElement;
+          const index = parseInt(target.dataset.index || '0');
+
+          // Disable button and show loading state
+          target.disabled = true;
+          target.style.opacity = '0.5';
+
+          try {
+            await this.reExecuteJamo(index);
+          } finally {
+            // Re-enable button
+            target.disabled = false;
+            target.style.opacity = '1';
+          }
+        });
+      });
+
+      // Preview container click listeners (to toggle selection)
+      const previewContainers = document.querySelectorAll('.execution-preview-container');
+      previewContainers.forEach((container) => {
+        const htmlContainer = container as HTMLElement;
+        if (htmlContainer.classList.contains('has-cursor')) {
+          htmlContainer.addEventListener('click', (e) => {
+            // Don't toggle if clicking the refresh button
+            if ((e.target as HTMLElement).closest('.execution-refresh-btn')) {
+              return;
+            }
+
+            // Toggle selected class
+            htmlContainer.classList.toggle('selected');
+            this.updateSelectionDescription();
+          });
+        }
+      });
+
+      // Initial description update
+      this.updateSelectionDescription();
+    }, 50);
+  }
+
+  private updateSelectionDescription(): void {
+    if (!this.executionContext) return;
+
+    const { executionResults } = this.executionContext;
+    const previewContainers = document.querySelectorAll('.execution-preview-container') as NodeListOf<HTMLElement>;
+
+    const selectedJamos: string[] = [];
+    previewContainers.forEach((container, idx) => {
+      if (container.classList.contains('selected') && !container.classList.contains('loading')) {
+        selectedJamos.push(executionResults[idx].jamo);
+      }
+    });
+
+    const descriptionElement = document.querySelector('.execution-selection-description');
+    if (descriptionElement) {
+      if (selectedJamos.length === 0) {
+        descriptionElement.textContent = '선택된 자모가 없어요';
+      } else {
+        descriptionElement.textContent = `${selectedJamos.join(', ')} ${selectedJamos.length}개의 자모가 선택되었어요`;
+      }
+    }
+  }
+
+  private async reExecuteJamo(index: number): Promise<void> {
+    if (!this.executionContext) {
+      console.error('No execution context available');
+      return;
+    }
+
+    const { planMessages, layerStates, workingJamo, workingLetters, executionResults } = this.executionContext;
+    const plan = planMessages[index];
+
+    if (!plan) {
+      console.error('Plan not found for index:', index);
+      return;
+    }
+
+    console.log(`Re-executing jamo: ${plan.jamo}`);
+
+    // Show spinner by setting path to empty (only affects preview canvas, not working canvas)
+    executionResults[index] = {
+      jamo: plan.jamo,
+      path: '',
+      summary: '',
+      syllable: plan.syllable,
+    };
+
+    // Update display to show loading state
+    this.updateStepContent(
+      4,
+      `
+        ${tags.executionResults(executionResults)}
+      `,
+      '선택 항목 적용'
+    );
+    this.setupRefreshListeners();
+
+    // Use anthropic model for execution
+    const anthropicModel = ModelProvider.getModel("anthropic");
+
+    // Execute API call for this specific jamo
+    const response = await anthropicModel.generateResponses({
+      input: [
+        {
+          role: 'user',
+          content: [
+            { type: "text", data: `path data of reference jamo '${workingJamo}' after changes` },
+            { type: "text", data: layerStates[0].join(' ') },
+            { type: "text", data: `path data of target jamo '${plan.jamo}' before changes` },
+            { type: "text", data: canvasService.getLayerData(plan.jamo, plan.syllable).join(' ') },
+          ],
+        },
+      ],
+      instructions: jamoEditPrompt(workingJamo, workingLetters, plan.jamo, plan.plan),
+      tools: [executionTool],
+    });
+
+    const newResult = JSON.parse(anthropicModel.getToolMessage(response) ?? "{}");
+
+    // Update the execution results array
+    executionResults[index] = {
+      ...newResult,
+      syllable: plan.syllable,
+    };
+
+    // Update the display with new result
+    this.updateStepContent(
+      4,
+      `
+        ${tags.executionResults(executionResults)}
+      `,
+      '선택 항목 적용'
+    );
+
+    // Re-setup listeners since we updated the DOM
+    this.setupRefreshListeners();
+
+    console.log(`Successfully re-executed jamo: ${plan.jamo}`);
+  }
+
+  private async importSelectedResults(): Promise<void> {
+    if (!this.executionContext) {
+      console.error('No execution context available');
+      return;
+    }
+
+    const { planMessages, executionResults } = this.executionContext;
+
+    // Get all preview containers
+    const previewContainers = document.querySelectorAll('.execution-preview-container') as NodeListOf<HTMLElement>;
+
+    // Import only selected results
+    await new Promise((res) => {
+      setTimeout(res, 500);
+      previewContainers.forEach((container, idx) => {
+        if (container.classList.contains('selected') && executionResults[idx]?.path) {
+          const plan = planMessages[idx];
+          const pathData = executionResults[idx].path;
+          const pathString = Array.isArray(pathData) ? pathData.join(' ') : pathData;
+          canvasService.importLayerData(plan.jamo, plan.syllable, pathString);
+          console.log(`Imported result for ${plan.jamo}`);
+        }
+      });
+      res(undefined);
+    });
+
+    console.log('Selected results imported to canvas');
   }
 }
 

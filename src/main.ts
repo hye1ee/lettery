@@ -60,11 +60,22 @@ const initApp = () => {
   //   modelName: "claude-sonnet-4-5",
   //   apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
   // });
-  ModelProvider.init({
+  // Initialize OpenAI model with default
+  ModelProvider.initOpenAI({
     modelType: "openai",
-    modelName: "gpt-4.1",
+    modelName: "gpt-4.1", // Default OpenAI model
     apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   });
+
+  // Initialize Anthropic model with default
+  ModelProvider.initAnthropic({
+    modelType: "anthropic",
+    modelName: "claude-sonnet-4-5", // Default Anthropic model
+    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+  });
+
+  // Set default model type (optional, defaults to "openai")
+  ModelProvider.setDefaultModelType("openai");
 
   // Initialize helpers
   logger.init(statusText, coordinates);
