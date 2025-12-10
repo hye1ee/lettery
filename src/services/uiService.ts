@@ -424,6 +424,12 @@ class UIService {
         const toolItem = document.createElement('div');
         toolItem.id = tool.id;
         toolItem.className = "agent-action-card disabled";
+
+        // Mark non-functional tools with a special attribute
+        if (!tool.isEnabled) {
+          toolItem.setAttribute('data-non-interactive', 'true');
+        }
+
         toolItem.innerHTML = tags.agentToolItem(tool);
 
         // Add click handler for the character button
@@ -432,7 +438,10 @@ class UIService {
           characterBtn.addEventListener('click', (e) => {
             e.preventDefault();
 
-            if (toolItem.classList.contains('disabled')) {
+            // Prevent clicks on disabled or non-interactive tools
+            if (toolItem.classList.contains('disabled') ||
+              toolItem.classList.contains('non-interactive') ||
+              toolItem.getAttribute('data-non-interactive') === 'true') {
               return;
             }
             agentService.activateTool(tool);
@@ -453,7 +462,7 @@ class UIService {
 
         actionListElement.appendChild(toolItem);
 
-        // Register agent for walking animation
+        // Register all agents for walking animation (both interactive and non-interactive)
         agentAnimation.registerAgent(tool.id);
       });
 
@@ -475,9 +484,20 @@ class UIService {
           // Pause animations when modal is open
           agentAnimation.pauseAnimations();
         } else {
-          // normal tool rendering
+          // normal tool rendering - enable tools
           Array.from(actionListElement.children).forEach(child => {
+            const htmlChild = child as HTMLElement;
+
+            // Remove disabled class from all tools
             child.classList.remove('disabled');
+
+            // Add non-interactive class to tools that have no functionality
+            if (htmlChild.getAttribute('data-non-interactive') === 'true') {
+              child.classList.add('non-interactive');
+            } else {
+              child.classList.remove('non-interactive');
+            }
+
             child.classList.remove('activated');
             child.classList.remove('deactivated');
           });
@@ -485,9 +505,10 @@ class UIService {
           agentAnimation.resumeAnimations();
         }
       } else {
-        // disable all tools
+        // disable all tools when no jamo layer is selected
         Array.from(actionListElement.children).forEach(child => {
           child.classList.add('disabled');
+          child.classList.remove('non-interactive');
         });
         // Resume animations
         agentAnimation.resumeAnimations();

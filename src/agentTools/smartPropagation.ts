@@ -201,37 +201,15 @@ class SmartPropagationTool extends BaseAgentTool {
     // use anthropic model for execution
     const anthropicModel = ModelProvider.getModel("anthropic");
 
-    // Create API calls for each plan message
-    const executionPromises = planMessages.map(async (plan) => {
-      const response = await anthropicModel.generateResponses({
-        input: [
-          {
-            role: 'user',
-            content: [
-              { type: "text", data: `path data of reference jamo '${workingJamo}' after changes` },
-              { type: "text", data: layerStates[0].join(' ') },
-              { type: "text", data: `path data of target jamo '${plan.jamo}' before changes` },
-              { type: "text", data: canvasService.getLayerData(plan.jamo, plan.syllable).join(' ') },
-            ],
-          },
-        ],
-        instructions: jamoEditPrompt(workingJamo, workingLetters, plan.jamo, plan.plan),
-        tools: [executionTool],
-      });
-
-      return JSON.parse(anthropicModel.getToolMessage(response) ?? "{}");
-    });
-
-    // Wait for all executions to complete
-    const executionResults = await Promise.all(executionPromises);
-
-    // Add syllable info to execution results
-    const enrichedResults = executionResults.map((result, idx) => ({
-      ...result,
-      syllable: planMessages[idx].syllable,
+    // Initialize results array with placeholders (for loading state)
+    const enrichedResults = planMessages.map(plan => ({
+      jamo: plan.jamo,
+      path: '',
+      summary: '',
+      syllable: plan.syllable,
     }));
 
-    // Store execution context for refresh functionality
+    // Store execution context early for progressive updates
     this.executionContext = {
       planMessages,
       layerStates,
@@ -240,7 +218,7 @@ class SmartPropagationTool extends BaseAgentTool {
       executionResults: enrichedResults,
     };
 
-    // Don't import automatically - wait for user confirmation
+    // Show initial loading state
     this.updateStepContent(
       4,
       `
@@ -249,8 +227,83 @@ class SmartPropagationTool extends BaseAgentTool {
       '선택 항목 적용'
     );
 
-    // Set up refresh button listeners
+    // Set up listeners once at the beginning
     this.setupRefreshListeners();
+
+    // Track completion
+    let completedCount = 0;
+    const totalCalls = planMessages.length;
+
+    // Helper function to update the display with current results
+    const updateResultsDisplay = () => {
+      this.updateStepContent(
+        4,
+        `
+          ${tags.executionResults(enrichedResults)}
+        `,
+        '선택 항목 적용'
+      );
+    };
+
+    // Create API calls for each plan message - each updates UI independently as it completes
+    const executionPromises = planMessages.map(async (plan, index) => {
+      try {
+        const response = await anthropicModel.generateResponses({
+          input: [
+            {
+              role: 'user',
+              content: [
+                { type: "text", data: `path data of reference jamo '${workingJamo}' after changes` },
+                { type: "text", data: layerStates[0].join(' ') },
+                { type: "text", data: `path data of target jamo '${plan.jamo}' before changes` },
+                { type: "text", data: canvasService.getLayerData(plan.jamo, plan.syllable).join(' ') },
+              ],
+            },
+          ],
+          instructions: jamoEditPrompt(workingJamo, workingLetters, plan.jamo, plan.plan),
+          tools: [executionTool],
+        });
+
+        const result = JSON.parse(anthropicModel.getToolMessage(response) ?? "{}");
+
+        // Update the specific result
+        enrichedResults[index] = {
+          ...result,
+          syllable: plan.syllable,
+        };
+
+        completedCount++;
+        console.log(`Result ${index + 1} (${plan.jamo}) completed (${completedCount}/${totalCalls})`);
+
+        // Update UI immediately when this result arrives
+        updateResultsDisplay();
+
+        return result;
+      } catch (error) {
+        console.error(`Error executing jamo ${plan.jamo}:`, error);
+
+        // Mark as failed but still update UI
+        enrichedResults[index] = {
+          jamo: plan.jamo,
+          path: '',
+          summary: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          syllable: plan.syllable,
+        };
+
+        completedCount++;
+        updateResultsDisplay();
+
+        return { path: '', summary: 'Error' };
+      }
+    });
+
+    // Wait for all executions to complete (but UI already updated progressively)
+    await Promise.all(executionPromises);
+
+    console.log('All executions complete');
+
+    // Final update to ensure everything is in sync
+    updateResultsDisplay();
 
     await this.waitForConfirmation();
 
@@ -402,49 +455,68 @@ class SmartPropagationTool extends BaseAgentTool {
 
   private setupRefreshListeners(): void {
     setTimeout(() => {
-      // Refresh button listeners
-      const refreshButtons = document.querySelectorAll('.execution-refresh-btn');
-      refreshButtons.forEach((button) => {
-        button.addEventListener('click', async (e) => {
+      // Use event delegation on the step content element (which doesn't get replaced)
+      const stepContent = document.getElementById(`agent-workflow-step-content-${this.id}-4`);
+
+      if (!stepContent) {
+        console.warn('Step content not found');
+        return;
+      }
+
+      console.log('Setting up selection and refresh listeners on step content');
+
+      // Remove any existing delegated listener
+      const oldListener = (stepContent as any)._propagationListener;
+      if (oldListener) {
+        console.log('Removing old listener');
+        stepContent.removeEventListener('click', oldListener);
+      }
+
+      // Create new delegated listener that handles both selection and refresh
+      const newListener = async (e: Event) => {
+        const target = e.target as HTMLElement;
+
+        // Handle refresh button clicks
+        const refreshButton = target.closest('.execution-refresh-btn') as HTMLButtonElement;
+        if (refreshButton) {
           e.stopPropagation();
-          const target = e.currentTarget as HTMLButtonElement;
-          const index = parseInt(target.dataset.index || '0');
+          const index = parseInt(refreshButton.dataset.index || '0');
 
           // Disable button and show loading state
-          target.disabled = true;
-          target.style.opacity = '0.5';
+          refreshButton.disabled = true;
+          refreshButton.style.opacity = '0.5';
 
           try {
             await this.reExecuteJamo(index);
           } finally {
             // Re-enable button
-            target.disabled = false;
-            target.style.opacity = '1';
+            refreshButton.disabled = false;
+            refreshButton.style.opacity = '1';
           }
-        });
-      });
-
-      // Preview container click listeners (to toggle selection)
-      const previewContainers = document.querySelectorAll('.execution-preview-container');
-      previewContainers.forEach((container) => {
-        const htmlContainer = container as HTMLElement;
-        if (htmlContainer.classList.contains('has-cursor')) {
-          htmlContainer.addEventListener('click', (e) => {
-            // Don't toggle if clicking the refresh button
-            if ((e.target as HTMLElement).closest('.execution-refresh-btn')) {
-              return;
-            }
-
-            // Toggle selected class
-            htmlContainer.classList.toggle('selected');
-            this.updateSelectionDescription();
-          });
+          return;
         }
-      });
+
+        // Handle preview container selection clicks
+        const previewContainer = target.closest('.execution-preview-container') as HTMLElement;
+        if (!previewContainer || !previewContainer.classList.contains('has-cursor')) {
+          return;
+        }
+
+        e.stopPropagation();
+        console.log('Toggling selection for:', previewContainer.dataset.index);
+
+        // Toggle selected class
+        previewContainer.classList.toggle('selected');
+        this.updateSelectionDescription();
+      };
+
+      // Attach the listener to step content (persists across innerHTML updates)
+      stepContent.addEventListener('click', newListener);
+      (stepContent as any)._propagationListener = newListener;
 
       // Initial description update
       this.updateSelectionDescription();
-    }, 50);
+    }, 100);
   }
 
   private updateSelectionDescription(): void {
@@ -459,6 +531,8 @@ class SmartPropagationTool extends BaseAgentTool {
         selectedJamos.push(executionResults[idx].jamo);
       }
     });
+
+    console.log('Selected jamos for import:', selectedJamos);
 
     const descriptionElement = document.querySelector('.execution-selection-description');
     if (descriptionElement) {
@@ -558,22 +632,33 @@ class SmartPropagationTool extends BaseAgentTool {
     // Get all preview containers
     const previewContainers = document.querySelectorAll('.execution-preview-container') as NodeListOf<HTMLElement>;
 
-    // Import only selected results
-    await new Promise((res) => {
-      setTimeout(res, 500);
-      previewContainers.forEach((container, idx) => {
-        if (container.classList.contains('selected') && executionResults[idx]?.path) {
-          const plan = planMessages[idx];
-          const pathData = executionResults[idx].path;
-          const pathString = Array.isArray(pathData) ? pathData.join(' ') : pathData;
-          canvasService.importLayerData(plan.jamo, plan.syllable, pathString);
-          console.log(`Imported result for ${plan.jamo}`);
-        }
-      });
-      res(undefined);
+    // Collect all selected results first
+    const selectedResults: Array<{ jamo: string; syllable: string; pathData: string }> = [];
+    previewContainers.forEach((container, idx) => {
+      if (container.classList.contains('selected') && executionResults[idx]?.path) {
+        const plan = planMessages[idx];
+        const pathData = executionResults[idx].path;
+        const pathString = Array.isArray(pathData) ? pathData.join(' ') : pathData;
+        selectedResults.push({
+          jamo: plan.jamo,
+          syllable: plan.syllable,
+          pathData: pathString
+        });
+      }
     });
 
-    console.log('Selected results imported to canvas');
+    console.log(`Importing ${selectedResults.length} selected result(s)`);
+
+    // Import each result sequentially with a small delay to ensure proper rendering
+    for (const result of selectedResults) {
+      console.log(`Importing result for ${result.jamo} in syllable ${result.syllable}`);
+      canvasService.importLayerData(result.jamo, result.syllable, result.pathData);
+
+      // Small delay to allow Paper.js to process the import
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    console.log('All selected results imported to canvas');
   }
 }
 

@@ -557,6 +557,36 @@ body {
   animation: none;
 }
 
+/* Non-interactive agent when disabled - absolutely no hover effects */
+.agent-action-card.disabled[data-non-interactive="true"] .agent-character-button {
+  cursor: default;
+  pointer-events: none;
+}
+
+.agent-action-card.disabled[data-non-interactive="true"] .agent-character-button:hover {
+  transform: none;
+  animation: none;
+}
+
+.agent-action-card.disabled[data-non-interactive="true"] .agent-label-image {
+  display: none;
+}
+
+/* Non-interactive agent when enabled (looks normal, has walking animation, but no hover/click) */
+.agent-action-card.non-interactive .agent-character-button {
+  cursor: default;
+  pointer-events: none; /* Prevents all click interactions */
+}
+
+.agent-action-card.non-interactive .agent-character-button:hover {
+  transform: none; /* No hover scale/jump */
+  animation: none; /* No hover shake animation */
+}
+
+.agent-action-card.non-interactive .agent-label-image {
+  display: none; /* No label on hover */
+}
+
 /* Show only panel when activated, hide character button */
 .agent-action-card.activated .agent-character-button {
   display: none !important;

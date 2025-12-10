@@ -12,7 +12,7 @@ export type AnthropicToolType = Anthropic.Messages.Tool;
 export class AnthropicModel extends BaseModel<Anthropic> {
   private static instance: AnthropicModel | null = null;
   protected model: Anthropic;
-  private maxTokens: number = 1000;
+  private maxTokens: number = 16000;
 
   private constructor(modelConfig: ModelConfig) {
     super(modelConfig);
@@ -35,14 +35,15 @@ export class AnthropicModel extends BaseModel<Anthropic> {
 
       if (tools) {
         // With tools
-        const response = await this.model.messages.create({
+        const response = await this.model.beta.messages.create({
           model: selectedModel,
           messages: this.formatInput(input),
           tools: this.formatTools(tools),
           system: instructions,
           max_tokens: this.maxTokens,
+          betas: ["structured-outputs-2025-11-13"]
         });
-        return response.content;
+        return response.content as AnthropicOutputType[];
       } else {
         // Without tools
         const response = await this.model.messages.create({
@@ -63,11 +64,13 @@ export class AnthropicModel extends BaseModel<Anthropic> {
     return tools.map(tool => {
 
       const inputSchema = tool.properties as Anthropic.Messages.Tool.InputSchema;
+      inputSchema.additionalProperties = false;
 
       return {
         name: tool.name,
         description: tool.description,
         input_schema: inputSchema,
+        strict: true,
       } as AnthropicToolType;
     });
   }

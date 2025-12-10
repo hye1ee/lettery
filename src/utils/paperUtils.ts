@@ -44,7 +44,10 @@ export const closePath = (path: paper.Path | paper.CompoundPath): paper.Path | p
 }
 
 export const makeCompoundPath = (items: paper.Item[]): paper.CompoundPath => {
-  return new paper.CompoundPath({ children: items });
+  const compoundPath = new paper.CompoundPath({ children: items });
+  compoundPath.fillColor = new paper.Color(colors.black);
+  compoundPath.fillRule = "evenodd";
+  return compoundPath;
 }
 
 export const releaseCompoundPath = (items: paper.Item[]): void => {

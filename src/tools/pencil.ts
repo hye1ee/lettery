@@ -41,6 +41,7 @@ export default class PencilTool implements Tool {
 
   onMouseDown = (event: paper.ToolEvent): void => {
     this.path = new paper.Path();
+    this.path.name = "shapesketch";
     paper.project.activeLayer.addChild(this.path);
     this.renderCallback?.();
 
@@ -65,7 +66,6 @@ export default class PencilTool implements Tool {
 
     this.path.fillColor = new paper.Color("#6FC9F0");
     this.path.selected = false;
-    this.path.name = "shapesketch";
     this.path.opacity = 0.5;
     this.path.bringToFront();
 

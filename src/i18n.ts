@@ -31,7 +31,7 @@ const translations: Record<string, TranslationEntry> = {
   'button.exportSvg': { ko: 'SVG 내보내기', en: 'Export SVG' },
   'agent.status.empty': { ko: '작업할 레이어를 생성해주세요', en: 'Create a layer to work with Gulo' },
   'agent.status.active': {
-    ko: "에이전트 '글로'와 '{{layer}}' 자모 작업 중",
+    ko: "에이전트와 '{{layer}}' 자모 작업 중",
     en: "Work with agent Gulo on layer '{{layer}}'",
   },
   'agent.status.tool': {

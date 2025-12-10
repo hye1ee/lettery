@@ -41,6 +41,8 @@ export default class MarkerTool implements Tool {
 
   onMouseDown = (event: paper.ToolEvent): void => {
     this.path = new paper.Path();
+    this.path.name = "strokesketch";
+
     paper.project.activeLayer.addChild(this.path);
     this.renderCallback?.();
 
@@ -64,7 +66,6 @@ export default class MarkerTool implements Tool {
     // closePath(this.path);
 
     this.path.selected = false;
-    this.path.name = "strokesketch";
     this.path.opacity = 0.8;
     this.path.bringToFront();
 

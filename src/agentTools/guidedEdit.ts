@@ -133,33 +133,11 @@ class GuidedEdit extends BaseAgentTool {
     // Capture the svg string as base64
     const svgBase64 = await this.formatSvgToBase64(svgString);
 
-    // Generate 3 variations with separate API calls
-    const generationPromises = Array(3).fill(null).map(async () => {
-      const response = await model.generateResponses({
-        input: [
-          isStrokeSketch ? strokeEditExample : outlineEditExample,
-          {
-            role: 'user',
-            content: [
-              { type: "text", data: `Current jamo path data: ${pathData.join(' ')}` },
-              { type: "text", data: `Guide path data: ${guideData.join(' ')}` },
-              { type: "image", data: svgBase64 },
-            ],
-          },
-        ],
-        instructions: jamoGuideEditPrompt(workingJamo, isStrokeSketch),
-        tools: [editTool],
-      });
+    // Initialize results array with placeholders (for loading state)
+    // Use Array.from to create separate objects, not shared references
+    this.generatedResults = Array.from({ length: 3 }, () => ({ path: '' }));
 
-      const result = JSON.parse(model.getToolMessage(response) ?? "{}");
-      return {
-        path: result.path || ''
-      };
-    });
-
-    this.generatedResults = await Promise.all(generationPromises);
-
-    // Show results
+    // Show initial loading state and setup listeners once
     this.updateStepContent(
       2,
       `
@@ -168,8 +146,86 @@ class GuidedEdit extends BaseAgentTool {
       '완료'
     );
 
-    // Set up single-selection listeners
+    // Setup listeners once at the beginning (they'll work for all updates)
     this.setupSingleSelectionListeners();
+
+    // Track completion
+    let completedCount = 0;
+    const totalCalls = 3;
+
+    // Helper function to update the display with current results
+    const updateResultsDisplay = (setupListeners: boolean = false) => {
+      this.updateStepContent(
+        2,
+        `
+          ${tags.guidedEditResults(this.generatedResults)}
+        `,
+        '완료'
+      );
+
+      // Only setup listeners when explicitly requested (to avoid duplicate listeners)
+      if (setupListeners) {
+        this.setupSingleSelectionListeners();
+      }
+    };
+
+    // Generate 3 variations - each updates UI independently as it completes
+    const generationPromises = Array(3).fill(null).map(async (_, index) => {
+      try {
+        const response = await model.generateResponses({
+          input: [
+            isStrokeSketch ? strokeEditExample : outlineEditExample,
+            {
+              role: 'user',
+              content: [
+                { type: "text", data: `Current jamo path data: ${pathData.join(' ')}` },
+                { type: "text", data: `Guide path data: ${guideData.join(' ')}` },
+                { type: "image", data: svgBase64 },
+              ],
+            },
+          ],
+          instructions: jamoGuideEditPrompt(workingJamo, isStrokeSketch),
+          tools: [editTool],
+        });
+
+        const result = JSON.parse(model.getToolMessage(response) ?? "{}");
+        const resultData = {
+          path: result.path || ''
+        };
+
+        console.log(`Result ${index + 1} received:`, { hasPath: !!resultData.path, pathType: typeof resultData.path, pathLength: Array.isArray(resultData.path) ? resultData.path.length : resultData.path.length });
+
+        // Update the specific result
+        this.generatedResults[index] = resultData;
+        completedCount++;
+
+        console.log(`Result ${index + 1} completed (${completedCount}/${totalCalls})`);
+        console.log('Current generatedResults:', this.generatedResults);
+
+        // Update UI immediately when this result arrives
+        updateResultsDisplay();
+
+        return resultData;
+      } catch (error) {
+        console.error(`Error generating result ${index + 1}:`, error);
+
+        // Mark as failed but still update UI
+        this.generatedResults[index] = { path: '' };
+        completedCount++;
+
+        updateResultsDisplay();
+
+        return { path: '' };
+      }
+    });
+
+    // Wait for all to complete (but UI already updated progressively)
+    await Promise.all(generationPromises);
+
+    console.log('All generations complete');
+
+    // Final update (listeners already set up)
+    updateResultsDisplay(false);
 
     await this.waitForConfirmation();
 
@@ -182,31 +238,67 @@ class GuidedEdit extends BaseAgentTool {
 
   private setupSingleSelectionListeners(): void {
     setTimeout(() => {
-      const previewContainers = document.querySelectorAll('.execution-preview-container');
-      previewContainers.forEach((container) => {
-        const htmlContainer = container as HTMLElement;
-        if (htmlContainer.classList.contains('has-cursor')) {
-          htmlContainer.addEventListener('click', (e) => {
-            e.stopPropagation();
+      // Use event delegation on the step content element (which doesn't get replaced)
+      const stepContent = document.getElementById(`agent-workflow-step-content-${this.id}-2`);
 
-            const wasSelected = htmlContainer.classList.contains('selected');
+      if (!stepContent) {
+        console.warn('Step content not found');
+        return;
+      }
 
-            // Remove selected class from all containers
-            previewContainers.forEach(c => c.classList.remove('selected'));
+      console.log('Setting up selection listeners on step content:', stepContent);
 
-            // Toggle: if it wasn't selected before, select it now
-            if (!wasSelected) {
-              htmlContainer.classList.add('selected');
-            }
+      // Remove any existing delegated listener
+      const oldListener = (stepContent as any)._selectionListener;
+      if (oldListener) {
+        console.log('Removing old listener');
+        stepContent.removeEventListener('click', oldListener);
+      }
 
-            this.updateSingleSelectionDescription();
-          });
+      // Create new delegated listener
+      const newListener = (e: Event) => {
+        const target = e.target as HTMLElement;
+        const previewContainer = target.closest('.execution-preview-container') as HTMLElement;
+
+        console.log('Click detected:', { target, previewContainer });
+
+        if (!previewContainer) {
+          console.log('No preview container found');
+          return;
         }
-      });
+
+        if (!previewContainer.classList.contains('has-cursor')) {
+          console.log('Container does not have has-cursor class:', previewContainer.className);
+          return;
+        }
+
+        e.stopPropagation();
+        console.log('Selection toggling');
+
+        const wasSelected = previewContainer.classList.contains('selected');
+
+        // Remove selected class from all containers
+        const allContainers = document.querySelectorAll('.execution-preview-container');
+        allContainers.forEach(c => c.classList.remove('selected'));
+
+        // Toggle: if it wasn't selected before, select it now
+        if (!wasSelected) {
+          previewContainer.classList.add('selected');
+          console.log('Selected container:', previewContainer.dataset.index);
+        } else {
+          console.log('Deselected all');
+        }
+
+        this.updateSingleSelectionDescription();
+      };
+
+      // Attach the listener to step content (persists across innerHTML updates)
+      stepContent.addEventListener('click', newListener);
+      (stepContent as any)._selectionListener = newListener;
 
       // Initial description update
       this.updateSingleSelectionDescription();
-    }, 50);
+    }, 100);
   }
 
   private updateSingleSelectionDescription(): void {
@@ -219,6 +311,8 @@ class GuidedEdit extends BaseAgentTool {
       }
     });
 
+    console.log('Updating selection description, selectedIndex:', selectedIndex);
+
     const descriptionElement = document.querySelector('.execution-selection-description');
     if (descriptionElement) {
       if (selectedIndex === -1) {
@@ -226,6 +320,9 @@ class GuidedEdit extends BaseAgentTool {
       } else {
         descriptionElement.textContent = `옵션 ${selectedIndex + 1}이 선택되었어요`;
       }
+      console.log('Description updated to:', descriptionElement.textContent);
+    } else {
+      console.warn('Description element not found');
     }
   }
 

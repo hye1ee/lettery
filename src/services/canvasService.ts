@@ -675,10 +675,15 @@ class CanvasService {
     const layer = paper.project.layers.find((layer: any) => layer.name === jamo && layer.data.syllableString === syllable);
     if (!layer) throw new Error("Layer not found");
 
-    // clear layer first
-    layer.children.filter((item: any) => item instanceof paper.PathItem).forEach((item: any) => {
-      item.remove();
-    });
+    // Clear layer first - collect items to remove first, then remove them
+    const itemsToRemove = layer.children.filter((item: any) =>
+      item instanceof paper.PathItem || item instanceof paper.CompoundPath
+    );
+
+    // Remove items in reverse order to avoid index shifting issues
+    for (let i = itemsToRemove.length - 1; i >= 0; i--) {
+      itemsToRemove[i].remove();
+    }
 
     // Split path data by "M" command to handle multiple closed paths
     const splitPaths = pathData
@@ -686,15 +691,23 @@ class CanvasService {
       .filter(path => path.trim() !== "") // Remove empty strings
       .map(path => path.trim()); // Clean up whitespace
 
-    // Create separate path objects for each segment
+    console.log(`[CanvasService] Importing ${splitPaths.length} path(s) to layer ${jamo}`);
+
+    // Create separate path objects for each segment and close them
+    const paths: paper.Path[] = [];
     splitPaths.forEach((pathSegment) => {
       const path = new paper.Path(pathSegment);
-      path.parent = layer;
       closePath(path);
+      paths.push(path);
     });
-    const compoundPath = new paper.CompoundPath(splitPaths);
+
+    // Create a compound path from the individual paths
+    const compoundPath = new paper.CompoundPath({ children: paths });
+    compoundPath.fillColor = new paper.Color(colors.black);
+    compoundPath.fillRule = "evenodd";
     compoundPath.parent = layer;
 
-    console.log(`[CanvasService] Imported ${splitPaths.length} path(s) to layer ${jamo}`);
+    console.log(`[CanvasService] Successfully imported to layer ${jamo}`);
+    console.log(compoundPath)
   }
 } export default CanvasService;
