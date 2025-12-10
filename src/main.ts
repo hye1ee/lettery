@@ -9,6 +9,7 @@ import { initI18n, translate } from './i18n'
 
 let layerImportSvgBtn: HTMLButtonElement
 let layerExportSvgBtn: HTMLButtonElement
+let refreshButton: HTMLButtonElement
 let addLayerBtn: HTMLButtonElement
 let addJamoBtn: HTMLButtonElement
 let fileInput: HTMLInputElement
@@ -20,6 +21,7 @@ const initApp = () => {
 
   layerImportSvgBtn = document.getElementById('layer-import-svg') as HTMLButtonElement
   layerExportSvgBtn = document.getElementById('layer-export-svg') as HTMLButtonElement
+  refreshButton = document.getElementById('refresh-button') as HTMLButtonElement
   addLayerBtn = document.getElementById('header-plus-btn') as HTMLButtonElement
   addJamoBtn = document.getElementById('jamo-plus-btn') as HTMLButtonElement
   fileInput = document.getElementById('file-input') as HTMLInputElement
@@ -29,10 +31,11 @@ const initApp = () => {
   const canvas = document.getElementById('vector-canvas') as HTMLElement;
 
   // Check if all elements are found
-  if (!layerImportSvgBtn || !layerExportSvgBtn || !addLayerBtn || !addJamoBtn || !fileInput || !statusText || !coordinates) {
+  if (!layerImportSvgBtn || !layerExportSvgBtn || !refreshButton || !addLayerBtn || !addJamoBtn || !fileInput || !statusText || !coordinates) {
     console.error('Some DOM elements not found:', {
       layerImportSvgBtn: !!layerImportSvgBtn,
       layerExportSvgBtn: !!layerExportSvgBtn,
+      refreshButton: !!refreshButton,
       addLayerBtn: !!addLayerBtn,
       addJamoBtn: !!addJamoBtn,
       fileInput: !!fileInput,
@@ -114,6 +117,10 @@ const setupEventListeners = () => {
 
   layerExportSvgBtn.addEventListener('click', () => {
     exportModal.show();
+  })
+
+  refreshButton.addEventListener('click', () => {
+    window.location.reload();
   })
 
   // Header plus button (syllables)
